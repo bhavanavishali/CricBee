@@ -392,7 +392,6 @@ export default function SignUpPage() {
                   <option value="">Choose Your Role</option>
                   <option value="organizer">Organizer</option>
                   <option value="manager">Club Manager</option>
-                  <option value="player">Player</option>
                   <option value="fan">Fan</option>
                 </select>
               </div>

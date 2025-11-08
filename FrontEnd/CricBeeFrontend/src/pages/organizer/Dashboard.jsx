@@ -1,6 +1,9 @@
+
 "use client"
 
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
 import {
   Trophy,
   Users,
@@ -12,9 +15,11 @@ import {
   ChevronRight,
   Bell,
   Settings,
+  LogOut,
 } from "lucide-react"
 
 export default function OrganizerDashboard() {
+  const navigate = useNavigate()
   const [tournaments, setTournaments] = useState([
     {
       id: 1,
@@ -127,6 +132,17 @@ export default function OrganizerDashboard() {
     },
   ]
 
+  const handleLogout = async () => {
+    try {
+      await axios.post('/auth/logout')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    // Clear any auth tokens or localStorage data (adjust as per your auth implementation)
+    localStorage.removeItem('authToken') // Example: remove token if stored
+    navigate('/signin') // Redirect to login page
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -153,6 +169,14 @@ export default function OrganizerDashboard() {
               </div>
               <ChevronRight size={18} className="text-gray-400" />
             </div>
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="hidden sm:inline text-sm">Logout</span>
+            </button>
           </div>
         </div>
       </header>

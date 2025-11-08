@@ -1,14 +1,14 @@
 import axios from "axios";
 
-const BASE_URL=import.meta.env.VITE_BASE_URL
+const BASE_URL ="http://localhost:8000"
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
-    "X-CSRFToken": getCookie("csrftoken"),
+    // "X-CSRFToken": getCookie("csrftoken"),  // Uncomment if using CSRF middleware
   },
-  withCredentials: true,
+  withCredentials: true,  // Crucial: Sends/receives cookies automatically
 });
 
 api.interceptors.response.use(
@@ -19,31 +19,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Include CSRF token manually if needed
-        const csrfToken = getCookie("csrftoken");
-
-         await axios.post(
-          `${BASE_URL}/refresh_token/`,{}, {
-            headers: {
-              "X-CSRFToken": csrfToken,
-            },
-            withCredentials: true,
-          });
-
-        // Optionally update tokens or anything if needed from response
+        // Refresh: Backend reads refresh_token cookie, sets new ones
+        await api.post("/auth/refresh");
+        // Retry with new cookies (auto-sent)
+        originalRequest.headers.Authorization = undefined;  // Not needed; cookies handle auth
         return api(originalRequest);
       } catch (refreshError) {
-        try {
-          await axios.post(`${BASE_URL}/logout/`, {}, {
-            headers: {
-              "X-CSRFToken": getCookie("csrftoken"),
-            },
-            withCredentials: true,
-          });
-        } catch (logoutError) {
-          console.error("Logout failed:", logoutError);
-        }
-
+        // Refresh failed: Clear local user, redirect to signin
+        localStorage.removeItem("user");
+        window.location.href = "/signin";
         return Promise.reject(refreshError);
       }
     }

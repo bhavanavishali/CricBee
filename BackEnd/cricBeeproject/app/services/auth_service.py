@@ -33,6 +33,7 @@ def register_user(db: Session, payload: UserSignUp) -> User | None:
     print("*****************",user)
     return user
 
+
 def authenticate(db: Session, email_or_phone: str, password: str) -> User | None:
     # Check if it's an email or phone number
     is_email = "@" in email_or_phone
@@ -44,5 +45,4 @@ def authenticate(db: Session, email_or_phone: str, password: str) -> User | None
     
     if not user or not verify_password(password, user.hashed_password):
         return None
-    print("*************",user)
     return user
