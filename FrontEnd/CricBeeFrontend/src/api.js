@@ -20,7 +20,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // Refresh: Backend reads refresh_token cookie, sets new ones
-        await api.post("/auth/refresh");
+        await api.post(`${BASE_URL}/auth/refresh`);
         // Retry with new cookies (auto-sent)
         originalRequest.headers.Authorization = undefined;  // Not needed; cookies handle auth
         return api(originalRequest);
@@ -43,3 +43,4 @@ function getCookie(name) {
 }
 
 export default api;
+

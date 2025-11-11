@@ -17,9 +17,14 @@ import {
   Settings,
   LogOut,
 } from "lucide-react"
+import { useSelector } from "react-redux"
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
+  const user = useSelector((state) => state.auth.user);
+  const userRole = user?.role;
+  console.log("User Role in Dashboard:", userRole);
+  console.log("User in Dashboard:", user);
   const [tournaments, setTournaments] = useState([
     {
       id: 1,
@@ -161,12 +166,15 @@ export default function OrganizerDashboard() {
             </button>
             <div className="flex items-center space-x-3 border-l border-gray-200 pl-6">
               <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">Demo Organizer</p>
-                <p className="text-xs text-blue-600">Organizer</p>
+                <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
+                <p className="text-xs text-blue-600">{userRole}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                D
-              </div>
+               <div
+      onClick={() => navigate("/organizer/profile")}
+      className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:bg-blue-200 transition-all"
+    >
+      D
+    </div>
               <ChevronRight size={18} className="text-gray-400" />
             </div>
             {/* Logout Button */}

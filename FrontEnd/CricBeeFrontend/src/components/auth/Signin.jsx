@@ -1,158 +1,21 @@
 
-
-// "use client"
-// import { useState } from "react"
-// import { signIn } from "@/api/authService"
-
-// export default function SignInPage() {
-//   const [formData, setFormData] = useState({
-//     email_or_phone: "test@example.com",
-//     password: "123456",
-//   })
-
-//   const handleChange = (e) => {
-//     const { name, value } = e.target
-//     setFormData((prev) => ({
-//       ...prev,
-//       [name]: value,
-//     }))
-//   }
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault()
-//     try {
-//       const response = await signIn(formData)
-//       if (response.success) {
-//         if (response.token) {
-//           localStorage.setItem("token", response.token)
-//         }
-//         if (response.user) {
-//           localStorage.setItem("user", JSON.stringify(response.user))
-//         }
-//         window.location.href = "/"
-//       } else {
-//         alert(response.message || "Invalid credentials")
-//       }
-//     } catch (err) {
-//       alert(err.message || "Sign in failed. Please try again.")
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gray-100">
-//       {/* Header */}
-//       <header className="sticky top-0 z-40 w-full bg-white shadow-sm">
-//         <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-//           <div className="flex items-center gap-2">
-//             <div className="w-8 h-8 bg-teal-600 rounded-md flex items-center justify-center">
-//               <span className="text-white font-bold text-sm">CB</span>
-//             </div>
-//             <span className="font-semibold text-lg">CricB</span>
-//           </div>
-//           <div className="flex items-center gap-3">
-//             <a href="/" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
-//               Back to Home
-//             </a>
-//           </div>
-//         </nav>
-//       </header>
-
-//       {/* Sign In Page */}
-//       <div className="flex items-center justify-center py-12 px-4">
-//         <div className="bg-gray-300 rounded-3xl w-full max-w-3xl p-8 md:p-12">
-//           <div className="grid md:grid-cols-2 gap-8">
-//             {/* Demo Roles Sidebar */}
-//             <div className="flex flex-col gap-4">
-//               <h3 className="text-lg font-semibold text-orange-600 mb-4">Demo Roles</h3>
-//               {["Demo Admin", "Demo Organizer", "Demo Manager", "Demo Player"].map((role) => (
-//                 <button
-//                   key={role}
-//                   className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition text-left"
-//                 >
-//                   {role}
-//                 </button>
-//               ))}
-//             </div>
-
-//             {/* Sign In Form */}
-//             <div>
-//               <h2 className="text-3xl font-bold text-orange-600 mb-2">Welcome to CricB!</h2>
-//               <p className="text-gray-600 mb-6">Login/Signup to get exclusive CricB privileges!</p>
-
-//               <form onSubmit={handleSubmit} className="space-y-6">
-//                 {/* Email or Phone */}
-//                 <div>
-//                   <label className="block text-orange-600 font-medium mb-2">Email or Phone</label>
-//                   <input
-//                     type="text"
-//                     name="email_or_phone"
-//                     value={formData.email_or_phone}
-//                     onChange={handleChange}
-//                     placeholder="Enter your email or phone"
-//                     className="w-full px-4 py-3 bg-white rounded-lg border border-gray-400 placeholder-gray-500 focus:outline-none focus:border-orange-500"
-//                   />
-//                 </div>
-
-//                 {/* Password */}
-//                 <div>
-//                   <label className="block text-orange-600 font-medium mb-2">Password</label>
-//                   <input
-//                     type="password"
-//                     name="password"
-//                     value={formData.password}
-//                     onChange={handleChange}
-//                     placeholder="Enter your password"
-//                     className="w-full px-4 py-3 bg-white rounded-lg border border-gray-400 placeholder-gray-500 focus:outline-none focus:border-orange-500"
-//                   />
-//                 </div>
-
-//                 {/* Forgot Password Link */}
-//                 <div className="text-right">
-//                   <a href="#" className="text-blue-500 text-sm hover:text-blue-700">
-//                     Forgot password?
-//                   </a>
-//                 </div>
-
-//                 {/* Sign In Button */}
-//                 <button
-//                   type="submit"
-//                   className="w-full py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition text-lg"
-//                 >
-//                   SignIn
-//                 </button>
-//               </form>
-
-//               {/* Sign Up Link */}
-//               <p className="text-center text-gray-600 mt-6">
-//                 Don't have an account?{" "}
-//                 <a href="/signup" className="text-orange-500 hover:text-orange-600 font-medium">
-//                   Sign Up
-//                 </a>
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }
-
-
-
-
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signIn } from "@/api/authService";  // Updated import path if needed
+import { useDispatch, useSelector } from "react-redux";
+import { setUser, setLoading } from "@/store/slices/authSlice";
+import { signIn } from "@/api/authService";
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const loading = useSelector((state) => state.auth.loading);
+  
   const [formData, setFormData] = useState({
     role: "",
     email_or_phone: "test@example.com",
     password: "123456",
   });
-  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -162,72 +25,89 @@ export default function SignInPage() {
     }));
   };
 
+  // Added missing handleDemoLogin
+  const handleDemoLogin = async (demoRole) => {
+    if (loading) return;
+    
+    dispatch(setLoading(true));
+    // Simulate API response with hardcoded demo user (replace with real API if needed)
+    const demoUsers = {
+      "Demo Admin": { id: 1, full_name: "Demo Admin", email: "admin@example.com", phone: "", role: "admin" },
+      "Demo Organizer": { id: 2, full_name: "Demo Organizer", email: "organizer@example.com", phone: "", role: "organizer" },
+      "Demo Manager": { id: 3, full_name: "Demo Manager", email: "manager@example.com", phone: "", role: "club_manager" },
+      "Demo Player": { id: 4, full_name: "Demo Player", email: "player@example.com", phone: "", role: "player" },
+    };
+    
+    const demoUser = demoUsers[demoRole];
+    if (demoUser) {
+      dispatch(setUser(demoUser));
+      // Redirect based on role
+      let redirectPath = "/";
+      if (demoUser.role === "organizer") {
+        redirectPath = "/organizer/dashboard";
+      } else if (demoUser.role === "club_manager") {
+        redirectPath = "/club_manager/dashboard";
+      } else if (demoUser.role === "player") {
+        redirectPath = "/player/dashboard";
+      } else if (demoUser.role === "fan") {
+        redirectPath = "/";
+      } else if (demoUser.role === "admin") {
+        redirectPath = "/admin/dashboard";  // Assume admin path
+      }
+      navigate(redirectPath, { replace: true });
+    }
+    dispatch(setLoading(false));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate role selection
     if (!formData.role) {
       alert("Please select a role before signing in.");
       return;
     }
     
-    setLoading(true);
+    dispatch(setLoading(true));
     try {
       const response = await signIn(formData);
       console.log("Sign in response:", response);
       
       if (response && response.success) {
+        // Store user in Redux (full_name as "name")
         if (response.user) {
-          localStorage.setItem("user", JSON.stringify(response.user));
+          dispatch(setUser(response.user));
+          console.log("User set in Redux (name:", response.user.full_name, ", role:", response.user.role, "):", response);
         }
-        // Redirect based on selected role using React Router
+        
+        // Redirect based on selected role
         const selectedRole = formData.role;
         let redirectPath = "/";
         
         if (selectedRole === "organizer") {
           redirectPath = "/organizer/dashboard";
-        } else if (selectedRole === "manager") {
+        } else if (selectedRole === "club_manager") {  // Match backend role
           redirectPath = "/club_manager/dashboard";
         } else if (selectedRole === "player") {
           redirectPath = "/player/dashboard";
         } else if (selectedRole === "fan") {
-          redirectPath = "/";  // Fan/home
+          redirectPath = "/";
         }
         
         console.log("Redirecting to:", redirectPath);
         navigate(redirectPath, { replace: true });
       } else {
         alert(response?.message || "Invalid credentials");
-        setLoading(false);
       }
     } catch (err) {
       console.error("Sign in error:", err);
       alert(err.message || "Sign in failed. Please try again.");
-      setLoading(false);
-    }
-  };
-
-  // Demo login handler (example; implement backend endpoint)
-  const handleDemoLogin = async (role) => {
-    try {
-      // Call backend /auth/demo/{role} which sets cookies like signin
-      const response = await fetch(`${"http://localhost:8000"}/auth/demo/${role.toLowerCase().replace(/\s+/g, '-')}`, {
-        method: "POST",
-        credentials: "include",  // Include cookies
-      });
-      if (response.ok) {
-        const user = await response.json();
-        localStorage.setItem("user", JSON.stringify(user));
-        window.location.href = `/${role.toLowerCase().replace(/\s+/g, '-')}/dashboard`;
-      }
-    } catch (err) {
-      alert("Demo login failed");
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header - unchanged */}
       <header className="sticky top-0 z-40 w-full bg-white shadow-sm">
         <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -244,17 +124,15 @@ export default function SignInPage() {
         </nav>
       </header>
 
-      {/* Sign In Page - form unchanged, added loading to button, demo onClick */}
       <div className="flex items-center justify-center py-12 px-4">
         <div className="bg-gray-300 rounded-3xl w-full max-w-3xl p-8 md:p-12">
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Demo Roles Sidebar */}
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-semibold text-orange-600 mb-4">Demo Roles</h3>
               {["Demo Admin", "Demo Organizer", "Demo Manager", "Demo Player"].map((role) => (
                 <button
                   key={role}
-                  onClick={() => handleDemoLogin(role)}  // Added handler
+                  onClick={() => handleDemoLogin(role)}
                   className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition text-left"
                   disabled={loading}
                 >
@@ -263,13 +141,11 @@ export default function SignInPage() {
               ))}
             </div>
 
-            {/* Sign In Form */}
             <div>
               <h2 className="text-3xl font-bold text-orange-600 mb-2">Welcome to CricB!</h2>
               <p className="text-gray-600 mb-6">Login/Signup to get exclusive CricB privileges!</p>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Role Selection */}
                 <div>
                   <label className="block text-orange-600 font-medium mb-2">
                     Select Your Role
@@ -284,13 +160,12 @@ export default function SignInPage() {
                   >
                     <option value="">Choose Your Role</option>
                     <option value="organizer">Organizer</option>
-                    <option value="manager">Club Manager</option>
+                    <option value="club_manager">Club Manager</option>  {/* Match backend */}
                     <option value="player">Player</option>
                     <option value="fan">Fan</option>
                   </select>
                 </div>
 
-                {/* Email or Phone */}
                 <div>
                   <label className="block text-orange-600 font-medium mb-2">Email or Phone</label>
                   <input
@@ -304,7 +179,6 @@ export default function SignInPage() {
                   />
                 </div>
 
-                {/* Password - unchanged */}
                 <div>
                   <label className="block text-orange-600 font-medium mb-2">Password</label>
                   <input
@@ -318,14 +192,12 @@ export default function SignInPage() {
                   />
                 </div>
 
-                {/* Forgot Password Link - unchanged */}
                 <div className="text-right">
                   <a href="#" className="text-blue-500 text-sm hover:text-blue-700">
                     Forgot password?
                   </a>
                 </div>
 
-                {/* Sign In Button */}
                 <button
                   type="submit"
                   disabled={loading}
@@ -335,7 +207,6 @@ export default function SignInPage() {
                 </button>
               </form>
 
-              {/* Sign Up Link - unchanged */}
               <p className="text-center text-gray-600 mt-6">
                 Don't have an account?{" "}
                 <a href="/signup" className="text-orange-500 hover:text-orange-600 font-medium">
@@ -349,5 +220,3 @@ export default function SignInPage() {
     </div>
   );
 }
-
-
