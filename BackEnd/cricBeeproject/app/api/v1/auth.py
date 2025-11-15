@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status,Header,Response,Re
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
-from app.domain.user import UserSignUp, UserSignIn, UserRead, UserLoginResponse
+from app.schemas.user import UserSignUp, UserSignIn, UserRead, UserLoginResponse
 from app.services.auth_service import register_user, authenticate
 from app.utils.jwt import create_access_token
 from app.utils.jwt import create_access_token, create_refresh_token, verify_token, JWTError, get_cookie_params
@@ -45,9 +45,12 @@ def signin(payload: UserSignIn, db: Session = Depends(get_db), response: Respons
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token({"sub": str(user.id)})
+    # access_token = create_access_token({"sub": str(user.id)})
+    # refresh_token = create_refresh_token({"sub": str(user.id)})
     
+    access_token = create_access_token(user_id=user.id)
+    refresh_token = create_refresh_token(user_id=user.id)
+
     # Set httpOnly cookies
     cookie_params = get_cookie_params(is_prod=False)  # Set is_prod=True in env for prod
     response.set_cookie(

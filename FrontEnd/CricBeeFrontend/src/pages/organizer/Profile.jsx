@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Star,
   MapPin,
@@ -13,40 +13,132 @@ import {
   ArrowLeft,
   Settings,
   Bell,
+  Edit3,
+  Plus,
+  Save,
+  X,
 } from "lucide-react"
+import { getProfile, createOrganization, updateOrganization } from '@/api/organizerService';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profile")
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState({ organization_name: '', location: '', bio: '' })
+  const [formError, setFormError] = useState('')
+  const [formLoading, setFormLoading] = useState(false)
+  const [orgId, setOrgId] = useState(null)
 
-  // Sample organizer data
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    setLoading(true)
+    const res = await getProfile()
+    if (res.success) {
+      setProfile(res.data)
+      if (res.data.organization) {
+        const org = res.data.organization
+        setFormData({
+          organization_name: org.organization_name,
+          location: org.location,
+          bio: org.bio
+        })
+        setOrgId(org.id)
+        setShowForm(false) // Hide form if org exists
+        setIsEditing(false)
+      } else {
+        setShowForm(true) // Show create form if no org
+      }
+    } else {
+      // Handle error, e.g., redirect to signin if unauthorized
+      console.error(res.message)
+    }
+    setLoading(false)
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormError('')
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.organization_name || !formData.location || !formData.bio) {
+      setFormError('All fields are required')
+      return
+    }
+    setFormLoading(true)
+    setFormError('')
+    let res
+    if (isEditing && orgId) {
+      res = await updateOrganization(orgId, formData)
+    } else {
+      res = await createOrganization(formData)
+    }
+    if (res.success) {
+      // Refetch profile to update state
+      await fetchProfile()
+    } else {
+      setFormError(res.message)
+    }
+    setFormLoading(false)
+  }
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setIsEditing(false)
+      setShowForm(false)
+    } else {
+      setIsEditing(true)
+      setShowForm(true)
+    }
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setShowForm(false)
+    setFormError('')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading profile...</div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-red-600">Error loading profile. Please try again.</div>
+      </div>
+    )
+  }
+
+  const user = profile.user
+  const organization = profile.organization
+  const hasOrganization = !!organization
+
+  // Sample data for other sections (can be fetched later)
   const organizer = {
-    id: "demo-organizer",
-    name: "Demo Organizer",
-    role: "Organizer",
-    avatar: "D",
+    avatar: user.full_name.charAt(0).toUpperCase(),
     avatarBg: "bg-green-100",
     rating: 4,
     totalRatings: 4.5,
     credibilityScore: 92,
-    location: "Kochi, Kerala",
-    joinedYear: 2019,
+    joinedYear: new Date().getFullYear() - 1, // Placeholder
     tournaments: 12,
-    bio: "Passionate cricket organizer with over 5 years of experience in managing successful tournaments across India.",
     verifications: {
-      organizer: true,
+      organizer: hasOrganization,
       payment: true,
       identity: true,
       phone: true,
-    },
-    details: {
-      fullName: "Demo Organizer",
-      email: "organizer@demo.com",
-      phone: "+91 98765 43210",
-      location: "Kochi, Kerala",
-      organization: "Broto Type Cricket Events",
-      website: "https://cricketorganizer.com",
-      experience: "5 years",
-      bio: "Passionate cricket organizer with over 5 years of experience in managing successful tournaments across India.",
     },
   }
 
@@ -76,12 +168,12 @@ export default function ProfilePage() {
               <Settings size={20} className="text-gray-600" />
             </button>
             <div className="flex items-center gap-2 ml-4 pl-4 border-l border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-300 flex items-center justify-center text-white font-semibold text-sm">
-                D
+              <div className={`w-10 h-10 rounded-full ${organizer.avatarBg} flex items-center justify-center text-white font-semibold text-sm`}>
+                {organizer.avatar}
               </div>
               <div className="text-sm">
-                <p className="font-semibold text-gray-900">Demo Organizer</p>
-                <p className="text-gray-500">Organizer</p>
+                <p className="font-semibold text-gray-900">{user.full_name}</p>
+                <p className="text-gray-500">{user.role}</p>
               </div>
             </div>
           </div>
@@ -108,19 +200,21 @@ export default function ProfilePage() {
               {/* Profile Info */}
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-3xl font-bold text-gray-900">{organizer.name}</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">{user.full_name}</h2>
                   <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full border border-blue-200">
-                    {organizer.role}
+                    Organizer
                   </span>
                 </div>
 
-                <p className="text-gray-600 mb-4 text-base leading-relaxed max-w-2xl">{organizer.bio}</p>
+                <p className="text-gray-600 mb-4 text-base leading-relaxed max-w-2xl">
+                  {hasOrganization ? organization.bio : 'Passionate organizer ready to create impactful events.'}
+                </p>
 
                 {/* Meta Info */}
                 <div className="flex flex-wrap gap-6 text-sm">
                   <div className="flex items-center gap-2 text-gray-600">
                     <MapPin size={18} className="text-gray-400" />
-                    <span>{organizer.location}</span>
+                    <span>{hasOrganization ? organization.location : 'Location not set'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar size={18} className="text-gray-400" />
@@ -140,7 +234,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-end gap-2 mb-2">
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={20} className={i < 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                      <Star key={i} size={20} className={i < organizer.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
                     ))}
                   </div>
                   <span className="text-gray-600 text-sm">({organizer.totalRatings})</span>
@@ -153,11 +247,137 @@ export default function ProfilePage() {
                 <p className="text-gray-500 text-sm">Credibility Score</p>
               </div>
 
-              <button className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
-                Edit Profile
-              </button>
+              {!showForm && hasOrganization && (
+                <button 
+                  onClick={handleEditToggle}
+                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Edit3 size={16} />
+                  Edit Organization
+                </button>
+              )}
             </div>
           </div>
+        </div>
+
+        {/* Organization Section or Form */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          {showForm ? (
+            // Create/Edit Form
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {isEditing ? 'Edit Organization' : 'Create Your Organization'}
+              </h3>
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                  {formError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Organization Name *</label>
+                  <input
+                    type="text"
+                    name="organization_name"
+                    value={formData.organization_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Location *</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Bio *</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <X size={16} className="inline mr-1" />
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {formLoading ? 'Saving...' : (
+                    <>
+                      <Save size={16} />
+                      {isEditing ? 'Save Changes' : 'Create Organization'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          ) : hasOrganization ? (
+            // Organization Details
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Organization Name</label>
+                  <p className="text-gray-600">{organization.organization_name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Location</label>
+                  <p className="text-gray-600">{organization.location}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Bio</label>
+                  <p className="text-gray-600">{organization.bio}</p>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => { setIsEditing(true); setShowForm(true); }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
+                  >
+                    <Edit3 size={16} />
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // No Organization - Show Create Button
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Plus size={32} className="text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Organization Yet</h3>
+              <p className="text-gray-600 mb-6">Create your organization to get started.</p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center gap-2 mx-auto"
+              >
+                <Plus size={16} />
+                Create Organization
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Verification Status */}
@@ -215,45 +435,43 @@ export default function ProfilePage() {
               <div>
                 <h4 className="text-xl font-semibold text-gray-900 mb-6">Profile Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Left Column */}
+                  {/* Left Column - User Details */}
                   <div>
                     <div className="mb-8">
                       <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name</label>
-                      <p className="text-gray-600">{organizer.details.fullName}</p>
+                      <p className="text-gray-600">{user.full_name}</p>
                     </div>
                     <div className="mb-8">
                       <label className="block text-sm font-semibold text-gray-900 mb-2">Email Address</label>
-                      <p className="text-gray-600">{organizer.details.email}</p>
+                      <p className="text-gray-600">{user.email}</p>
                     </div>
                     <div className="mb-8">
                       <label className="block text-sm font-semibold text-gray-900 mb-2">Phone Number</label>
-                      <p className="text-gray-600">{organizer.details.phone}</p>
-                    </div>
-                    <div className="mb-8">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">Location</label>
-                      <p className="text-gray-600">{organizer.details.location}</p>
+                      <p className="text-gray-600">{user.phone}</p>
                     </div>
                   </div>
 
-                  {/* Right Column */}
-                  <div>
-                    <div className="mb-8">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">Organization</label>
-                      <p className="text-gray-600">{organizer.details.organization}</p>
+                  {/* Right Column - Organization Details (if exists) */}
+                  {hasOrganization ? (
+                    <div>
+                      <div className="mb-8">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">Organization</label>
+                        <p className="text-gray-600">{organization.organization_name}</p>
+                      </div>
+                      <div className="mb-8">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">Location</label>
+                        <p className="text-gray-600">{organization.location}</p>
+                      </div>
+                      <div className="mb-8">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">Bio</label>
+                        <p className="text-gray-600">{organization.bio}</p>
+                      </div>
                     </div>
-                    <div className="mb-8">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">Website</label>
-                      <p className="text-gray-600">{organizer.details.website}</p>
+                  ) : (
+                    <div className="col-span-2 text-center py-8">
+                      <p className="text-gray-500">Create an organization to view details here.</p>
                     </div>
-                    <div className="mb-8">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">Experience</label>
-                      <p className="text-gray-600">{organizer.details.experience}</p>
-                    </div>
-                    <div className="mb-8">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">Bio</label>
-                      <p className="text-gray-600">{organizer.details.bio}</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
