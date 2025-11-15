@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.user import User, UserRole
-from app.domain.user import UserSignUp
+from app.schemas.user import UserSignUp
 from app.utils.hashing import hash_password, verify_password
 
 def register_user(db: Session, payload: UserSignUp) -> User | None:

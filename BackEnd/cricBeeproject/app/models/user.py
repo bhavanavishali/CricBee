@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Enum as SQLEnum
 from app.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class UserRole(str, enum.Enum):
     ORGANIZER = "Organizer"
@@ -16,3 +17,7 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.FAN)
+
+    organization = relationship("OrganizationDetails", back_populates="user", uselist=False)
+
+from app.models.organizer import OrganizationDetails
