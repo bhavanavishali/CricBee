@@ -19,5 +19,6 @@ class User(Base):
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.FAN)
 
     organization = relationship("OrganizationDetails", back_populates="user", uselist=False)
-
+    club = relationship("Club", back_populates="manager", uselist=False)
+from app.models.club import Club
 from app.models.organizer import OrganizationDetails
