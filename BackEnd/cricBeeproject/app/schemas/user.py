@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Literal
 from app.models.user import UserRole
+from typing import Optional
+from datetime import datetime
 
 class UserSignUp(BaseModel):
     full_name: str = Field(..., min_length=1, description="Full name of the user")
@@ -8,7 +10,7 @@ class UserSignUp(BaseModel):
     phone: str = Field(..., description="10-digit phone number")
     password: str = Field(..., min_length=8, description="Password with minimum 8 characters")
     confirm_password: str = Field(..., min_length=8, description="Confirm password must match")
-    role: Literal["Organizer", "Club Manager", "Player", "Fan"] = Field(..., description="User role")
+    role: Literal["Admin","Organizer", "Club Manager", "Player", "Fan"] = Field(..., description="User role")
     
     
     @field_validator("phone")
@@ -60,6 +62,8 @@ class UserRead(BaseModel):
     email: EmailStr
     phone: str
     role: UserRole
+    created_at: datetime
+    is_superuser: Optional[bool] = None
     
     class Config:
         from_attributes = True
@@ -69,3 +73,5 @@ class UserLoginResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user_role: str
+
+

@@ -14,6 +14,7 @@ def register_user(db: Session, payload: UserSignUp) -> User | None:
     
     # Convert role string to UserRole enum
     role_map = {
+        "Admin": UserRole.ADMIN,
         "Organizer": UserRole.ORGANIZER,
         "Club Manager": UserRole.CLUB_MANAGER,
         "Player": UserRole.PLAYER,
@@ -27,6 +28,8 @@ def register_user(db: Session, payload: UserSignUp) -> User | None:
         hashed_password=hash_password(payload.password),
         role=role_map[payload.role]
     )
+    if payload.role == "Admin":
+        user.is_superuser = True
     db.add(user)
     db.commit()
     db.refresh(user)

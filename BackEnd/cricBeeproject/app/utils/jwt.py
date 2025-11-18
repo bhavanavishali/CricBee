@@ -38,22 +38,15 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 def create_access_token(user_id: int, additional_claims: Optional[dict] = None, 
                         expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a JWT access token
     
-    Args:
-        user_id: User ID to include in token
-        additional_claims: Optional additional claims to include
-        expires_delta: Optional custom expiration time
-        
-    Returns:
-        Encoded JWT token string
-    """
     to_encode = {"sub": str(user_id)}
     
     # Add any additional claims
     if additional_claims:
         to_encode.update(additional_claims)
+
+    if additional_claims and "is_superuser" in additional_claims:
+        to_encode["is_superuser"] = additional_claims["is_superuser"]
     
     # Set expiration
     if expires_delta:
@@ -84,6 +77,9 @@ def create_refresh_token(user_id: int, additional_claims: Optional[dict] = None,
     # Add any additional claims
     if additional_claims:
         to_encode.update(additional_claims)
+    
+    if additional_claims and "is_superuser" in additional_claims:
+        to_encode["is_superuser"] = additional_claims["is_superuser"]
     
     # Set expiration
     if expires_delta:

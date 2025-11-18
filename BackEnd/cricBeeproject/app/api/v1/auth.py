@@ -45,11 +45,11 @@ def signin(payload: UserSignIn, db: Session = Depends(get_db), response: Respons
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # access_token = create_access_token({"sub": str(user.id)})
-    # refresh_token = create_refresh_token({"sub": str(user.id)})
-    
-    access_token = create_access_token(user_id=user.id)
-    refresh_token = create_refresh_token(user_id=user.id)
+
+    access_token = create_access_token(user_id=user.id,
+                                       additional_claims={"is_superuser": user.is_superuser})
+    refresh_token = create_refresh_token(user_id=user.id,
+                                         additional_claims={"is_superuser": user.is_superuser})
 
     # Set httpOnly cookies
     cookie_params = get_cookie_params(is_prod=False)  # Set is_prod=True in env for prod
