@@ -30,10 +30,11 @@ const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload };
       }
     },
+    resetAuthState: () => initialState,
   },
 });
 
-export const { setUser, clearUser, setLoading, updateUser } = authSlice.actions;
+export const { setUser, clearUser, setLoading, updateUser,resetAuthState } = authSlice.actions;
 
 // Selectors
 export const selectUser = (state) => state.auth.user;

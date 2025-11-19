@@ -1,3 +1,8 @@
+
+
+
+// @/api/authService.js or wherever your API calls are located
+
 import api from '@/api';
 
 const API_BASE_URL = "http://localhost:8000";
@@ -33,7 +38,7 @@ export const signUp = async (userData) => {
     // Axios automatically throws for non-2xx responses, so if we reach here, it's successful
     return {
       success: true,
-      message: "Sign up successful",
+      message: "Sign up successful. Please check your email for OTP.",
       user: data,  // UserRead from backend
     };
   } catch (error) {
@@ -41,6 +46,58 @@ export const signUp = async (userData) => {
     return {
       success: false,
       message: error.response?.data?.detail || error.message || "Network error.",
+    };
+  }
+};
+
+/**
+ * Verify OTP - Verify the OTP sent to user's email
+ * @param {string} email - User's email address
+ * @param {string} otp - 6-digit OTP
+ */
+export const verifyOTP = async (email, otp) => {
+  try {
+    const response = await api.post(`${API_BASE_URL}/auth/verify-otp`, {
+      email,
+      otp
+    });
+    const data = response.data;
+
+    return {
+      success: true,
+      message: data.message || "Email verified successfully",
+      data: data
+    };
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Invalid or expired OTP",
+    };
+  }
+};
+
+/**
+ * Resend OTP - Request a new OTP to be sent to user's email
+ * @param {string} email - User's email address
+ */
+export const resendOTP = async (email) => {
+  try {
+    const response = await api.post(`${API_BASE_URL}/auth/resend-otp`, {
+      email
+    });
+    const data = response.data;
+
+    return {
+      success: true,
+      message: data.message || "OTP sent successfully",
+      data: data
+    };
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to resend OTP",
     };
   }
 };

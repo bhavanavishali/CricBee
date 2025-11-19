@@ -75,3 +75,43 @@ class UserLoginResponse(BaseModel):
     user_role: str
 
 
+# app/schemas/user.py - Add these new schemas
+
+class OTPVerify(BaseModel):
+    email: EmailStr = Field(..., description="Email address used during signup")
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit OTP")
+    
+    @field_validator("otp")
+    @classmethod
+    def validate_otp(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("OTP must contain only digits")
+        if len(v) != 6:
+            raise ValueError("OTP must be exactly 6 digits")
+        return v
+
+class OTPResend(BaseModel):
+    email: EmailStr = Field(..., description="Email address to resend OTP")
+
+class UserRead(BaseModel):
+    id: int
+    full_name: str
+    email: EmailStr
+    phone: str
+    role: UserRole
+    is_superuser: Optional[bool] = None
+    is_verified: bool = False  # ADD THIS
+    
+    class Config:
+        from_attributes = True
+
+
+class SignUpResponse(BaseModel):
+    message: str
+    email: EmailStr
+    otp_sent: bool
+
+class OTPVerifyResponse(BaseModel):
+    message: str
+    email: EmailStr
+    is_verified: bool
