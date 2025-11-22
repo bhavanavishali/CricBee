@@ -18,7 +18,11 @@ def update_user_status(db: Session, user_id: int, is_active: bool) -> User | Non
     if not user:
         return None
     
+<<<<<<< HEAD
+    # Prevent modifying admin users
+=======
     
+>>>>>>> feature/player
     if user.role == UserRole.ADMIN:
         return None
     

@@ -192,6 +192,9 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
             
     except Exception as e:
         print(f"Error resending OTP: {e}")
+<<<<<<< HEAD
+        return False, "Failed to resend OTP", None
+=======
         return False, "Failed to resend OTP", None
     
 
@@ -206,3 +209,4 @@ def update_user(db:Session ,user_id:int,payload:UserUpdate)-> User:
     db.commit()
     db.refresh(user)
     return user
+>>>>>>> feature/player

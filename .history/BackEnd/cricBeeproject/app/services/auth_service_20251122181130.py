@@ -181,10 +181,17 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
         if not redis_client.exists(user_key):
             return False, "No pending registration found. Please sign up again.", None
         
+<<<<<<< HEAD
+        # Generate new OTP
+        otp = generate_otp(6)
+        
+        # Store new OTP
+=======
        
         otp = generate_otp(6)
         
     
+>>>>>>> feature/player
         if store_otp_in_redis(redis_client, email, otp, expire_minutes=10):
             return True, "OTP resent successfully", otp
         else:
@@ -192,6 +199,9 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
             
     except Exception as e:
         print(f"Error resending OTP: {e}")
+<<<<<<< HEAD
+        return False, "Failed to resend OTP", None
+=======
         return False, "Failed to resend OTP", None
     
 
@@ -206,3 +216,4 @@ def update_user(db:Session ,user_id:int,payload:UserUpdate)-> User:
     db.commit()
     db.refresh(user)
     return user
+>>>>>>> feature/player

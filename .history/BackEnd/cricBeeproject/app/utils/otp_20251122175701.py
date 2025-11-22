@@ -4,6 +4,17 @@ import string
 from datetime import timedelta
 
 def generate_otp(length: int = 6) -> str:
+<<<<<<< HEAD
+    """Generate a numeric OTP"""
+    return ''.join(random.choices(string.digits, k=length))
+
+def get_otp_key(email: str) -> str:
+    """Generate Redis key for OTP"""
+    return f"otp:{email}"
+
+def store_otp_in_redis(redis_client, email: str, otp: str, expire_minutes: int = 10) -> bool:
+    """Store OTP in Redis with expiration"""
+=======
 
     return ''.join(random.choices(string.digits, k=length))
 
@@ -13,6 +24,7 @@ def get_otp_key(email: str) -> str:
 
 def store_otp_in_redis(redis_client, email: str, otp: str, expire_minutes: int = 10) -> bool:
   
+>>>>>>> feature/player
     try:
         key = get_otp_key(email)
         redis_client.setex(key, timedelta(minutes=expire_minutes), otp)
@@ -27,7 +39,11 @@ def verify_otp_from_redis(redis_client, email: str, otp: str) -> bool:
         key = get_otp_key(email)
         stored_otp = redis_client.get(key)
         if stored_otp and stored_otp == otp:
+<<<<<<< HEAD
+            # Delete OTP after successful verification
+=======
            
+>>>>>>> feature/player
             redis_client.delete(key)
             return True
         return False
@@ -36,7 +52,11 @@ def verify_otp_from_redis(redis_client, email: str, otp: str) -> bool:
         return False
 
 def delete_otp_from_redis(redis_client, email: str) -> bool:
+<<<<<<< HEAD
+    """Delete OTP from Redis"""
+=======
    
+>>>>>>> feature/player
     try:
         key = get_otp_key(email)
         redis_client.delete(key)

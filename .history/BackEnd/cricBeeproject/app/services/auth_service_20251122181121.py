@@ -113,10 +113,17 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
         if not user_data_json:
             return False, "Registration session expired. Please sign up again.", None
         
+<<<<<<< HEAD
+        # Parse user data
+        user_data = json.loads(user_data_json)
+        
+        # Double-check user doesn't exist (in case of race condition)
+=======
 
         user_data = json.loads(user_data_json)
         
 
+>>>>>>> feature/player
         check_result = check_user_exists(db, user_data["email"], user_data["phone"])
         if check_result["exists"]:
             # Clean up Redis
@@ -124,7 +131,11 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
             redis_client.delete(f"otp:{email}")
             return False, f"{check_result['field'].capitalize()} already registered", None
         
+<<<<<<< HEAD
+        # Create user in database
+=======
  
+>>>>>>> feature/player
         user = User(
             full_name=user_data["full_name"],
             email=user_data["email"],
@@ -132,7 +143,11 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
             hashed_password=user_data["hashed_password"],
             role=UserRole(user_data["role"]),
             is_superuser=user_data["is_superuser"],
+<<<<<<< HEAD
+            is_verified=True  # Set to True since OTP is verified
+=======
             is_verified=True 
+>>>>>>> feature/player
         )
         
         db.add(user)
@@ -152,7 +167,11 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
 
 
 def authenticate(db: Session, email_or_phone: str, password: str) -> User | None:
+<<<<<<< HEAD
+    """Authenticate user - only verified users can sign in"""
+=======
    
+>>>>>>> feature/player
     # Check if it's an email or phone number
     is_email = "@" in email_or_phone
     
@@ -164,7 +183,11 @@ def authenticate(db: Session, email_or_phone: str, password: str) -> User | None
     if not user or not verify_password(password, user.hashed_password):
         return None
     
+<<<<<<< HEAD
+    # Check if user is verified
+=======
    
+>>>>>>> feature/player
     if not user.is_verified:
         return None
     
@@ -172,19 +195,37 @@ def authenticate(db: Session, email_or_phone: str, password: str) -> User | None
 
 
 def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
+<<<<<<< HEAD
+    """
+    Resend OTP for a pending user registration
+    Returns: (success: bool, message: str, otp: str | None)
+    """
+    try:
+        redis_client = get_redis()
+        
+        # Check if pending user exists
+=======
 
     try:
         redis_client = get_redis()
         
         
+>>>>>>> feature/player
         user_key = f"pending_user:{email}"
         if not redis_client.exists(user_key):
             return False, "No pending registration found. Please sign up again.", None
         
+<<<<<<< HEAD
+        # Generate new OTP
+        otp = generate_otp(6)
+        
+        # Store new OTP
+=======
        
         otp = generate_otp(6)
         
     
+>>>>>>> feature/player
         if store_otp_in_redis(redis_client, email, otp, expire_minutes=10):
             return True, "OTP resent successfully", otp
         else:
@@ -192,6 +233,9 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
             
     except Exception as e:
         print(f"Error resending OTP: {e}")
+<<<<<<< HEAD
+        return False, "Failed to resend OTP", None
+=======
         return False, "Failed to resend OTP", None
     
 
@@ -206,3 +250,4 @@ def update_user(db:Session ,user_id:int,payload:UserUpdate)-> User:
     db.commit()
     db.refresh(user)
     return user
+>>>>>>> feature/player

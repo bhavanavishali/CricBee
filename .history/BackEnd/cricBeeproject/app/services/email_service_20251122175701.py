@@ -14,7 +14,11 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM = os.getenv("SMTP_FROM")
 
 async def send_otp_email(email: str, otp: str, full_name: str) -> bool:
+<<<<<<< HEAD
+    """Send OTP email to user"""
+=======
    
+>>>>>>> feature/player
     try:
         message = MIMEMultipart("alternative")
         message["Subject"] = "Your OTP for Account Verification"

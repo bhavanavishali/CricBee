@@ -36,7 +36,11 @@ def verify_otp_from_redis(redis_client, email: str, otp: str) -> bool:
         return False
 
 def delete_otp_from_redis(redis_client, email: str) -> bool:
+<<<<<<< HEAD
+    """Delete OTP from Redis"""
+=======
    
+>>>>>>> feature/player
     try:
         key = get_otp_key(email)
         redis_client.delete(key)

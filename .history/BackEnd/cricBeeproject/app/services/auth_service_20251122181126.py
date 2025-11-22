@@ -152,7 +152,11 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
 
 
 def authenticate(db: Session, email_or_phone: str, password: str) -> User | None:
+<<<<<<< HEAD
+    """Authenticate user - only verified users can sign in"""
+=======
    
+>>>>>>> feature/player
     # Check if it's an email or phone number
     is_email = "@" in email_or_phone
     
@@ -164,7 +168,11 @@ def authenticate(db: Session, email_or_phone: str, password: str) -> User | None
     if not user or not verify_password(password, user.hashed_password):
         return None
     
+<<<<<<< HEAD
+    # Check if user is verified
+=======
    
+>>>>>>> feature/player
     if not user.is_verified:
         return None
     
@@ -172,19 +180,37 @@ def authenticate(db: Session, email_or_phone: str, password: str) -> User | None
 
 
 def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
+<<<<<<< HEAD
+    """
+    Resend OTP for a pending user registration
+    Returns: (success: bool, message: str, otp: str | None)
+    """
+    try:
+        redis_client = get_redis()
+        
+        # Check if pending user exists
+=======
 
     try:
         redis_client = get_redis()
         
         
+>>>>>>> feature/player
         user_key = f"pending_user:{email}"
         if not redis_client.exists(user_key):
             return False, "No pending registration found. Please sign up again.", None
         
+<<<<<<< HEAD
+        # Generate new OTP
+        otp = generate_otp(6)
+        
+        # Store new OTP
+=======
        
         otp = generate_otp(6)
         
     
+>>>>>>> feature/player
         if store_otp_in_redis(redis_client, email, otp, expire_minutes=10):
             return True, "OTP resent successfully", otp
         else:
@@ -192,6 +218,9 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
             
     except Exception as e:
         print(f"Error resending OTP: {e}")
+<<<<<<< HEAD
+        return False, "Failed to resend OTP", None
+=======
         return False, "Failed to resend OTP", None
     
 
@@ -206,3 +235,4 @@ def update_user(db:Session ,user_id:int,payload:UserUpdate)-> User:
     db.commit()
     db.refresh(user)
     return user
+>>>>>>> feature/player
