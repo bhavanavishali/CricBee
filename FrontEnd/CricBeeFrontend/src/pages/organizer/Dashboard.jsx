@@ -1,9 +1,7 @@
-
 "use client"
-
+import { useDispatch } from 'react-redux';
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
 import {
   Trophy,
   Users,
@@ -18,9 +16,12 @@ import {
   LogOut,
 } from "lucide-react"
 import { useSelector } from "react-redux"
+import { clearUser } from '@/store/slices/authSlice';
+import api from '@/api';
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const userRole = user?.role;
   console.log("User Role in Dashboard:", userRole);
@@ -139,14 +140,18 @@ export default function OrganizerDashboard() {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/auth/logout')
+      // Call backend to invalidate session and clear httpOnly cookies
+      await api.post(`/auth/logout`);
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error("Logout error:", error);
+      // Don't fail the logout if the backend call fails—still clear local state
+    } finally {
+      // Clear the Redux state (this also clears persisted data via Redux Persist)
+      dispatch(clearUser());
+      // Redirect to signin page
+      navigate('/signin');
     }
-    // Clear any auth tokens or localStorage data (adjust as per your auth implementation)
-    localStorage.removeItem('authToken') // Example: remove token if stored
-    navigate('/signin') // Redirect to login page
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">

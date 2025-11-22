@@ -3,9 +3,9 @@ import { createSlice } from "@reduxjs/toolkit";
 
 
 const initialState = {
-  user: null, // { id, full_name (as "name"), email, phone, role }
+  user: null, 
   isAuthenticated: false,
-  loading: false, // Added for async operations like login
+  loading: false,
 };
 
 const authSlice = createSlice({
@@ -30,12 +30,13 @@ const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload };
       }
     },
+    resetAuthState: () => initialState,
   },
 });
 
-export const { setUser, clearUser, setLoading, updateUser } = authSlice.actions;
+export const { setUser, clearUser, setLoading, updateUser,resetAuthState } = authSlice.actions;
 
-// Selectors
+
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectUserRole = (state) => state.auth.user?.role;

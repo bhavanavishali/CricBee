@@ -25,12 +25,12 @@ export default function SignInPage() {
     }));
   };
 
-  // Added missing handleDemoLogin
+  
   const handleDemoLogin = async (demoRole) => {
     if (loading) return;
     
     dispatch(setLoading(true));
-    // Simulate API response with hardcoded demo user (replace with real API if needed)
+   
     const demoUsers = {
       "Demo Admin": { id: 1, full_name: "Demo Admin", email: "admin@example.com", phone: "", role: "admin" },
       "Demo Organizer": { id: 2, full_name: "Demo Organizer", email: "organizer@example.com", phone: "", role: "organizer" },
@@ -127,7 +127,7 @@ export default function SignInPage() {
       <div className="flex items-center justify-center py-12 px-4">
         <div className="bg-gray-300 rounded-3xl w-full max-w-3xl p-8 md:p-12">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="flex flex-col gap-4">
+            {/* <div className="flex flex-col gap-4">
               <h3 className="text-lg font-semibold text-orange-600 mb-4">Demo Roles</h3>
               {["Demo Admin", "Demo Organizer", "Demo Manager", "Demo Player"].map((role) => (
                 <button
@@ -139,7 +139,7 @@ export default function SignInPage() {
                   {role}
                 </button>
               ))}
-            </div>
+            </div> */}
 
             <div>
               <h2 className="text-3xl font-bold text-orange-600 mb-2">Welcome to CricB!</h2>
@@ -192,11 +192,11 @@ export default function SignInPage() {
                   />
                 </div>
 
-                <div className="text-right">
+                {/* <div className="text-right">
                   <a href="#" className="text-blue-500 text-sm hover:text-blue-700">
                     Forgot password?
                   </a>
-                </div>
+                </div> */}
 
                 <button
                   type="submit"

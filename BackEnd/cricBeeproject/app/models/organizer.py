@@ -13,6 +13,7 @@ class OrganizationDetails(Base):
     
     organization_name = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    organization_image = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     bio = Column(String, nullable=False)
     active = Column(Boolean, default=True, nullable=False)

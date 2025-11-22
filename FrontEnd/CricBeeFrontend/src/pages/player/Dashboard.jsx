@@ -9,9 +9,15 @@ import {
   ChevronRight,
   Bell,
   Settings,
+  LogOut,
 } from "lucide-react"
+import { useNavigate } from "react-router-dom";
+import { clearUser } from '@/store/slices/authSlice';
+import api from '@/api';
+import { useDispatch } from "react-redux";
 
 export default function PlayerDashboard() {
+  const dispatch = useDispatch();
   const [matches, setMatches] = useState([
     {
       id: 1,
@@ -41,7 +47,7 @@ export default function PlayerDashboard() {
       statusColor: "bg-green-500",
     },
   ])
-
+  const navigate = useNavigate();
   const statCards = [
     {
       title: "Matches Played",
@@ -81,6 +87,22 @@ export default function PlayerDashboard() {
     },
   ]
 
+  
+    const handleLogout = async () => {
+      try {
+        // Call backend to invalidate session and clear httpOnly cookies
+        await api.post(`/auth/logout`);
+      } catch (error) {
+        console.error("Logout error:", error);
+        // Don't fail the logout if the backend call fails—still clear local state
+      } finally {
+        // Clear the Redux state (this also clears persisted data via Redux Persist)
+        dispatch(clearUser());
+        // Redirect to signin page
+        navigate('/signin');
+      }
+    };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -102,11 +124,19 @@ export default function PlayerDashboard() {
                 <p className="text-sm font-semibold text-gray-900">Player</p>
                 <p className="text-xs text-blue-600">Active</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+              <div onClick={() => navigate("/player/profile")}
+              className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
                 P
               </div>
               <ChevronRight size={18} className="text-gray-400" />
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="hidden sm:inline text-sm">Logout</span>
+            </button>
           </div>
         </div>
       </header>

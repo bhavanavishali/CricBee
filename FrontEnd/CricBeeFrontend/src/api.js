@@ -6,9 +6,9 @@ const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
-    // "X-CSRFToken": getCookie("csrftoken"),  // Uncomment if using CSRF middleware
+    
   },
-  withCredentials: true,  // Crucial: Sends/receives cookies automatically
+  withCredentials: true,  
 });
 
 api.interceptors.response.use(
@@ -19,13 +19,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Refresh: Backend reads refresh_token cookie, sets new ones
+        
         await api.post(`${BASE_URL}/auth/refresh`);
-        // Retry with new cookies (auto-sent)
-        originalRequest.headers.Authorization = undefined;  // Not needed; cookies handle auth
+        
+        originalRequest.headers.Authorization = undefined;  
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed: Clear local user, redirect to signin
+        
         localStorage.removeItem("user");
         window.location.href = "/signin";
         return Promise.reject(refreshError);
