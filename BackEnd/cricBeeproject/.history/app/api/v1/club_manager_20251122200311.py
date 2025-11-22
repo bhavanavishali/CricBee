@@ -124,7 +124,10 @@ def update_club_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-
+    """
+    Update the club manager's club details (via Edit button).
+    Note: no_of_players is not updatable here; it auto-updates elsewhere.
+    """
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -144,7 +147,9 @@ async def upload_club_image_endpoint(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-  
+    """
+    Upload club image to S3 and update club record.
+    """
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(

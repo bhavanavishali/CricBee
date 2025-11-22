@@ -1,12 +1,9 @@
 # app/club/services.py
 from sqlalchemy.orm import Session
-from fastapi import UploadFile
 from app.models.club import Club
 from app.models.user import User, UserRole
 from app.schemas.club_manager import ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse
 from app.schemas.user import UserRead
-from app.services.s3_service import upload_file_to_s3
-from app.core.config import settings
 
 def get_club(db: Session, user_id: int) -> Club | None:
     return db.query(Club).filter(Club.manager_id == user_id).first()
@@ -22,7 +19,6 @@ def create_club(db: Session, payload: ClubCreate, user_id: int) -> Club:
         description=payload.description,
         short_name=payload.short_name,
         location=payload.location,
-        club_image=payload.club_image,
         is_active=True,
         no_of_players=0
     )
@@ -47,32 +43,6 @@ def update_club(db: Session, club_id: int, payload: ClubUpdate, user_id: int) ->
     db.refresh(club)
     return club
 
-def update_club_image(
-    db: Session,
-    club_id: int,
-    user_id: int,
-    uploaded_file: UploadFile,
-) -> Club:
-    """
-    Upload club image to S3 and update club record.
-    """
-    club = db.query(Club).filter(
-        Club.id == club_id,
-        Club.manager_id == user_id,
-    ).first()
-    if not club:
-        raise ValueError("Club not found or access denied")
-
-    # Upload to S3
-    folder = f"{settings.aws_s3_organization_folder}/clubs/{user_id}"
-    image_url = upload_file_to_s3(uploaded_file, folder=folder)
-    
-    # Update club record
-    club.club_image = image_url
-    db.commit()
-    db.refresh(club)
-    return club
-
 def get_profile(db: Session, user_id: int) -> ClubProfileResponse:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -83,5 +53,3 @@ def get_profile(db: Session, user_id: int) -> ClubProfileResponse:
         user=UserRead.model_validate(user),  
         club=ClubRead.model_validate(club) if club else None
     )
-
-

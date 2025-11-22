@@ -2,7 +2,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from app.schemas.user import UserRead, UserUpdate
+from app.schemas.user import UserRead  # Assuming UserRead exists as per provided code
 
 class ClubCreate(BaseModel):
     club_name: str
@@ -17,7 +17,7 @@ class ClubUpdate(BaseModel):
     short_name: Optional[str] = None
     location: Optional[str] = None
     is_active: Optional[bool] = None
-    club_image: Optional[str] = None
+    club_image : Optional[str] = None
 
 class ClubRead(BaseModel):
     id: int
@@ -27,17 +27,18 @@ class ClubRead(BaseModel):
     location: str
     is_active: bool
     no_of_players: int
-    club_image: Optional[str] = None
+    clid_image: Optional[str] = None
     created_at: datetime
+    created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    
 
     class Config:
         from_attributes = True 
 
+
+
 class ClubProfileResponse(BaseModel):
     user: UserRead
     club: Optional[ClubRead] = None
-
-class ClubProfileUpdate(BaseModel):
-    user: Optional[UserUpdate] = None
-    club: Optional[ClubUpdate] = None

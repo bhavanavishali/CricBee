@@ -18,8 +18,10 @@ import {
   CheckCircle,
   Shield,
   CreditCard,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
-import { getClubProfile, createClub, updateClub } from '@/api/clubService'; // Adjust path as needed
+import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage } from '@/api/clubService';
 
 const ClubProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -27,14 +29,19 @@ const ClubProfile = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
   const [formData, setFormData] = useState({
     club_name: '',
     description: '',
     short_name: '',
     location: ''
   });
+  const [userForm, setUserForm] = useState({ full_name: '', phone: '' });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,8 +54,25 @@ const ClubProfile = () => {
     const result = await getClubProfile();
     if (result.success) {
       setProfile(result.profile);
-      if (!result.profile.club) {
+      const user = result.profile.user;
+      setUserForm({
+        full_name: user.full_name || '',
+        phone: user.phone || ''
+      });
+      if (result.profile.club) {
+        const club = result.profile.club;
+        setFormData({
+          club_name: club.club_name,
+          description: club.description,
+          short_name: club.short_name,
+          location: club.location
+        });
+        setImagePreview(club.club_image || null);
+        setShowForm(false);
+        setIsEdit(false);
+      } else {
         setShowForm(true);
+        setImagePreview(null);
       }
     } else {
       setError(result.message);
@@ -60,6 +84,47 @@ const ClubProfile = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (error) setError(null);
+  };
+
+  const handleUserInputChange = (e) => {
+    const { name, value } = e.target;
+    setUserForm(prev => ({ ...prev, [name]: value }));
+    setError(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile || !profile?.club) {
+      setError('Please select an image and ensure club exists');
+      return;
+    }
+
+    setImageUploading(true);
+    setError('');
+    
+    const res = await uploadClubImage(profile.club.id, imageFile);
+    if (res.success) {
+      setImageFile(null);
+      await fetchProfile();
+    } else {
+      setError(res.message);
+    }
+    setImageUploading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -75,21 +140,52 @@ const ClubProfile = () => {
     if (isEdit && profile.club) {
       result = await updateClub(profile.club.id, formData);
       if (result.success) {
-        setProfile(prev => ({ ...prev, club: result.club }));
-        setShowForm(false);
-        setIsEdit(false);
-        setFormData({ club_name: '', description: '', short_name: '', location: '' });
+        await fetchProfile();
       }
     } else {
-      result = await createClub(formData);
+      result = await createClub(formData, imageFile);
       if (result.success) {
-        setProfile(prev => ({ ...prev, club: result.club }));
-        setShowForm(false);
-        setFormData({ club_name: '', description: '', short_name: '', location: '' });
+        setImageFile(null);
+        setImagePreview(null);
+        await fetchProfile();
       }
     }
 
     if (!result.success) {
+      setError(result.message);
+    }
+    setSubmitLoading(false);
+  };
+
+  const handleUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!userForm.full_name || !userForm.phone) {
+      setError('Full name and phone are required');
+      return;
+    }
+    
+    // Validate phone number (10 digits)
+    const cleanedPhone = userForm.phone.replace(/\D/g, '');
+    if (cleanedPhone.length !== 10) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    setSubmitLoading(true);
+    setError('');
+    
+    const payload = {
+      user: {
+        full_name: userForm.full_name,
+        phone: cleanedPhone
+      }
+    };
+    
+    const result = await updateProfile(payload);
+    if (result.success) {
+      setIsEditingUser(false);
+      await fetchProfile();
+    } else {
       setError(result.message);
     }
     setSubmitLoading(false);
@@ -103,9 +199,26 @@ const ClubProfile = () => {
         short_name: profile.club.short_name,
         location: profile.club.location
       });
+      if (profile.club.club_image) {
+        setImagePreview(profile.club.club_image);
+      }
       setIsEdit(true);
       setShowForm(true);
     }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setIsEdit(false);
+    setImageFile(null);
+    setError(null);
+    fetchProfile();
+  };
+
+  const handleUserCancel = () => {
+    setIsEditingUser(false);
+    setError('');
+    fetchProfile();
   };
 
   const handleAddPlayer = () => {
@@ -114,13 +227,6 @@ const ClubProfile = () => {
     } else {
       setError('Please create a club first.');
     }
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setIsEdit(false);
-    setFormData({ club_name: '', description: '', short_name: '', location: '' });
-    setError(null);
   };
 
   if (loading) {
@@ -143,10 +249,9 @@ const ClubProfile = () => {
   const club = profile?.club;
   const hasClub = !!club;
 
-  // Placeholder data for enhancements
   const manager = {
     avatar: user?.full_name?.charAt(0).toUpperCase() || 'M',
-    joinedYear: new Date().getFullYear() - 1,
+    joinedYear: new Date(user?.created_at).getFullYear() || new Date().getFullYear() - 1,
     playersCount: club?.no_of_players || 0,
     verifications: {
       identity: true,
@@ -207,9 +312,21 @@ const ClubProfile = () => {
         <div className="bg-white rounded-lg p-8 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-6">
-              {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-5xl font-bold text-blue-700">{manager.avatar}</span>
+              {/* Avatar with Club Image */}
+              <div className="relative">
+                {imagePreview || (hasClub && club?.club_image) ? (
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-100">
+                    <img 
+                      src={imagePreview || club.club_image} 
+                      alt="Club" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center flex-shrink-0">
+                    <span className="text-5xl font-bold text-blue-700">{manager.avatar}</span>
+                  </div>
+                )}
               </div>
 
               {/* Profile Info */}
@@ -267,6 +384,106 @@ const ClubProfile = () => {
           </div>
         </div>
 
+        {/* User Details Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
+            {!isEditingUser && (
+              <button
+                onClick={() => setIsEditingUser(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
+              >
+                <Edit3 size={16} />
+                Edit User Details
+              </button>
+            )}
+          </div>
+
+          {isEditingUser ? (
+            <form onSubmit={handleUserSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                  {error}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={userForm.full_name}
+                    onChange={handleUserInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={userForm.phone}
+                    onChange={handleUserInputChange}
+                    placeholder="10-digit phone number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={user?.email}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleUserCancel}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <X size={16} className="inline mr-1" />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitLoading}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {submitLoading ? 'Saving...' : (
+                    <>
+                      <Save size={16} />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Full Name</label>
+                  <p className="text-gray-600">{user?.full_name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Phone Number</label>
+                  <p className="text-gray-600">{user?.phone}</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1">Email Address</label>
+                <p className="text-gray-600">{user?.email}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Club Section or Form */}
         <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
           {showForm ? (
@@ -281,6 +498,62 @@ const ClubProfile = () => {
                   {error}
                 </div>
               )}
+              
+              {/* Image Upload Section for Create/Edit */}
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Club Image (Optional)
+                </label>
+                <div className="flex items-center gap-4">
+                  {imagePreview ? (
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-300">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-white">
+                      <ImageIcon size={32} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id={isEdit ? "club-image-edit" : "club-image-create"}
+                    />
+                    <label
+                      htmlFor={isEdit ? "club-image-edit" : "club-image-create"}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      {imageFile ? 'Change Image' : 'Select Image'}
+                    </label>
+                    {imageFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null);
+                          if (hasClub && club?.club_image) {
+                            setImagePreview(club.club_image);
+                          } else {
+                            setImagePreview(null);
+                          }
+                        }}
+                        className="ml-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        <X size={16} className="inline mr-1" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">Club Name *</label>
@@ -328,14 +601,16 @@ const ClubProfile = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <X size={16} />
-                  Cancel
-                </button>
+                {isEdit && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={submitLoading}
@@ -357,6 +632,69 @@ const ClubProfile = () => {
                 <Building2 size={20} />
                 Club Details
               </h3>
+              
+              {/* Image Upload Section */}
+              <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Club Image</label>
+                <div className="flex items-center gap-4">
+                  {imagePreview || club.club_image ? (
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-300">
+                      <img 
+                        src={imagePreview || club.club_image} 
+                        alt="Club" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-white">
+                      <ImageIcon size={32} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="club-image-upload"
+                    />
+                    <label
+                      htmlFor="club-image-upload"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      {imageFile ? 'Change Image' : 'Upload Image'}
+                    </label>
+                    {imageFile && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          onClick={handleImageUpload}
+                          disabled={imageUploading}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {imageUploading ? 'Uploading...' : (
+                            <>
+                              <Save size={16} />
+                              Save Image
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(club.club_image || null);
+                          }}
+                          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                          <X size={16} className="inline mr-1" />
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-1">Club Name</label>
@@ -401,7 +739,12 @@ const ClubProfile = () => {
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
-                  onClick={handleEdit}
+                  onClick={() => {
+                    handleEdit();
+                    if (club.club_image) {
+                      setImagePreview(club.club_image);
+                    }
+                  }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
                 >
                   <Edit3 size={16} />

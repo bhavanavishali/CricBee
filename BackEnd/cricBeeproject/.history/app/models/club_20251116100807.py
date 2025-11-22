@@ -13,7 +13,7 @@ class Club(Base):
     location = Column(String, nullable=False)
     no_of_players = Column(Integer, default=0)
     manager_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    club_image = Column(String, nullable=True) 
+
     manager = relationship("User", back_populates="club")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
