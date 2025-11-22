@@ -17,8 +17,16 @@ import {
   Plus,
   Save,
   X,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react"
-import { getProfile, createOrganization, updateOrganization } from '@/api/organizerService';
+import { 
+  getProfile, 
+  createOrganization, 
+  updateOrganization, 
+  updateProfile,
+  uploadOrganizationImage 
+} from '@/api/organizerService';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profile")
@@ -26,10 +34,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingUser, setIsEditingUser] = useState(false)
   const [formData, setFormData] = useState({ organization_name: '', location: '', bio: '' })
+  const [userForm, setUserForm] = useState({ full_name: '', phone: '' })
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
   const [orgId, setOrgId] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [imageUploading, setImageUploading] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -40,6 +53,11 @@ export default function ProfilePage() {
     const res = await getProfile()
     if (res.success) {
       setProfile(res.data)
+      const user = res.data.user
+      setUserForm({
+        full_name: user.full_name || '',
+        phone: user.phone || ''
+      })
       if (res.data.organization) {
         const org = res.data.organization
         setFormData({
@@ -48,13 +66,14 @@ export default function ProfilePage() {
           bio: org.bio
         })
         setOrgId(org.id)
-        setShowForm(false) // Hide form if org exists
+        setImagePreview(org.organization_image || null)
+        setShowForm(false)
         setIsEditing(false)
       } else {
-        setShowForm(true) // Show create form if no org
+        setShowForm(true)
+        setImagePreview(null)
       }
     } else {
-      // Handle error, e.g., redirect to signin if unauthorized
       console.error(res.message)
     }
     setLoading(false)
@@ -66,10 +85,51 @@ export default function ProfilePage() {
     setFormError('')
   }
 
+  const handleUserInputChange = (e) => {
+    const { name, value } = e.target
+    setUserForm(prev => ({ ...prev, [name]: value }))
+    setFormError('')
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setFormError('Please select an image file')
+        return
+      }
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleImageUpload = async () => {
+    if (!imageFile || !orgId) {
+      setFormError('Please select an image and ensure organization exists')
+      return
+    }
+
+    setImageUploading(true)
+    setFormError('')
+    
+    const res = await uploadOrganizationImage(orgId, imageFile)
+    if (res.success) {
+      setImageFile(null)
+      await fetchProfile()
+    } else {
+      setFormError(res.message)
+    }
+    setImageUploading(false)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!formData.organization_name || !formData.location || !formData.bio) {
-      setFormError('All fields are required')
+      setFormError('All organization fields are required')
       return
     }
     setFormLoading(true)
@@ -78,10 +138,47 @@ export default function ProfilePage() {
     if (isEditing && orgId) {
       res = await updateOrganization(orgId, formData)
     } else {
-      res = await createOrganization(formData)
+      // Pass the image file when creating
+      res = await createOrganization(formData, imageFile)
     }
     if (res.success) {
-      // Refetch profile to update state
+      // Clear image state after successful creation
+      setImageFile(null)
+      setImagePreview(null)
+      await fetchProfile()
+    } else {
+      setFormError(res.message)
+    }
+    setFormLoading(false)
+  }
+
+  const handleUserSubmit = async (e) => {
+    e.preventDefault()
+    if (!userForm.full_name || !userForm.phone) {
+      setFormError('Full name and phone are required')
+      return
+    }
+    
+    // Validate phone number (10 digits)
+    const cleanedPhone = userForm.phone.replace(/\D/g, '')
+    if (cleanedPhone.length !== 10) {
+      setFormError('Phone number must be exactly 10 digits')
+      return
+    }
+
+    setFormLoading(true)
+    setFormError('')
+    
+    const payload = {
+      user: {
+        full_name: userForm.full_name,
+        phone: cleanedPhone
+      }
+    }
+    
+    const res = await updateProfile(payload)
+    if (res.success) {
+      setIsEditingUser(false)
       await fetchProfile()
     } else {
       setFormError(res.message)
@@ -103,6 +200,14 @@ export default function ProfilePage() {
     setIsEditing(false)
     setShowForm(false)
     setFormError('')
+    setImageFile(null)
+    fetchProfile() // Reset form data
+  }
+
+  const handleUserCancel = () => {
+    setIsEditingUser(false)
+    setFormError('')
+    fetchProfile() // Reset form data
   }
 
   if (loading) {
@@ -125,14 +230,13 @@ export default function ProfilePage() {
   const organization = profile.organization
   const hasOrganization = !!organization
 
-  // Sample data for other sections (can be fetched later)
   const organizer = {
     avatar: user.full_name.charAt(0).toUpperCase(),
     avatarBg: "bg-green-100",
     rating: 4,
     totalRatings: 4.5,
     credibilityScore: 92,
-    joinedYear: new Date().getFullYear() - 1, // Placeholder
+    joinedYear: new Date(user.created_at).getFullYear(),
     tournaments: 12,
     verifications: {
       organizer: hasOrganization,
@@ -192,9 +296,21 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg p-8 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-6">
-              {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-5xl font-bold text-green-700">{organizer.avatar}</span>
+              {/* Avatar with Organization Image */}
+              <div className="relative">
+                {imagePreview || (hasOrganization && organization?.organization_image) ? (
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-green-100">
+                    <img 
+                      src={imagePreview || organization.organization_image} 
+                      alt="Organization" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center flex-shrink-0">
+                    <span className="text-5xl font-bold text-green-700">{organizer.avatar}</span>
+                  </div>
+                )}
               </div>
 
               {/* Profile Info */}
@@ -260,6 +376,106 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* User Details Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
+            {!isEditingUser && (
+              <button
+                onClick={() => setIsEditingUser(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
+              >
+                <Edit3 size={16} />
+                Edit User Details
+              </button>
+            )}
+          </div>
+
+          {isEditingUser ? (
+            <form onSubmit={handleUserSubmit} className="space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                  {formError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={userForm.full_name}
+                    onChange={handleUserInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={userForm.phone}
+                    onChange={handleUserInputChange}
+                    placeholder="10-digit phone number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={user.email}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleUserCancel}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <X size={16} className="inline mr-1" />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {formLoading ? 'Saving...' : (
+                    <>
+                      <Save size={16} />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Full Name</label>
+                  <p className="text-gray-600">{user.full_name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Phone Number</label>
+                  <p className="text-gray-600">{user.phone}</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1">Email Address</label>
+                <p className="text-gray-600">{user.email}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Organization Section or Form */}
         <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
           {showForm ? (
@@ -273,6 +489,62 @@ export default function ProfilePage() {
                   {formError}
                 </div>
               )}
+              
+              {/* Image Upload Section for Create/Edit */}
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Organization Image {isEditing ? '(Optional)' : '(Optional)'}
+                </label>
+                <div className="flex items-center gap-4">
+                  {imagePreview ? (
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-300">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-white">
+                      <ImageIcon size={32} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id={isEditing ? "org-image-edit" : "org-image-create"}
+                    />
+                    <label
+                      htmlFor={isEditing ? "org-image-edit" : "org-image-create"}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      {imageFile ? 'Change Image' : 'Select Image'}
+                    </label>
+                    {imageFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null)
+                          if (hasOrganization && organization?.organization_image) {
+                            setImagePreview(organization.organization_image)
+                          } else {
+                            setImagePreview(null)
+                          }
+                        }}
+                        className="ml-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        <X size={16} className="inline mr-1" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">Organization Name *</label>
@@ -337,6 +609,69 @@ export default function ProfilePage() {
             // Organization Details
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Details</h3>
+              
+              {/* Image Upload Section */}
+              <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Organization Image</label>
+                <div className="flex items-center gap-4">
+                  {imagePreview || organization.organization_image ? (
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-300">
+                      <img 
+                        src={imagePreview || organization.organization_image} 
+                        alt="Organization" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-white">
+                      <ImageIcon size={32} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="org-image-upload"
+                    />
+                    <label
+                      htmlFor="org-image-upload"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      {imageFile ? 'Change Image' : 'Upload Image'}
+                    </label>
+                    {imageFile && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          onClick={handleImageUpload}
+                          disabled={imageUploading}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {imageUploading ? 'Uploading...' : (
+                            <>
+                              <Save size={16} />
+                              Save Image
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setImageFile(null)
+                            setImagePreview(organization.organization_image || null)
+                          }}
+                          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                          <X size={16} className="inline mr-1" />
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-1">Organization Name</label>
@@ -352,7 +687,13 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-end">
                   <button
-                    onClick={() => { setIsEditing(true); setShowForm(true); }}
+                    onClick={() => { 
+                      setIsEditing(true)
+                      setShowForm(true)
+                      if (organization.organization_image) {
+                        setImagePreview(organization.organization_image)
+                      }
+                    }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
                   >
                     <Edit3 size={16} />

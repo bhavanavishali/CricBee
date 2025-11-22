@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectUser, selectIsAuthenticated, selectLoading, selectUserRole } from '@/store/slices/authSlice';
 
-// User Role Constants (normalized: lowercase with underscores)
+
 export const USER_ROLES = {
   ADMIN: 'admin',
   ORGANIZER: 'organizer',
@@ -12,18 +12,18 @@ export const USER_ROLES = {
   FAN: 'fan',
 };
 
-// Helper function to normalize role (handles title case, spaces → underscores)
+
 const normalizeRole = (role) => {
   if (!role) return '';
   return role.toLowerCase().replace(/\s+/g, '_');
 };
 
-// Normalized role check
+
 const checkRole = (userRole, expectedRole) => {
   return normalizeRole(userRole) === normalizeRole(expectedRole);
 };
 
-// General Protected Route (any authenticated user)
+
 export const ProtectedRoute = ({ children }) => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const loading = useSelector(selectLoading);
@@ -53,7 +53,7 @@ export const AdminProtectedRoute = ({ children }) => {
     return <Navigate to="/signin" replace />;
   }
 
-  // Check if user is superadmin or has admin role (normalized)
+
   if (user?.is_superadmin !== true && !checkRole(user?.role, USER_ROLES.ADMIN)) {
     return <Navigate to="/unauthorized" replace />;
   }
@@ -61,7 +61,7 @@ export const AdminProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Organizer Protected Route
+
 export const OrganizerProtectedRoute = ({ children }) => {
   const userRole = useSelector(selectUserRole);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -85,7 +85,7 @@ export const OrganizerProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Club Manager Protected Route
+
 export const ClubManagerProtectedRoute = ({ children }) => {
   const userRole = useSelector(selectUserRole);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -108,7 +108,7 @@ export const ClubManagerProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Player Protected Route
+
 export const PlayerProtectedRoute = ({ children }) => {
   const userRole = useSelector(selectUserRole);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -150,7 +150,7 @@ export const FanProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Multi-Role Protected Route (for routes accessible by multiple roles)
+
 export const MultiRoleProtectedRoute = ({ children, allowedRoles }) => {
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -164,7 +164,7 @@ export const MultiRoleProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/signin" replace />;
   }
 
-  // Check if user has one of the allowed roles (normalized) or is superadmin
+
   const hasAccess = user?.is_superadmin || 
     allowedRoles.some(allowedRole => checkRole(user?.role, allowedRole));
 

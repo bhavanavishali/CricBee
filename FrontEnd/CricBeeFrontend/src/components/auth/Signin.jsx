@@ -25,12 +25,12 @@ export default function SignInPage() {
     }));
   };
 
-  // Added missing handleDemoLogin
+  
   const handleDemoLogin = async (demoRole) => {
     if (loading) return;
     
     dispatch(setLoading(true));
-    // Simulate API response with hardcoded demo user (replace with real API if needed)
+   
     const demoUsers = {
       "Demo Admin": { id: 1, full_name: "Demo Admin", email: "admin@example.com", phone: "", role: "admin" },
       "Demo Organizer": { id: 2, full_name: "Demo Organizer", email: "organizer@example.com", phone: "", role: "organizer" },
@@ -192,11 +192,11 @@ export default function SignInPage() {
                   />
                 </div>
 
-                <div className="text-right">
+                {/* <div className="text-right">
                   <a href="#" className="text-blue-500 text-sm hover:text-blue-700">
                     Forgot password?
                   </a>
-                </div>
+                </div> */}
 
                 <button
                   type="submit"

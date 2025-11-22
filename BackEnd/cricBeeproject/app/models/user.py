@@ -25,7 +25,13 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     organization = relationship("OrganizationDetails", back_populates="user", uselist=False)
     club = relationship("Club", back_populates="manager", uselist=False)
+<<<<<<< HEAD
     is_verified = Column(Boolean, default=False)
+=======
+    player_profile = relationship("PlayerProfile", back_populates="user", uselist=False)
+    is_verified = Column(Boolean, default=False)
+    
+>>>>>>> feature/player
 from app.models.club import Club
 
 from app.models.organizer import OrganizationDetails
