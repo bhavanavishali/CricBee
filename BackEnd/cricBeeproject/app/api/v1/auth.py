@@ -108,7 +108,7 @@ async def resend_otp(payload: OTPResend, db: Session = Depends(get_db)):
 
 
 @router.post("/signin", response_model=UserRead)
-def signin(payload: UserSignIn, db: Session = Depends(get_db), response: Response = None):
+def signin(payload: UserSignIn, response: Response, db: Session = Depends(get_db)):
     """
     Sign in - only for verified users who have completed OTP verification.
     """
@@ -136,8 +136,10 @@ def signin(payload: UserSignIn, db: Session = Depends(get_db), response: Respons
         additional_claims={"is_superuser": user.is_superuser}
     )
     
-    # Set httpOnly cookies
+    # Set httpOnly cookies with explicit path
     cookie_params = get_cookie_params(is_prod=False)
+    cookie_params["path"] = "/"
+    
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -155,7 +157,7 @@ def signin(payload: UserSignIn, db: Session = Depends(get_db), response: Respons
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(request: Request, db: Session = Depends(get_db), response: Response = None):
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """
     Log out the user by deleting httpOnly cookies.
     """
@@ -182,13 +184,13 @@ def logout(request: Request, db: Session = Depends(get_db), response: Response =
                 detail="User no longer active"
             )
         
-        # Delete cookies
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
+        # Delete cookies with explicit path
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
         
     except JWTError:
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired access token"
@@ -196,30 +198,65 @@ def logout(request: Request, db: Session = Depends(get_db), response: Response =
 
 
 @router.post("/refresh", response_model=UserRead)
-def refresh_token_endpoint(request: Request, db: Session = Depends(get_db), response: Response = None):
+def refresh_token_endpoint(request: Request, response: Response, db: Session = Depends(get_db)):
     """
     Refresh tokens via cookie.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
+        logger.warning("Refresh endpoint called without refresh_token cookie")
+        # Clear any existing cookies
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
         raise HTTPException(status_code=401, detail="No refresh token")
     
     try:
         payload = verify_token(refresh_token, token_type="refresh")
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            logger.warning("Refresh token missing 'sub' claim")
+            response.delete_cookie("access_token", path="/")
+            response.delete_cookie("refresh_token", path="/")
             raise HTTPException(status_code=401, detail="Invalid refresh token")
         
-        user = db.query(User).filter(User.id == int(user_id)).first()
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid user_id format in refresh token: {user_id_str}")
+            response.delete_cookie("access_token", path="/")
+            response.delete_cookie("refresh_token", path="/")
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+        user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            logger.warning(f"User {user_id} not found during token refresh")
+            response.delete_cookie("access_token", path="/")
+            response.delete_cookie("refresh_token", path="/")
             raise HTTPException(status_code=401, detail="User no longer active")
         
-        # Create new tokens
-        new_access_token = create_access_token({"sub": str(user.id)})
-        new_refresh_token = create_refresh_token({"sub": str(user.id)})
+        if not user.is_active:
+            logger.warning(f"User {user_id} is inactive during token refresh")
+            response.delete_cookie("access_token", path="/")
+            response.delete_cookie("refresh_token", path="/")
+            raise HTTPException(status_code=401, detail="User account is inactive")
         
-        # Set new cookies
+        # Create new tokens
+        new_access_token = create_access_token(
+            user_id=user.id,
+            additional_claims={"is_superuser": user.is_superuser}
+        )
+        new_refresh_token = create_refresh_token(
+            user_id=user.id,
+            additional_claims={"is_superuser": user.is_superuser}
+        )
+        
+        # Set new cookies with explicit path
         cookie_params = get_cookie_params(is_prod=False)
+        cookie_params["path"] = "/"
+        
         response.set_cookie(
             key="access_token",
             value=new_access_token,
@@ -233,9 +270,16 @@ def refresh_token_endpoint(request: Request, db: Session = Depends(get_db), resp
             **cookie_params
         )
         
+        logger.info(f"Successfully refreshed tokens for user {user_id}")
         return user
     
-    except JWTError:
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
+    except JWTError as e:
+        logger.warning(f"JWT error during token refresh: {str(e)}")
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    except Exception as e:
+        logger.error(f"Unexpected error during token refresh: {str(e)}", exc_info=True)
+        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("refresh_token", path="/")
+        raise HTTPException(status_code=401, detail="Token refresh failed")

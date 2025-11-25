@@ -10,24 +10,48 @@ const api = axios.create({
   },
   withCredentials: true,  
 });
-
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only attempt refresh if:
+    // 1. Status is 401
+    // 2. Request hasn't been retried yet
+    // 3. Request is NOT the refresh endpoint itself
+    // 4. Request is NOT signin/signup (to avoid loops)
+    if (error.response?.status === 401 && 
+        !originalRequest._retry && 
+        !originalRequest.url?.includes('/auth/refresh') &&
+        !originalRequest.url?.includes('/auth/signin') &&
+        !originalRequest.url?.includes('/auth/signup')) {
+      
       originalRequest._retry = true;
+      
       try {
+        // Attempt to refresh token
+        const refreshResponse = await api.post(`${BASE_URL}/auth/refresh`, {}, {
+          withCredentials: true
+        });
         
-        await api.post(`${BASE_URL}/auth/refresh`);
-        
-        originalRequest.headers.Authorization = undefined;  
-        return api(originalRequest);
+        // If refresh succeeds, retry original request
+        if (refreshResponse.status === 200) {
+          // Remove Authorization header if present (we use cookies)
+          delete originalRequest.headers.Authorization;
+          return api(originalRequest);
+        }
       } catch (refreshError) {
-        
+        // Refresh failed - clear storage and redirect to signin
+        console.error("Token refresh failed:", refreshError);
         localStorage.removeItem("user");
-        window.location.href = "/signin";
+        // Clear any remaining cookies
+        document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        
+        // Only redirect if not already on signin page
+        if (window.location.pathname !== '/signin') {
+          window.location.href = "/signin";
+        }
         return Promise.reject(refreshError);
       }
     }

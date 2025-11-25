@@ -1,8 +1,10 @@
 # app/club/services.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import UploadFile
 from app.models.club import Club
 from app.models.user import User, UserRole
+from app.models.player import PlayerProfile
+from app.models.club_player import ClubPlayer
 from app.schemas.club_manager import ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse
 from app.schemas.user import UserRead
 from app.services.s3_service import upload_file_to_s3
@@ -53,9 +55,7 @@ def update_club_image(
     user_id: int,
     uploaded_file: UploadFile,
 ) -> Club:
-    """
-    Upload club image to S3 and update club record.
-    """
+  
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == user_id,
@@ -85,3 +85,119 @@ def get_profile(db: Session, user_id: int) -> ClubProfileResponse:
     )
 
 
+# Player management functions
+
+def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -> dict:
+    """
+    Search for a player by CricB ID.
+    Returns player details and whether they're already in the specified club.
+    """
+    # Normalize CricB ID (uppercase)
+    cricb_id = cricb_id.upper().strip()
+    
+    # Query player profile with user relationship
+    player_profile = db.query(PlayerProfile).options(
+        joinedload(PlayerProfile.user)
+    ).filter(PlayerProfile.cricb_id == cricb_id).first()
+    
+    if not player_profile:
+        raise ValueError("Player not found with this CricB ID")
+    
+    # Check if player is already in the club
+    is_already_in_club = False
+    if club_id:
+        existing = db.query(ClubPlayer).filter(
+            ClubPlayer.club_id == club_id,
+            ClubPlayer.player_id == player_profile.id
+        ).first()
+        is_already_in_club = existing is not None
+    
+    return {
+        "player_profile": player_profile,
+        "user": player_profile.user,
+        "is_already_in_club": is_already_in_club
+    }
+
+def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayer:
+    """
+    Add a player to a club. Verifies the manager owns the club.
+    """
+    # Verify club ownership
+    club = db.query(Club).filter(
+        Club.id == club_id,
+        Club.manager_id == manager_id
+    ).first()
+    if not club:
+        raise ValueError("Club not found or access denied")
+    
+    # Verify player exists
+    player_profile = db.query(PlayerProfile).filter(PlayerProfile.id == player_id).first()
+    if not player_profile:
+        raise ValueError("Player not found")
+    
+    # Check if player already in club
+    existing = db.query(ClubPlayer).filter(
+        ClubPlayer.club_id == club_id,
+        ClubPlayer.player_id == player_id
+    ).first()
+    if existing:
+        raise ValueError("Player is already in this club")
+    
+    # Create association
+    club_player = ClubPlayer(
+        club_id=club_id,
+        player_id=player_id
+    )
+    db.add(club_player)
+    
+    # Update player count
+    club.no_of_players = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count() + 1
+    
+    db.commit()
+    db.refresh(club_player)
+    return club_player
+def get_club_players(db: Session, club_id: int, manager_id: int) -> list:
+    """
+    Get all players in a club. Verifies manager ownership.
+    """
+    club = db.query(Club).filter(
+        Club.id == club_id,
+        Club.manager_id == manager_id
+    ).first()
+    if not club:
+        raise ValueError("Club not found or access denied")
+    
+    club_players = db.query(ClubPlayer).filter(
+        ClubPlayer.club_id == club_id
+    ).options(
+        joinedload(ClubPlayer.player).joinedload(PlayerProfile.user)
+    ).all()
+    
+    return club_players 
+
+def remove_player_from_club(db: Session, club_id: int, player_id: int, manager_id: int) -> bool:
+    """
+    Remove a player from a club.
+    """
+    club = db.query(Club).filter(
+        Club.id == club_id,
+        Club.manager_id == manager_id
+    ).first()
+    if not club:
+        raise ValueError("Club not found or access denied")
+    
+    club_player = db.query(ClubPlayer).filter(
+        ClubPlayer.club_id == club_id,
+        ClubPlayer.player_id == player_id
+    ).first()
+    
+    if not club_player:
+        raise ValueError("Player is not in this club")
+    
+    db.delete(club_player)
+    
+    # Update player count
+    club.no_of_players = max(0, db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count() - 1)
+    
+    db.commit()
+    return True

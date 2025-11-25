@@ -4,11 +4,15 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import UserRole
 from app.schemas.club_manager import (
-    ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse, ClubProfileUpdate
+    ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse, ClubProfileUpdate,
+    PlayerSearchResponse, AddPlayerRequest, ClubPlayerResponse, ClubPlayersListResponse
 )
 from app.services.club_service import (
-    get_profile, create_club, update_club, update_club_image, get_club
+    get_profile, create_club, update_club, update_club_image, get_club,
+    search_player_by_cricb_id, add_player_to_club, get_club_players, remove_player_from_club
 )
+from app.schemas.player import PlayerRead
+from app.schemas.user import UserRead
 from app.services.auth_service import update_user
 from app.services.s3_service import upload_file_to_s3
 from app.core.config import settings
@@ -176,3 +180,114 @@ async def upload_club_image_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload image: {str(exc)}",
         )
+
+
+
+# Player management endpoints
+
+@router.get("/club/{club_id}/search-player/{cricb_id}", response_model=PlayerSearchResponse)
+def search_player_by_cricb_endpoint(
+    club_id: int,
+    cricb_id: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Search for a player by CricB ID. Returns player details and whether they're already in the club.
+    """
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can search players"
+        )
+    
+    # Verify club ownership
+    club = get_club(db, current_user.id)
+    if not club or club.id != club_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Club not found or access denied"
+        )
+    
+    try:
+        result = search_player_by_cricb_id(db, cricb_id, club_id)
+        return PlayerSearchResponse(
+            player_profile=PlayerRead.model_validate(result["player_profile"]),
+            user=UserRead.model_validate(result["user"]),
+            is_already_in_club=result["is_already_in_club"]
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.post("/club/{club_id}/players", response_model=ClubPlayerResponse, status_code=status.HTTP_201_CREATED)
+def add_player_to_club_endpoint(
+    club_id: int,
+    payload: AddPlayerRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Add a player to the club using their CricB ID.
+    """
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can add players"
+        )
+    
+    try:
+        # Find player by CricB ID
+        search_result = search_player_by_cricb_id(db, payload.cricb_id, club_id)
+        player_profile = search_result["player_profile"]
+        
+        if search_result["is_already_in_club"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Player is already in this club"
+            )
+        
+        # Add player to club
+        club_player = add_player_to_club(db, club_id, player_profile.id, current_user.id)
+        
+        # Return response
+        return ClubPlayerResponse(
+            id=club_player.id,
+            player_profile=PlayerRead.model_validate(player_profile),
+            user=UserRead.model_validate(player_profile.user),
+            joined_at=club_player.joined_at
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/club/{club_id}/players", response_model=ClubPlayersListResponse)
+def get_club_players_endpoint(
+    club_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+ 
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can view club players"
+        )
+    
+    try:
+        club_players = get_club_players(db, club_id, current_user.id)
+        return ClubPlayersListResponse(
+            players=[
+                ClubPlayerResponse(
+                    id=cp.id,
+                    player_profile=PlayerRead.model_validate(cp.player),
+                    user=UserRead.model_validate(cp.player.user),
+                    joined_at=cp.joined_at
+                )
+                for cp in club_players
+            ],
+            total=len(club_players)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

@@ -19,5 +19,3 @@ class OrganizationDetails(Base):
     active = Column(Boolean, default=True, nullable=False)
 
     user = relationship("User", back_populates="organization")
-
-from app.models.user import User

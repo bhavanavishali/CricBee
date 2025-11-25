@@ -1,8 +1,11 @@
 # app/schemas/club.py
+from __future__ import annotations
+
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.schemas.user import UserRead, UserUpdate
+from app.schemas.player import PlayerRead
 
 class ClubCreate(BaseModel):
     club_name: str
@@ -34,6 +37,8 @@ class ClubRead(BaseModel):
     class Config:
         from_attributes = True 
 
+
+
 class ClubProfileResponse(BaseModel):
     user: UserRead
     club: Optional[ClubRead] = None
@@ -41,3 +46,27 @@ class ClubProfileResponse(BaseModel):
 class ClubProfileUpdate(BaseModel):
     user: Optional[UserUpdate] = None
     club: Optional[ClubUpdate] = None
+
+# ---------   Club Profile Response Schema-----------------
+
+class PlayerSearchResponse(BaseModel):
+    
+    player_profile: PlayerRead
+    user: UserRead
+    is_already_in_club: bool = False  
+
+class AddPlayerRequest(BaseModel):
+    
+    cricb_id: str
+
+class ClubPlayerResponse(BaseModel):
+    
+    id: int
+    player_profile: PlayerRead
+    user: UserRead
+    joined_at: datetime
+
+class ClubPlayersListResponse(BaseModel):
+    
+    players: list[ClubPlayerResponse]
+    total: int

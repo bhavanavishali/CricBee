@@ -13,8 +13,6 @@ class PlayerProfile(Base):
     cricb_id = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
+    
+    clubs = relationship("ClubPlayer", back_populates="player", cascade="all, delete-orphan")
     user = relationship("User", back_populates="player_profile")
-
-
-from app.models.user import User

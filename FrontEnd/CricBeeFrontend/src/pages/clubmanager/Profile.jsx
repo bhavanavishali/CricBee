@@ -21,7 +21,8 @@ import {
   Upload,
   Image as ImageIcon,
 } from 'lucide-react';
-import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage } from '@/api/clubService';
+import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage, getClubPlayers } from '@/api/clubService';
+import AddPlayerModal from '@/components/clubmanager/AddPlayerModal';
 
 const ClubProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -30,6 +31,7 @@ const ClubProfile = () => {
   const [showForm, setShowForm] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [formData, setFormData] = useState({
     club_name: '',
     description: '',
@@ -42,11 +44,19 @@ const ClubProfile = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'players' && profile?.club) {
+      fetchPlayers();
+    }
+  }, [activeTab, profile?.club?.id]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -221,6 +231,19 @@ const ClubProfile = () => {
     fetchProfile();
   };
 
+  const fetchPlayers = async () => {
+    if (!profile?.club?.id) return;
+    
+    setPlayersLoading(true);
+    const result = await getClubPlayers(profile.club.id);
+    if (result.success) {
+      setPlayers(result.data.players || []);
+    } else {
+      setError(result.message || 'Failed to fetch players');
+    }
+    setPlayersLoading(false);
+  };
+
   const handleAddPlayer = () => {
     if (profile && profile.club) {
       navigate(`/club/${profile.club.id}/add-player`);
@@ -371,7 +394,7 @@ const ClubProfile = () => {
                   Edit Club
                 </button>
               )}
-              {hasClub && (
+              {/* {hasClub && (
                 <button 
                   onClick={handleAddPlayer}
                   className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -379,7 +402,18 @@ const ClubProfile = () => {
                   <Plus size={16} />
                   Add Player
                 </button>
-              )}
+              )} */}
+              {profile?.club && (
+  <div className="mt-6">
+    <button
+      onClick={() => setShowAddPlayerModal(true)}
+      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+    >
+      <Users size={20} />
+      Add Player to Club
+    </button>
+  </div>
+)}
             </div>
           </div>
         </div>
@@ -726,7 +760,7 @@ const ClubProfile = () => {
                   <label className="block text-sm font-semibold text-gray-900 mb-1">Number of Players</label>
                   <p className="text-gray-600 flex items-center gap-2">
                     <Users size={16} className="text-gray-400" />
-                    {club.no_of_players}
+                    {club.no_of_players || 0}
                   </p>
                 </div>
                 <div>
@@ -737,6 +771,18 @@ const ClubProfile = () => {
                   </p>
                 </div>
               </div>
+              
+              {/* Add Player Button */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowAddPlayerModal(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold"
+                >
+                  <Users size={20} />
+                  Add Player to Club
+                </button>
+              </div>
+              
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => {
@@ -875,8 +921,95 @@ const ClubProfile = () => {
             )}
 
             {activeTab === 'players' && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Players list coming soon. Use "Add Player" button to get started.</p>
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-xl font-semibold text-gray-900">
+                    Club Players ({players.length})
+                  </h4>
+                  {profile?.club && (
+                    <button
+                      onClick={() => setShowAddPlayerModal(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Add Player
+                    </button>
+                  )}
+                </div>
+
+                {playersLoading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-500 mt-4">Loading players...</p>
+                  </div>
+                ) : players.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <Users size={48} className="text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg mb-2">No players in your club yet</p>
+                    <p className="text-gray-400 text-sm mb-6">Add players to start building your team</p>
+                    {profile?.club && (
+                      <button
+                        onClick={() => setShowAddPlayerModal(true)}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                      >
+                        <Plus size={18} />
+                        Add First Player
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {players.map((player) => (
+                      <div
+                        key={player.id}
+                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center flex-shrink-0">
+                              <span className="text-lg font-bold text-blue-700">
+                                {player.user?.full_name?.charAt(0).toUpperCase() || 'P'}
+                              </span>
+                            </div>
+                            <div>
+                              <h5 className="font-semibold text-gray-900">
+                                {player.user?.full_name || 'Unknown Player'}
+                              </h5>
+                              <p className="text-sm text-gray-500">
+                                {player.player_profile?.cricb_id || 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail size={14} className="text-gray-400" />
+                            <span className="truncate">{player.user?.email || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone size={14} className="text-gray-400" />
+                            <span>{player.user?.phone || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar size={14} className="text-gray-400" />
+                            <span>Age: {player.player_profile?.age || 'N/A'} years</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin size={14} className="text-gray-400" />
+                            <span className="truncate">{player.player_profile?.address || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-100">
+                          <p className="text-xs text-gray-500">
+                            Joined: {new Date(player.joined_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -888,8 +1021,24 @@ const ClubProfile = () => {
           </div>
         </div>
       </main>
+
+      {/* Add Player Modal */}
+      {profile?.club && (
+        <AddPlayerModal
+          isOpen={showAddPlayerModal}
+          onClose={() => setShowAddPlayerModal(false)}
+          clubId={profile.club.id}
+          onPlayerAdded={() => {
+            fetchProfile(); // Refresh profile to update player count
+            fetchPlayers(); // Refresh players list
+            setShowAddPlayerModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };
 
 export default ClubProfile;
+
+

@@ -27,7 +27,3 @@ class User(Base):
     club = relationship("Club", back_populates="manager", uselist=False)
     player_profile = relationship("PlayerProfile", back_populates="user", uselist=False)
     is_verified = Column(Boolean, default=False)
-    
-from app.models.club import Club
-
-from app.models.organizer import OrganizationDetails
