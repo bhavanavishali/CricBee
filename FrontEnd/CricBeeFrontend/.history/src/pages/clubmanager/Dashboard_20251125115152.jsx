@@ -1,93 +1,99 @@
+
+
 "use client"
 
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useDispatch } from "react-redux";
+import { clearUser } from '@/store/slices/authSlice';
+import api from '@/api';
+import Layout from '@/components/layouts/Layout'
+import axios from "axios"
 import {
+  Users,
   Trophy,
   Calendar,
+  DollarSign,
   BarChart3,
-  Target,
   ChevronRight,
   Bell,
   Settings,
   LogOut,
 } from "lucide-react"
-import { useNavigate } from "react-router-dom";
-import { clearUser } from '@/store/slices/authSlice';
-import api from '@/api';
-import { useDispatch } from "react-redux";
-import Layout from '@/components/layouts/Layout'
-export default function PlayerDashboard() {
+
+export default function ClubManagerDashboard() {
+  const navigate = useNavigate()
   const dispatch = useDispatch();
-  const [matches, setMatches] = useState([
+  const [clubs, setClubs] = useState([
     {
       id: 1,
-      opponent: "Kochi Cricket Club",
-      date: "2024-01-15",
-      time: "10:00 AM",
-      venue: "Kochi Stadium",
-      status: "Upcoming",
-      statusColor: "bg-blue-500",
+      name: "Kochi Cricket Club",
+      tournaments: 3,
+      players: 25,
+      matches: 12,
+      status: "Active",
+      statusColor: "bg-green-500",
     },
     {
       id: 2,
-      opponent: "Thrissur Warriors",
-      date: "2024-01-18",
-      time: "2:00 PM",
-      venue: "Thrissur Ground",
-      status: "Upcoming",
-      statusColor: "bg-blue-500",
-    },
-    {
-      id: 3,
-      opponent: "Calicut Kings",
-      date: "2024-01-10",
-      time: "4:00 PM",
-      venue: "Calicut Stadium",
-      status: "Completed",
+      name: "Thrissur Warriors",
+      tournaments: 2,
+      players: 20,
+      matches: 8,
+      status: "Active",
       statusColor: "bg-green-500",
     },
   ])
-  const navigate = useNavigate();
+
   const statCards = [
     {
-      title: "Matches Played",
-      value: "12",
-      change: "This season",
+      title: "My Clubs",
+      value: "2",
+      change: "Active clubs",
       changeColor: "text-green-600",
-      icon: Trophy,
-      bgColor: "bg-green-100",
-      iconBg: "bg-green-200",
-    },
-    {
-      title: "Upcoming Matches",
-      value: "5",
-      change: "Next 2 weeks",
-      changeColor: "text-blue-600",
-      icon: Calendar,
+      icon: Users,
       bgColor: "bg-blue-100",
       iconBg: "bg-blue-200",
     },
     {
-      title: "Runs Scored",
-      value: "450",
-      change: "+50 this month",
-      changeColor: "text-orange-600",
-      icon: Target,
+      title: "Active Tournaments",
+      value: "5",
+      change: "Enrolled tournaments",
+      changeColor: "text-blue-600",
+      icon: Trophy,
       bgColor: "bg-orange-100",
       iconBg: "bg-orange-200",
     },
     {
-      title: "Wickets Taken",
-      value: "18",
-      change: "+3 this month",
+      title: "Total Players",
+      value: "45",
+      change: "Across all clubs",
       changeColor: "text-purple-600",
-      icon: BarChart3,
+      icon: Users,
       bgColor: "bg-purple-100",
       iconBg: "bg-purple-200",
     },
+    {
+      title: "Upcoming Matches",
+      value: "20",
+      change: "Next 7 days",
+      changeColor: "text-orange-600",
+      icon: Calendar,
+      bgColor: "bg-teal-100",
+      iconBg: "bg-teal-200",
+    },
   ]
 
-  
+  // const handleLogout = async () => {
+  //   try {
+  //     await axios.post('/auth/logout')
+  //   } catch (error) {
+  //     console.error('Logout error:', error)
+  //   }
+  //   // Clear any auth tokens or localStorage data (adjust as per your auth implementation)
+  //   localStorage.removeItem('authToken') // Example: remove token if stored
+  //   navigate('/signin') // Redirect to login page
+  // }
     const handleLogout = async () => {
       try {
         // Call backend to invalidate session and clear httpOnly cookies
@@ -106,7 +112,7 @@ export default function PlayerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Layout title="My Matches" profilePath="/player/profile">
+      <Layout title="My Clubs" profilePath="/club_manager/profile"></Layout>
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}
@@ -116,7 +122,7 @@ export default function PlayerDashboard() {
             <span>Dashboard</span>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back! 👋</h1>
-          <p className="text-gray-600">Track your matches and performance here.</p>
+          <p className="text-gray-600">Manage your clubs and tournaments from here.</p>
         </div>
 
         {/* Stats Cards */}
@@ -140,10 +146,10 @@ export default function PlayerDashboard() {
           })}
         </div>
 
-        {/* Upcoming Matches */}
+        {/* My Clubs */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">My Matches</h2>
+            <h2 className="text-2xl font-bold text-gray-900">My Clubs</h2>
             <button className="text-blue-600 font-semibold flex items-center space-x-1 hover:text-blue-700">
               <span>View All</span>
               <ChevronRight size={18} />
@@ -151,28 +157,28 @@ export default function PlayerDashboard() {
           </div>
 
           <div className="space-y-4">
-            {matches.map((match) => (
+            {clubs.map((club) => (
               <div
-                key={match.id}
+                key={club.id}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
-                    <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-lg p-3 text-white">
-                      <Calendar size={28} />
+                    <div className="bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg p-3 text-white">
+                      <Trophy size={28} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-900 mb-1">vs {match.opponent}</h3>
+                      <h3 className="font-bold text-lg text-gray-900 mb-1">{club.name}</h3>
                       <p className="text-sm text-gray-600">
-                        {match.date} • {match.time} • {match.venue}
+                        {club.tournaments} tournaments • {club.players} players • {club.matches} matches
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`${match.statusColor} text-white text-xs font-semibold px-3 py-1 rounded-full`}
+                      className={`${club.statusColor} text-white text-xs font-semibold px-3 py-1 rounded-full`}
                     >
-                      {match.status}
+                      {club.status}
                     </span>
                     <ChevronRight size={20} className="text-gray-400" />
                   </div>
@@ -182,8 +188,6 @@ export default function PlayerDashboard() {
           </div>
         </div>
       </main>
-      </Layout>
     </div>
   )
 }
-

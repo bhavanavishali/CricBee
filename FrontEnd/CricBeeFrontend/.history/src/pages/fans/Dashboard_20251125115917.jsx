@@ -148,6 +148,41 @@ function TournamentCard({ tournament, isFavorite, onFavoriteToggle }) {
   )
 }
 
+function Header() {
+  return (
+    <header className="bg-white border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-teal-600 text-white px-3 py-1 rounded font-bold">CB</div>
+          <span className="text-gray-700 font-semibold">CricB</span>
+        </div>
+        <nav className="hidden md:flex items-center gap-8">
+          <a href="#" className="text-gray-700 hover:text-gray-900">
+            Home
+          </a>
+          <a href="#" className="text-gray-700 hover:text-gray-900">
+            Tournaments
+          </a>
+          <a href="#" className="text-gray-700 hover:text-gray-900">
+            Live Scores
+          </a>
+          <a href="#" className="text-gray-700 hover:text-gray-900">
+            Clubs
+          </a>
+          <a href="#" className="text-gray-700 hover:text-gray-900">
+            Players
+          </a>
+        </nav>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 text-teal-600 border border-teal-600 rounded hover:bg-teal-50 transition">
+            Sign In
+          </button>
+          <button className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition">Sign Up</button>
+        </div>
+      </div>
+    </header>
+  )
+}
 
 function HeroSection() {
   return (
@@ -190,6 +225,93 @@ function SearchSection() {
   )
 }
 
+function Footer() {
+  return (
+    <footer className="bg-slate-900 text-white py-12 px-4 mt-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-white text-slate-900 px-3 py-1 rounded font-bold">CB</div>
+              <span className="font-semibold">CricB</span>
+            </div>
+            <p className="text-gray-400 text-sm">
+              All-in-one digital platform for scoring, streaming and managing grassroots cricket across India.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-bold mb-4">Platform</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Tournaments
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Live Scores
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Clubs
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold mb-4">Support</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Help Center
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Contact
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold mb-4">Legal</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li>
+                <a href="#" className="hover:text-white">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Cookies Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white">
+                  Disclaimer
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-gray-700 pt-8 text-center text-gray-400 text-sm">
+          <p>© 2025 CricB. All rights reserved. Empowering cricket communities across India.</p>
+        </div>
+      </div>
+    </footer>
+  )
+}
 
 export default function FansDashboard() {
   const [favorites, setFavorites] = useState(new Set())
@@ -208,7 +330,7 @@ export default function FansDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Layout>
+      <Layout title="Tournaments" profilePath="/fan/profile" />
       <HeroSection />
       <SearchSection />
 
@@ -244,7 +366,7 @@ export default function FansDashboard() {
         </div>
       </main>
 
-   </Layout>
+      <Footer />
     </div>
   )
 }

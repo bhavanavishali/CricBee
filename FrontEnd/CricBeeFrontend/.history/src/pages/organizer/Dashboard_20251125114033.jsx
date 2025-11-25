@@ -155,7 +155,7 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Layout title="My Tournaments" profilePath="/organizer/profile">
+      <Layout title="My Tournaments" profilePath="/organizer/profile"></Layout>
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}
@@ -309,7 +309,7 @@ export default function OrganizerDashboard() {
           </div>
         </div>
       </main>
-       </Layout>
+      </
     </div>
   )
 }

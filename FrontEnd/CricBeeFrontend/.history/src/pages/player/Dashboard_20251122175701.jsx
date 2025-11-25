@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import { useDispatch } from "react-redux";
-import Layout from '@/components/layouts/Layout'
+
 export default function PlayerDashboard() {
   const dispatch = useDispatch();
   const [matches, setMatches] = useState([
@@ -106,7 +106,41 @@ export default function PlayerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Layout title="My Matches" profilePath="/player/profile">
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="bg-gray-300 px-3 py-2 rounded font-bold text-gray-700">CricB</div>
+            <div className="h-6 w-px bg-gray-300" />
+          </div>
+          <div className="flex items-center space-x-6">
+            <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <Bell size={20} className="text-gray-600" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <Settings size={20} className="text-gray-600" />
+            </button>
+            <div className="flex items-center space-x-3 border-l border-gray-200 pl-6">
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-900">Player</p>
+                <p className="text-xs text-blue-600">Active</p>
+              </div>
+              <div onClick={() => navigate("/player/profile")}
+              className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                P
+              </div>
+              <ChevronRight size={18} className="text-gray-400" />
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="hidden sm:inline text-sm">Logout</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}
@@ -182,7 +216,6 @@ export default function PlayerDashboard() {
           </div>
         </div>
       </main>
-      </Layout>
     </div>
   )
 }

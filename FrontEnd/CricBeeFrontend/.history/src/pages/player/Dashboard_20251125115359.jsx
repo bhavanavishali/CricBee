@@ -182,7 +182,6 @@ export default function PlayerDashboard() {
           </div>
         </div>
       </main>
-      </Layout>
     </div>
   )
 }

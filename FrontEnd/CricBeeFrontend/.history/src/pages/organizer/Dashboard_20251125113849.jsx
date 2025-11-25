@@ -18,7 +18,7 @@ import {
 import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
-import Layout from '@/components/layouts/Layout'
+
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
   const dispatch = useDispatch();
@@ -155,7 +155,7 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Layout title="My Tournaments" profilePath="/organizer/profile">
+     
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}
@@ -309,7 +309,6 @@ export default function OrganizerDashboard() {
           </div>
         </div>
       </main>
-       </Layout>
     </div>
   )
 }

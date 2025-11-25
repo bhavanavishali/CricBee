@@ -106,7 +106,7 @@ export default function PlayerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Layout title="My Matches" profilePath="/player/profile">
+      <Layout title="My Matches" profilePath="/player/profile"></Layout>
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}
@@ -182,7 +182,6 @@ export default function PlayerDashboard() {
           </div>
         </div>
       </main>
-      </Layout>
     </div>
   )
 }
