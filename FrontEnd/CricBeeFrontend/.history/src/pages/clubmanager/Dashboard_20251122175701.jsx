@@ -130,7 +130,7 @@ export default function ClubManagerDashboard() {
                 <p className="text-sm font-semibold text-gray-900">Club Manager</p>
                 <p className="text-xs text-blue-600">Manager</p>
               </div>
-              <div onClick={() => navigate("/club_manager/profile")}
+              <div onClick={() => navigate("/clubmanager/profile")}
               className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
                 CM
               </div>

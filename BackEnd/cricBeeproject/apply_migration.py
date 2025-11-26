@@ -7,8 +7,7 @@ import sys
 import os
 
 def apply_migration():
-    """Apply the Alembic migration."""
-    # Change to the project directory
+   
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
     try:

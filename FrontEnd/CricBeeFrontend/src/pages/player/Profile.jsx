@@ -17,8 +17,13 @@ import {
   CheckCircle,
   Shield,
   CreditCard,
+  Camera,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import { getPlayerProfile, createPlayerProfile, updatePlayerProfile } from '@/api/playerService'; 
+import { getPlayerProfile, createPlayerProfile, updatePlayerProfile, uploadProfilePhoto, changePassword } from '@/api/playerService';
+import Swal from 'sweetalert2'; 
 
 const PlayerProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -32,6 +37,19 @@ const PlayerProfile = () => {
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,6 +59,7 @@ const PlayerProfile = () => {
   const fetchProfile = async () => {
     setLoading(true);
     setError(null);
+    setImageError(false); // Reset image error when fetching new profile
     const result = await getPlayerProfile();
     if (result.success) {
       setProfile(result.profile);
@@ -110,6 +129,146 @@ const PlayerProfile = () => {
     setError(null);
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File',
+        text: 'Please select an image file.',
+        confirmButtonColor: '#10b981',
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'error',
+        title: 'File Too Large',
+        text: 'Image size should be less than 5MB.',
+        confirmButtonColor: '#10b981',
+      });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const result = await uploadProfilePhoto(file);
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: result.message,
+          confirmButtonColor: '#10b981',
+          timer: 2000,
+        });
+        // Refresh profile to get updated photo
+        await fetchProfile();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: result.message,
+          confirmButtonColor: '#10b981',
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to upload photo. Please try again.',
+        confirmButtonColor: '#10b981',
+      });
+    } finally {
+      setUploadingPhoto(false);
+      // Reset file input
+      e.target.value = '';
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Information',
+        text: 'Please fill in all password fields.',
+        confirmButtonColor: '#10b981',
+      });
+      return;
+    }
+
+    if (passwordData.new_password.length < 6) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Password Too Short',
+        text: 'New password must be at least 6 characters long.',
+        confirmButtonColor: '#10b981',
+      });
+      return;
+    }
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Passwords Don\'t Match',
+        text: 'New password and confirm password do not match.',
+        confirmButtonColor: '#10b981',
+      });
+      return;
+    }
+
+    setSubmitLoading(true);
+    try {
+      const result = await changePassword(
+        passwordData.current_password,
+        passwordData.new_password,
+        passwordData.confirm_password
+      );
+      
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Password Changed!',
+          text: result.message,
+          confirmButtonColor: '#10b981',
+        });
+        setShowPasswordForm(false);
+        setPasswordData({
+          current_password: '',
+          new_password: '',
+          confirm_password: '',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Change Failed',
+          text: result.message,
+          confirmButtonColor: '#10b981',
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to change password. Please try again.',
+        confirmButtonColor: '#10b981',
+      });
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -165,8 +324,17 @@ const PlayerProfile = () => {
               <Settings size={20} className="text-gray-600" />
             </button>
             <div className="flex items-center gap-2 ml-4 pl-4 border-l border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold text-sm">
-                {player.avatar}
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold text-sm overflow-hidden">
+                {profile?.user?.profile_photo && !imageError ? (
+                  <img 
+                    src={profile.user.profile_photo} 
+                    alt={user?.full_name || 'User'}
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <span>{player.avatar}</span>
+                )}
               </div>
               <div className="text-sm">
                 <p className="font-semibold text-gray-900">{user?.full_name}</p>
@@ -192,9 +360,49 @@ const PlayerProfile = () => {
         <div className="bg-white rounded-lg p-8 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-6">
-              {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-5xl font-bold text-green-700">{player.avatar}</span>
+              {/* Avatar with Photo Upload */}
+              <div className="relative flex-shrink-0">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                  {profile?.user?.profile_photo && !imageError ? (
+                    <img 
+                      src={profile.user.profile_photo} 
+                      alt={user?.full_name || 'Profile'}
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        // If image fails to load, show fallback
+                        setImageError(true);
+                      }}
+                      onLoad={() => {
+                        // Reset error state if image loads successfully
+                        setImageError(false);
+                      }}
+                    />
+                  ) : (
+                    <span className="text-5xl font-bold text-green-700 flex items-center justify-center w-full h-full">
+                      {player.avatar}
+                    </span>
+                  )}
+                </div>
+                <label
+                  htmlFor="photo-upload"
+                  className="absolute bottom-0 right-0 w-10 h-10 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-colors"
+                  title="Change photo"
+                >
+                  <Camera size={20} className="text-white" />
+                  <input
+                    type="file"
+                    id="photo-upload"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                    className="hidden"
+                  />
+                </label>
+                {uploadingPhoto && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <div className="text-white text-sm">Uploading...</div>
+                  </div>
+                )}
               </div>
 
               {/* Profile Info */}
@@ -354,6 +562,137 @@ const PlayerProfile = () => {
                 Create Profile
               </button>
             </div>
+          )}
+        </div>
+
+        {/* Change Password Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Lock size={20} />
+              Change Password
+            </h3>
+            {!showPasswordForm && (
+              <button
+                onClick={() => setShowPasswordForm(true)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Edit3 size={16} />
+                Change Password
+              </button>
+            )}
+          </div>
+          
+          {showPasswordForm && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword.current ? "text" : "password"}
+                    name="current_password"
+                    value={passwordData.current_password}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter current password"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                    required
+                    disabled={submitLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword.current ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword.new ? "text" : "password"}
+                    name="new_password"
+                    value={passwordData.new_password}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter new password (min 6 characters)"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                    required
+                    minLength={6}
+                    disabled={submitLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword.new ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword.confirm ? "text" : "password"}
+                    name="confirm_password"
+                    value={passwordData.confirm_password}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirm new password"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                    required
+                    minLength={6}
+                    disabled={submitLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordForm(false);
+                    setPasswordData({
+                      current_password: '',
+                      new_password: '',
+                      confirm_password: '',
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  disabled={submitLoading}
+                >
+                  <X size={16} />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitLoading}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {submitLoading ? 'Changing...' : (
+                    <>
+                      <Save size={16} />
+                      Change Password
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
         </div>
 

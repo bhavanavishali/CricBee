@@ -15,10 +15,7 @@ def list_all_users(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """
-    List all users except admins.
-    Only accessible by admin users.
-    """
+
     users = get_all_users_except_admin(db)
     return users
 
@@ -30,11 +27,7 @@ def update_user_active_status(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """
-    Block or unblock a user by updating their is_active status.
-    Only accessible by admin users.
-    Cannot modify admin users.
-    """
+   
     user = update_user_status(db, user_id, payload.is_active)
     
     if not user:

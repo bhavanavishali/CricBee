@@ -112,7 +112,7 @@ export default function ClubManagerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Layout title="My Clubs" profilePath="/club_manager/profile">
+      <Layout title="My Clubs" profilePath="/clubmanager/profile">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb and Welcome */}

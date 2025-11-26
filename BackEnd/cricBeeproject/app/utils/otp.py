@@ -22,7 +22,7 @@ def store_otp_in_redis(redis_client, email: str, otp: str, expire_minutes: int =
         return False
 
 def verify_otp_from_redis(redis_client, email: str, otp: str) -> bool:
-    """Verify OTP from Redis"""
+    
     try:
         key = get_otp_key(email)
         stored_otp = redis_client.get(key)

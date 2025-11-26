@@ -1,14 +1,14 @@
 
 
 
-// @/api/authService.js or wherever your API calls are located
+
 
 import api from '@/api';
-const API_BASE_URL = "http://localhost:8000";
+
 
 export const signIn = async (credentials) => {
   try {
-    const response = await api.post(`${API_BASE_URL}/auth/signin`, credentials);
+    const response = await api.post(`/auth/signin`, credentials);
     const data = response.data;
 
     
@@ -50,7 +50,7 @@ export const signUp = async (userData) => {
 
 export const verifyOTP = async (email, otp) => {
   try {
-    const response = await api.post(`${API_BASE_URL}/auth/verify-otp`, {
+    const response = await api.post(`/auth/verify-otp`, {
       email,
       otp
     });
@@ -73,7 +73,7 @@ export const verifyOTP = async (email, otp) => {
 
 export const resendOTP = async (email) => {
   try {
-    const response = await api.post(`${API_BASE_URL}/auth/resend-otp`, {
+    const response = await api.post(`/auth/resend-otp`, {
       email
     });
     const data = response.data;
@@ -99,7 +99,7 @@ export const resendOTP = async (email) => {
 export const signOut = async (dispatch) => {
   try {
 
-    await api.post(`${API_BASE_URL}/auth/logout`);
+    await api.post(`/auth/logout`);
   } catch (error) {
     console.error("Logout error:", error);
     
@@ -108,5 +108,46 @@ export const signOut = async (dispatch) => {
     dispatch(clearUser());
     
     return Promise.resolve();
+  }
+};
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await api.post(`/auth/forgot-password`, { email });
+    const data = response.data;
+
+    return {
+      success: true,
+      message: data.message || "Password reset link sent to your email",
+      data: data
+    };
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to send reset link",
+    };
+  }
+};
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const response = await api.post(`/auth/reset-password`, {
+      token,
+      new_password: newPassword
+    });
+    const data = response.data;
+
+    return {
+      success: true,
+      message: data.message || "Password reset successfully",
+      data: data
+    };
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to reset password",
+    };
   }
 };

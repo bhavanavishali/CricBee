@@ -57,13 +57,28 @@ def upload_file_to_s3(file: UploadFile, folder: Optional[str] = None) -> str:
         file.file.seek(0)
 
         try:
-            client.put_object(
-                Bucket=settings.aws_s3_bucket,
-                Key=object_key,
-                Body=file_content,
-                ContentType=file.content_type or "application/octet-stream"
-                
-            )
+            # Try to upload with public-read ACL
+            try:
+                client.put_object(
+                    Bucket=settings.aws_s3_bucket,
+                    Key=object_key,
+                    Body=file_content,
+                    ContentType=file.content_type or "application/octet-stream",
+                    ACL='public-read' 
+                )
+            except ClientError as acl_error:
+               
+                error_code = acl_error.response.get('Error', {}).get('Code', 'Unknown')
+                if error_code in ['AccessDenied', 'InvalidArgument']:
+                    
+                    client.put_object(
+                        Bucket=settings.aws_s3_bucket,
+                        Key=object_key,
+                        Body=file_content,
+                        ContentType=file.content_type or "application/octet-stream"
+                    )
+                else:
+                    raise acl_error
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
             error_message = e.response.get('Error', {}).get('Message', str(e))
@@ -83,3 +98,24 @@ def upload_file_to_s3(file: UploadFile, folder: Optional[str] = None) -> str:
         raise
     except Exception as e:
         raise RuntimeError(f"Unexpected error uploading file: {str(e)}") from e
+
+
+def generate_presigned_url(object_key: str, expiration: int = 3600) -> str:
+    
+    try:
+        client = _get_s3_client()
+        url = client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.aws_s3_bucket, 'Key': object_key},
+            ExpiresIn=expiration
+        )
+        return url
+    except Exception as e:
+        raise RuntimeError(f"Failed to generate presigned URL: {str(e)}") from e
+
+
+def get_public_url(object_key: str) -> str:
+    
+    region = settings.aws_s3_region
+    bucket = settings.aws_s3_bucket
+    return f"https://{bucket}.s3.{region}.amazonaws.com/{object_key}"

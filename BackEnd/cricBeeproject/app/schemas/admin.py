@@ -9,7 +9,10 @@ class UserListItem(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
+    is_verified: bool  
     created_at: datetime  
+    organization_name: Optional[str] = None
+    club_name: Optional[str] = None
     
     class Config:
         from_attributes = True

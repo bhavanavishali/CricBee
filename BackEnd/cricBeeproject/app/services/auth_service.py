@@ -12,6 +12,7 @@ from app.utils.hashing import hash_password, verify_password
 from app.utils.otp import generate_otp, store_otp_in_redis, verify_otp_from_redis
 from app.core.redis_config import get_redis
 import json
+import redis
 
 def check_user_exists(db: Session, email: str, phone: str) -> dict:
     
@@ -206,3 +207,113 @@ def update_user(db:Session ,user_id:int,payload:UserUpdate)-> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+import secrets
+from datetime import datetime
+
+
+def generate_password_reset_token() -> str:
+
+    return secrets.token_urlsafe(32)
+
+
+def store_password_reset_token(email: str, token: str, expire_hours: int = 1) -> bool:
+
+    try:
+        redis_client = get_redis()
+        
+        # Test Redis connection
+        redis_client.ping()
+        
+        token_key = f"password_reset:{token}"
+        token_data = {
+            "email": email,
+            "created_at": datetime.now().isoformat()
+        }
+        
+        # Store the token data
+        result = redis_client.setex(
+            token_key,
+            expire_hours * 3600,  # Convert hours to seconds
+            json.dumps(token_data)
+        )
+        
+        if result:
+            return True
+        else:
+            print(f"Failed to store password reset token in Redis")
+            return False
+    except redis.ConnectionError as e:
+        print(f"Redis connection error: {e}")
+        return False
+    except redis.TimeoutError as e:
+        print(f"Redis timeout error: {e}")
+        return False
+    except Exception as e:
+        print(f"Error storing password reset token: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def verify_password_reset_token(token: str) -> tuple[bool, str | None]:
+  
+    try:
+        redis_client = get_redis()
+        token_key = f"password_reset:{token}"
+        token_data_json = redis_client.get(token_key)
+        
+        if not token_data_json:
+            return False, None
+        
+        token_data = json.loads(token_data_json)
+        email = token_data.get("email")
+        
+        # Delete token after use (one-time use)
+        redis_client.delete(token_key)
+        
+        return True, email
+    except Exception as e:
+        print(f"Error verifying password reset token: {e}")
+        return False, None
+
+
+def reset_user_password(db: Session, email: str, new_password: str) -> tuple[bool, str]:
+    
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return False, "User not found"
+        
+        # Hash the new password
+        user.hashed_password = hash_password(new_password)
+        db.commit()
+        
+        return True, "Password reset successfully"
+    except Exception as e:
+        db.rollback()
+        print(f"Error resetting password: {e}")
+        return False, "Failed to reset password"
+
+
+def change_user_password(db: Session, user_id: int, current_password: str, new_password: str) -> tuple[bool, str]:
+    
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False, "User not found"
+        
+       
+        if not verify_password(current_password, user.hashed_password):
+            return False, "Current password is incorrect"
+        
+       
+        user.hashed_password = hash_password(new_password)
+        db.commit()
+        
+        return True, "Password changed successfully"
+    except Exception as e:
+        db.rollback()
+        print(f"Error changing password: {e}")
+        return False, "Failed to change password"

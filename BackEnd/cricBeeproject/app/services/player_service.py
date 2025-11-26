@@ -4,6 +4,9 @@ from app.models.player import PlayerProfile
 from app.models.user import User
 from app.schemas.player import PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse
 from app.schemas.user import UserRead
+from fastapi import UploadFile
+from app.services.s3_service import upload_file_to_s3
+from app.core.config import settings
 
 def get_player_profile(db: Session, user_id: int) -> PlayerProfileResponse:
     user = db.query(User).filter(User.id == user_id).first()
@@ -47,3 +50,24 @@ def update_player_profile(db: Session, player_id: int, payload: PlayerUpdate, us
     db.commit()
     db.refresh(player_profile)
     return player_profile
+
+
+def update_player_profile_photo(
+    db: Session,
+    user_id: int,
+    uploaded_file: UploadFile,
+) -> User:
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+    
+    # Upload to S3
+    folder = f"players/{user_id}/profile"
+    image_url = upload_file_to_s3(uploaded_file, folder=folder)
+    
+    # Update user record
+    user.profile_photo = image_url
+    db.commit()
+    db.refresh(user)
+    return user

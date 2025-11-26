@@ -100,6 +100,7 @@ class UserRead(BaseModel):
     role: UserRole
     is_superuser: Optional[bool] = None
     is_verified: bool = False  # ADD THIS
+    profile_photo: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -130,5 +131,26 @@ class UserUpdate(BaseModel):
                 raise ValueError("Phone number must be exactly 10 digits")
             return cleaned
         return v
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6, description="New password with minimum 6 characters")
+    confirm_password: str = Field(..., min_length=6, description="Confirm password")
+    
+    @model_validator(mode="after")
+    def validate_passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("New password and confirm password do not match")
+        return self
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6, description="New password with minimum 6 characters")
     
     

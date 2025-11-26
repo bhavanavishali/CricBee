@@ -24,7 +24,9 @@ class Settings(BaseSettings):
         aws_s3_bucket: str | None = None
         aws_s3_organization_folder: str = "organizations"
 
-
+        cors_origins: str = ""
+        frontend_url: str = "http://localhost:5173"
+        
         model_config = {
             "env_file": ".env" }
 

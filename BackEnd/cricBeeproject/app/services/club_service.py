@@ -88,22 +88,18 @@ def get_profile(db: Session, user_id: int) -> ClubProfileResponse:
 # Player management functions
 
 def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -> dict:
-    """
-    Search for a player by CricB ID.
-    Returns player details and whether they're already in the specified club.
-    """
-    # Normalize CricB ID (uppercase)
+   
+  
     cricb_id = cricb_id.upper().strip()
     
-    # Query player profile with user relationship
+  
     player_profile = db.query(PlayerProfile).options(
         joinedload(PlayerProfile.user)
     ).filter(PlayerProfile.cricb_id == cricb_id).first()
     
     if not player_profile:
         raise ValueError("Player not found with this CricB ID")
-    
-    # Check if player is already in the club
+   
     is_already_in_club = False
     if club_id:
         existing = db.query(ClubPlayer).filter(
@@ -119,10 +115,8 @@ def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -
     }
 
 def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayer:
-    """
-    Add a player to a club. Verifies the manager owns the club.
-    """
-    # Verify club ownership
+    
+   
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -135,7 +129,6 @@ def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: in
     if not player_profile:
         raise ValueError("Player not found")
     
-    # Check if player already in club
     existing = db.query(ClubPlayer).filter(
         ClubPlayer.club_id == club_id,
         ClubPlayer.player_id == player_id
@@ -157,9 +150,7 @@ def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: in
     db.refresh(club_player)
     return club_player
 def get_club_players(db: Session, club_id: int, manager_id: int) -> list:
-    """
-    Get all players in a club. Verifies manager ownership.
-    """
+    
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -176,9 +167,7 @@ def get_club_players(db: Session, club_id: int, manager_id: int) -> list:
     return club_players 
 
 def remove_player_from_club(db: Session, club_id: int, player_id: int, manager_id: int) -> bool:
-    """
-    Remove a player from a club.
-    """
+   
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id

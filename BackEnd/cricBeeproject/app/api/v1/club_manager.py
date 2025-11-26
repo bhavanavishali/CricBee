@@ -22,10 +22,7 @@ router = APIRouter(prefix="/club-profile", tags=["club_profile"])
 
 @router.get("/", response_model=ClubProfileResponse)
 def get_club_profile_endpoint(request: Request, db: Session = Depends(get_db)):
-    """
-    Fetch the current club manager's profile, including basic details and optional club details.
-    Frontend can use this to display details or show create form if club is None.
-    """
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -44,9 +41,7 @@ async def create_club_endpoint(
     file: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
-    """
-    Create a club for the signed-in club manager (only if none exists).
-    """
+  
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -192,9 +187,7 @@ def search_player_by_cricb_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    Search for a player by CricB ID. Returns player details and whether they're already in the club.
-    """
+ 
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -227,9 +220,7 @@ def add_player_to_club_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    Add a player to the club using their CricB ID.
-    """
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(

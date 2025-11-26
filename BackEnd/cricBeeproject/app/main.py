@@ -5,13 +5,12 @@ from app.db.session import engine
 
 from app.models.player import PlayerProfile  
 from app.models.club import Club  
-from app.models.club_player import ClubPlayer  # noqa: F401
+from app.models.club_player import ClubPlayer  
 
-# Import User and OrganizationDetails
-from app.models.user import User  # noqa: F401
-from app.models.organizer import OrganizationDetails  # noqa: F401
 
-# Now import routers (which may import User and other models)
+from app.models.user import User 
+from app.models.organizer import OrganizationDetails  
+
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
 from app.api.v1.club_manager import router as club_router
@@ -22,12 +21,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+origins = os.getenv("CORS_ORIGINS", "").split(",")
 
 app.add_middleware(
     CORSMiddleware,
