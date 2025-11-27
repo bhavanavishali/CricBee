@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy import ForeignKey
 
+
 class OrganizationDetails(Base):
     __tablename__ = "organization_details"
     
@@ -19,3 +20,4 @@ class OrganizationDetails(Base):
     active = Column(Boolean, default=True, nullable=False)
 
     user = relationship("User", back_populates="organization")
+    

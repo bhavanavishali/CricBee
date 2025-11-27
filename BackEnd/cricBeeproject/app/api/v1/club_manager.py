@@ -79,7 +79,7 @@ async def create_club_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.put("/", response_model=ClubProfileResponse)
+@router.patch("/", response_model=ClubProfileResponse)
 def update_profile_endpoint(
     payload: ClubProfileUpdate,
     request: Request,
@@ -116,7 +116,7 @@ def update_profile_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
-@router.put("/club/{club_id}", response_model=ClubRead)
+@router.patch("/club/{club_id}", response_model=ClubRead)
 def update_club_endpoint(
     club_id: int,
     payload: ClubUpdate,

@@ -28,7 +28,7 @@ def create_player_profile(db: Session, payload: PlayerCreate, user_id: int) -> P
         user_id=user_id,
         age=payload.age,
         address=payload.address,
-        cricb_id=f"CRICB{user_id:06d}"  # Auto-generate unique cricb_id (e.g., CRICB000001 for user_id=1)
+        cricb_id=f"CRICB{user_id:06d}"  
     )
     db.add(player_profile)
     db.commit()

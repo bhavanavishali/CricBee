@@ -1,4 +1,4 @@
-# app/utils/otp.py
+
 import random
 import string
 from datetime import timedelta

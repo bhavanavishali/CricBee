@@ -56,29 +56,15 @@ def upload_file_to_s3(file: UploadFile, folder: Optional[str] = None) -> str:
        
         file.file.seek(0)
 
+        # Upload without ACL (bucket policy handles public access)
+        # Modern S3 buckets often have ACLs disabled and use bucket policies instead
         try:
-            # Try to upload with public-read ACL
-            try:
-                client.put_object(
-                    Bucket=settings.aws_s3_bucket,
-                    Key=object_key,
-                    Body=file_content,
-                    ContentType=file.content_type or "application/octet-stream",
-                    ACL='public-read' 
-                )
-            except ClientError as acl_error:
-               
-                error_code = acl_error.response.get('Error', {}).get('Code', 'Unknown')
-                if error_code in ['AccessDenied', 'InvalidArgument']:
-                    
-                    client.put_object(
-                        Bucket=settings.aws_s3_bucket,
-                        Key=object_key,
-                        Body=file_content,
-                        ContentType=file.content_type or "application/octet-stream"
-                    )
-                else:
-                    raise acl_error
+            client.put_object(
+                Bucket=settings.aws_s3_bucket,
+                Key=object_key,
+                Body=file_content,
+                ContentType=file.content_type or "application/octet-stream"
+            )
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
             error_message = e.response.get('Error', {}).get('Message', str(e))

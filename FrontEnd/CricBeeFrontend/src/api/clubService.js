@@ -51,7 +51,7 @@ export const createClub = async (data, imageFile = null) => {
 
 export const updateClub = async (clubId, payload) => {
   try {
-    const response = await api.put(`/club-profile/club/${clubId}`, payload);
+    const response = await api.patch(`/club-profile/club/${clubId}`, payload);
     return {
       success: true,
       message: "Club updated successfully",
@@ -68,7 +68,7 @@ export const updateClub = async (clubId, payload) => {
 
 export const updateProfile = async (payload) => {
   try {
-    const response = await api.put(`/club-profile/`, payload);
+    const response = await api.patch(`/club-profile/`, payload);
     return { success: true, data: response.data };
   } catch (error) {
     return { 

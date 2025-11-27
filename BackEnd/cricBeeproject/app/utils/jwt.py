@@ -1,7 +1,4 @@
-"""
-app/utils/jwt.py
-JWT token creation, verification, and authentication utilities
-"""
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
@@ -28,12 +25,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password"""
+    
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def hash_password(password: str) -> str:
-    """Hash a plain password"""
+    
     return pwd_context.hash(password)
 
 def create_access_token(user_id: int, additional_claims: Optional[dict] = None, 
@@ -41,7 +38,7 @@ def create_access_token(user_id: int, additional_claims: Optional[dict] = None,
     
     to_encode = {"sub": str(user_id)}
     
-    # Add any additional claims
+    
     if additional_claims:
         to_encode.update(additional_claims)
 

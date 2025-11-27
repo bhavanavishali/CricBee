@@ -30,6 +30,42 @@ def get_profile_endpoint(request: Request, db: Session = Depends(get_db)):
         )
     return get_profile(db, current_user.id)
 
+@router.patch("/", response_model=ProfileResponse)
+def update_profile_endpoint(
+    payload: ProfileUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can update their profile",
+        )
+
+    if not payload.user and not payload.organization:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nothing to update",
+        )
+
+    try:
+        # Update user details if provided
+        if payload.user:
+            update_user(db, current_user.id, payload.user)
+        
+        # Update organization details if provided
+        if payload.organization:
+            org = get_organization(db, current_user.id)
+            if not org:
+                raise ValueError("Organization not found")
+            update_organization(db, org.id, payload.organization, current_user.id)
+        
+        # Return updated profile
+        return get_profile(db, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
 @router.post("/organization", response_model=OrganizationRead, status_code=status.HTTP_201_CREATED)
 async def create_organization_endpoint(
     request: Request,
@@ -123,7 +159,7 @@ async def upload_organization_image_endpoint(
             detail=f"An unexpected error occurred: {str(exc)}",
         )
 
-@router.put("/organization/{org_id}", response_model=OrganizationRead)
+@router.patch("/organization/{org_id}", response_model=OrganizationRead)
 def update_organization_endpoint(
     org_id: int,
     payload: OrganizationUpdate,
@@ -142,35 +178,3 @@ def update_organization_endpoint(
         return org
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-@router.post("/organization/{org_id}/image", response_model=OrganizationRead)
-async def upload_organization_image_endpoint(
-    org_id: int,
-    request: Request,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-):
-    current_user = get_current_user(request, db)
-    if current_user.role != UserRole.ORGANIZER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organizers can upload organization images",
-        )
-
-    if file.content_type is None or not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only image uploads are allowed",
-        )
-
-    try:
-        org = update_organization_image(db, org_id, current_user.id, file)
-        return org
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc),
-        )
