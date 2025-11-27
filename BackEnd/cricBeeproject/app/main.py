@@ -6,10 +6,9 @@ from app.db.session import engine
 from app.models.player import PlayerProfile  
 from app.models.club import Club  
 from app.models.club_player import ClubPlayer  
-
-
 from app.models.user import User 
-from app.models.organizer import OrganizationDetails  
+from app.models.organizer import OrganizationDetails
+from app.models.admin.plan_pricing import TournamentPricingPlan  
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
@@ -39,7 +38,6 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(organizer_router)
-
 app.include_router(club_router)
 app.include_router(admin_router)
 app.include_router(player_router)

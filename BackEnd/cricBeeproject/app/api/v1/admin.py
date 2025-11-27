@@ -3,13 +3,27 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.admin import UserListItem, UserStatusUpdate
+from app.schemas.admin.plan_pricing import (
+    TournamentPricingPlanCreate,
+    TournamentPricingPlanUpdate,
+    TournamentPricingPlanStatusUpdate,
+    TournamentPricingPlanResponse
+)
 from app.services.admin_service import get_all_users_except_admin, update_user_status
-from app.utils.admin_dependencies import get_current_admin_user  # You'll need to create this
+from app.services.admin.plan_pricing import (
+    create_tournament_pricing_plan,
+    get_all_tournament_pricing_plans,
+    get_tournament_pricing_plan_by_id,
+    update_tournament_pricing_plan,
+    update_tournament_pricing_plan_status
+)
+from app.utils.admin_dependencies import get_current_admin_user
 from typing import List
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+# User Management Endpoints
 @router.get("/users", response_model=List[UserListItem])
 def list_all_users(
     db: Session = Depends(get_db),
@@ -37,3 +51,95 @@ def update_user_active_status(
         )
     
     return user
+
+
+# Tournament Pricing Plan Endpoints
+
+@router.post("/pricing-plans", response_model=TournamentPricingPlanResponse, status_code=status.HTTP_201_CREATED)
+def create_pricing_plan(
+    plan_data: TournamentPricingPlanCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    ""
+    # Validate status
+    if plan_data.status not in ["active", "inactive"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status must be 'active' or 'inactive'"
+        )
+    
+    plan = create_tournament_pricing_plan(db, plan_data)
+    return plan
+
+
+@router.get("/pricing-plans", response_model=List[TournamentPricingPlanResponse])
+def list_all_pricing_plans(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    
+    plans = get_all_tournament_pricing_plans(db)
+    return plans
+
+
+@router.get("/pricing-plans/{plan_id}", response_model=TournamentPricingPlanResponse)
+def get_pricing_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    
+    plan = get_tournament_pricing_plan_by_id(db, plan_id)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pricing plan not found"
+        )
+    return plan
+
+
+@router.put("/pricing-plans/{plan_id}", response_model=TournamentPricingPlanResponse)
+def update_pricing_plan(
+    plan_id: int,
+    plan_data: TournamentPricingPlanUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    
+    if plan_data.status is not None and plan_data.status not in ["active", "inactive"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status must be 'active' or 'inactive'"
+        )
+    
+    plan = update_tournament_pricing_plan(db, plan_id, plan_data)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pricing plan not found"
+        )
+    return plan
+
+
+@router.patch("/pricing-plans/{plan_id}/status", response_model=TournamentPricingPlanResponse)
+def update_pricing_plan_status(
+    plan_id: int,
+    status_data: TournamentPricingPlanStatusUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    
+    if status_data.status not in ["active", "inactive"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status must be 'active' or 'inactive'"
+        )
+    
+    plan = update_tournament_pricing_plan_status(db, plan_id, status_data.status)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pricing plan not found"
+        )
+    return plan

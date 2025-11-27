@@ -42,3 +42,66 @@ export const getUserDetails = async (userId) => {
     };
   }
 };
+
+// Pricing Plan API functions
+export const getPricingPlans = async () => {
+  try {
+    const response = await api.get('/admin/pricing-plans');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch pricing plans',
+    };
+  }
+};
+
+export const getPricingPlan = async (planId) => {
+  try {
+    const response = await api.get(`/admin/pricing-plans/${planId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch pricing plan',
+    };
+  }
+};
+
+export const createPricingPlan = async (planData) => {
+  try {
+    const response = await api.post('/admin/pricing-plans', planData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to create pricing plan',
+    };
+  }
+};
+
+export const updatePricingPlan = async (planId, planData) => {
+  try {
+    const response = await api.put(`/admin/pricing-plans/${planId}`, planData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to update pricing plan',
+    };
+  }
+};
+
+export const updatePricingPlanStatus = async (planId, status) => {
+  try {
+    const response = await api.patch(`/admin/pricing-plans/${planId}/status`, {
+      status: status,
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to update pricing plan status',
+    };
+  }
+};

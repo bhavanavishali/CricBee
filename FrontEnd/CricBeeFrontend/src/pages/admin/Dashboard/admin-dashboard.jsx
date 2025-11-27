@@ -102,7 +102,7 @@ export default function AdminDashboard() {
       ],
       buttonText: 'Manage Plans',
       color: 'bg-green-500',
-      route: 'admin/plans',
+      route: '/admin/plans',
     },
     {
       icon: Trophy,

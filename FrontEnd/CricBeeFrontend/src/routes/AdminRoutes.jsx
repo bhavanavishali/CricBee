@@ -5,6 +5,7 @@ import { Route, Routes } from "react-router-dom";
 import Signin from "@/pages/admin/Signin"
 import AdminDashboard from "@/pages/admin/Dashboard/admin-dashboard";
 import UserManagement from "@/pages/admin/Usermanagement";
+import PricingPlans from "@/pages/admin/PricingPlans";
 
 const AdminRoutes = () => {
   return (
@@ -12,6 +13,7 @@ const AdminRoutes = () => {
             <Route path="signin" element={<Signin/>} />
            <Route path="dashboard" element={<AdminDashboard/>} />
            <Route path="usermanagement" element={<UserManagement/>} />
+           <Route path="plans" element={<PricingPlans/>} />
     </Routes>
   );
 };
