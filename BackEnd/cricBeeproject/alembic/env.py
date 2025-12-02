@@ -8,9 +8,11 @@ from alembic import context
 from app.db.base import Base
 from app.models.user import User
 from app.models.organizer import OrganizationDetails
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment
 from app.models.club import Club
 from app.models.player import PlayerProfile
 from app.models.club_player import ClubPlayer
+from app.models.admin.plan_pricing import TournamentPricingPlan
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

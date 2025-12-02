@@ -1,6 +1,6 @@
 "use client"
 import { useDispatch } from 'react-redux';
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Trophy,
@@ -19,82 +19,115 @@ import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import Layout from '@/components/layouts/Layout'
+import { getMyTournaments } from '@/api/organizer/tournament'
+
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const userRole = user?.role;
-  console.log("User Role in Dashboard:", userRole);
-  console.log("User in Dashboard:", user);
-  const [tournaments, setTournaments] = useState([
-    {
-      id: 1,
-      name: "Broto Type Premier League 2024",
-      clubs: 12,
-      matches: 24,
-      revenue: "₹85,000",
-      progress: 65,
-      status: "Live",
-      statusColor: "bg-red-500",
-    },
-    {
-      id: 2,
-      name: "Broto Type Kerala Cricket League",
-      clubs: 8,
-      matches: 16,
-      revenue: "₹65,000",
-      progress: 40,
-      status: "Registration Open",
-      statusColor: "bg-green-500",
-    },
-    {
-      id: 3,
-      name: "Broto Type Kochi Hub League",
-      clubs: 16,
-      matches: 32,
-      revenue: "₹95,000",
-      progress: 25,
-      status: "Upcoming",
-      statusColor: "bg-blue-500",
-    },
-  ])
+  const [tournaments, setTournaments] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadTournaments();
+  }, []);
+
+  const loadTournaments = async () => {
+    try {
+      setLoading(true);
+      const data = await getMyTournaments();
+      setTournaments(data);
+    } catch (error) {
+      console.error('Failed to load tournaments:', error);
+      setTournaments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      'pending_payment': 'bg-yellow-500',
+      'registration_open': 'bg-blue-500',
+      'registration_end': 'bg-orange-500',
+      'tournament_start': 'bg-red-500',
+      'tournament_end': 'bg-gray-500',
+      'cancelled': 'bg-red-600'
+    };
+    return statusMap[status] || 'bg-gray-500';
+  };
+
+  const getStatusLabel = (status) => {
+    const labelMap = {
+      'pending_payment': 'Pending Payment',
+      'registration_open': 'Registration Open',
+      'registration_end': 'Registration Closed',
+      'tournament_start': 'Tournament Live',
+      'tournament_end': 'Tournament Completed',
+      'cancelled': 'Cancelled'
+    };
+    return labelMap[status] || status;
+  };
+
+  const getStatusIcon = (status) => {
+    const iconMap = {
+      'pending_payment': '⏳',
+      'registration_open': '📢',
+      'registration_end': '✅',
+      'tournament_start': '🔴',
+      'tournament_end': '🏁',
+      'cancelled': '✕'
+    };
+    return iconMap[status] || '🔵';
+  };
+
+  const pendingTournaments = tournaments.filter(t => t.status === 'pending_payment').length;
+  const activeTournaments = tournaments.filter(t => t.status === 'tournament_start').length;
+  const upcomingTournaments = tournaments.filter(t => t.status === 'registration_open').length;
+  const totalRevenue = tournaments.reduce((sum, t) => {
+    if (t.payment?.payment_status === 'success' && t.payment?.amount) {
+      return sum + parseFloat(t.payment.amount);
+    }
+    return sum;
+  }, 0);
 
   const statCards = [
     {
-      title: "Active Tournaments",
-      value: "3",
-      change: "+2 this month",
+      title: "Total Tournaments",
+      value: tournaments.length.toString(),
+      change: `${upcomingTournaments} upcoming`,
       changeColor: "text-green-600",
       icon: Trophy,
       bgColor: "bg-green-100",
       iconBg: "bg-green-200",
     },
     {
-      title: "Enrolled Clubs",
-      value: "48",
-      change: "Across all tournaments",
+      title: "Live Tournaments",
+      value: activeTournaments.toString(),
+      change: "Currently running",
       changeColor: "text-blue-600",
       icon: Users,
       bgColor: "bg-blue-100",
       iconBg: "bg-blue-200",
     },
     {
-      title: "Total Matches",
-      value: "156",
-      change: "+24 this week",
+      title: "Total Revenue",
+      value: `₹${totalRevenue.toLocaleString('en-IN')}`,
+      change: "From all tournaments",
       changeColor: "text-orange-600",
-      icon: Zap,
+      icon: DollarSign,
       bgColor: "bg-orange-100",
       iconBg: "bg-orange-200",
     },
     {
-      title: "Total Revenue",
-      value: "₹245,000",
-      change: "+12.5% this month",
-      changeColor: "text-green-600",
-      icon: DollarSign,
-      bgColor: "bg-green-100",
-      iconBg: "bg-green-200",
+      title: "Pending Payment",
+      value: pendingTournaments.toString(),
+      change: "Awaiting payment",
+      changeColor: "text-yellow-600",
+      icon: Zap,
+      bgColor: "bg-yellow-100",
+      iconBg: "bg-yellow-200",
     },
   ]
 
@@ -164,7 +197,7 @@ export default function OrganizerDashboard() {
             <BarChart3 size={16} />
             <span>Dashboard</span>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, Demo! 👋</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, {user?.full_name || 'Organizer'}! 👋</h1>
           <p className="text-gray-600">Here's what's happening with your tournaments today.</p>
         </div>
 
@@ -199,6 +232,7 @@ export default function OrganizerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Primary Create Tournament Button */}
             <div
+              onClick={() => navigate('/organizer/create-tournament')}
               className={`lg:col-span-1 bg-gradient-to-r from-teal-500 to-orange-500 rounded-lg p-6 text-white cursor-pointer hover:shadow-lg transition-shadow`}
             >
               <div className="flex items-center space-x-3">
@@ -215,9 +249,19 @@ export default function OrganizerDashboard() {
             {/* Other Quick Actions */}
             {quickActions.slice(1).map((action, index) => {
               const Icon = action.icon
+              const handleClick = () => {
+                if (action.title === "My Tournaments") {
+                  navigate('/organizer/tournaments');
+                } else {
+                  // Handle other actions
+                  console.log('Action clicked:', action.title);
+                }
+              };
+              
               return (
                 <div
                   key={index}
+                  onClick={handleClick}
                   className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
                 >
                   <div className="flex items-start space-x-4">
@@ -240,54 +284,82 @@ export default function OrganizerDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Recent Tournaments</h2>
-            <button className="text-blue-600 font-semibold flex items-center space-x-1 hover:text-blue-700">
+            <button 
+              onClick={() => navigate('/organizer/tournaments')}
+              className="text-blue-600 font-semibold flex items-center space-x-1 hover:text-blue-700"
+            >
               <span>View All</span>
               <ChevronRight size={18} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            {tournaments.map((tournament) => (
-              <div
-                key={tournament.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Loading tournaments...</p>
+            </div>
+          ) : tournaments.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No tournaments yet</h3>
+              <p className="text-gray-600 mb-4">Create your first tournament to get started</p>
+              <button
+                onClick={() => navigate('/organizer/create-tournament')}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="bg-gradient-to-br from-teal-500 to-orange-500 rounded-lg p-3 text-white">
-                      <Trophy size={28} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-900 mb-1">{tournament.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {tournament.clubs} clubs • {tournament.matches} matches • {tournament.revenue}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <p className="text-xs text-gray-600 mb-2">Progress</p>
-                      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-red-400 to-green-400"
-                          style={{ width: `${tournament.progress}%` }}
-                        />
+                Create Tournament
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tournaments.map((tournament) => (
+                <div
+                  key={tournament.id}
+                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => {
+                    // Navigate to tournament details page when implemented
+                    console.log('Tournament clicked:', tournament.id);
+                  }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1">
+                      <div className="bg-gradient-to-br from-teal-500 to-orange-500 rounded-lg p-3 text-white">
+                        <Trophy size={28} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-900 mb-1">{tournament.tournament_name}</h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {tournament.details?.location && `📍 ${tournament.details.location}`}
+                          {tournament.details?.team_range && ` • ${tournament.details.team_range}`}
+                          {tournament.details?.overs && ` • ${tournament.details.overs} overs`}
+                        </p>
+                        {tournament.details?.start_date && (
+                          <p className="text-xs text-gray-500">
+                            Start: {new Date(tournament.details.start_date).toLocaleDateString()}
+                            {tournament.details?.end_date && ` - End: ${new Date(tournament.details.end_date).toLocaleDateString()}`}
+                          </p>
+                        )}
+                        {tournament.payment && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Amount: ₹{parseFloat(tournament.payment.amount).toLocaleString('en-IN')}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`${tournament.statusColor} text-white text-xs font-semibold px-3 py-1 rounded-full`}
-                      >
-                        {tournament.status === "Live" ? "🔴" : tournament.status === "Registration Open" ? "✅" : "🔵"}{" "}
-                        {tournament.status}
-                      </span>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <span
+                          className={`${getStatusColor(tournament.status)} text-white text-xs font-semibold px-3 py-1 rounded-full`}
+                        >
+                          {getStatusIcon(tournament.status)} {getStatusLabel(tournament.status)}
+                        </span>
+                      </div>
                       <ChevronRight size={20} className="text-gray-400" />
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Account Verification Banner */}

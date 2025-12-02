@@ -28,3 +28,6 @@ class User(Base):
     club = relationship("Club", back_populates="manager", uselist=False)
     player_profile = relationship("PlayerProfile", back_populates="user", uselist=False)
     is_verified = Column(Boolean, default=False)
+
+    # Add this relationship in the User class
+    tournaments = relationship("Tournament", back_populates="organizer")
