@@ -15,6 +15,10 @@ class TransactionStatus(str, enum.Enum):
     FAILED = "failed"
     REFUNDED = "refunded"
 
+class TransactionDirection(str, enum.Enum):
+    DEBIT = "debit"
+    CREDIT = "credit"
+
 class AdminWallet(Base):
     __tablename__ = "admin_wallets"
     
@@ -34,6 +38,7 @@ class Transaction(Base):
     transaction_id = Column(String, nullable=False, unique=True, index=True)  # Unique transaction ID
     wallet_id = Column(Integer, ForeignKey("admin_wallets.id"), nullable=False)
     transaction_type = Column(String, nullable=False)
+    transaction_direction = Column(String, nullable=False, default="credit")  # debit or credit
     amount = Column(Numeric(10, 2), nullable=False)
     status = Column(String, nullable=False, default=TransactionStatus.PENDING.value)
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)

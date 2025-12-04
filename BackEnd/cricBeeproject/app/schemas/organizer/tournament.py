@@ -69,6 +69,7 @@ class OrganizerTransactionResponse(BaseModel):
     tournament_id: int
     tournament_name: str
     transaction_id: Optional[str] = None
+    transaction_direction: str = "debit"  # Organizer pays = Debit
     amount: Decimal
     payment_status: str
     payment_date: Optional[datetime] = None

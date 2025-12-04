@@ -235,6 +235,7 @@ def get_organizer_transactions(db: Session, organizer_id: int) -> List[Organizer
             tournament_id=payment.tournament_id,
             tournament_name=tournament_name,
             transaction_id=payment.transaction_id,
+            transaction_direction="debit",  # Organizer pays = Debit
             amount=payment.amount,
             payment_status=payment.payment_status,
             payment_date=payment.payment_date,

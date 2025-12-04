@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.admin.transaction import AdminWallet, Transaction, TransactionType, TransactionStatus
+from app.models.admin.transaction import AdminWallet, Transaction, TransactionType, TransactionStatus, TransactionDirection
 from app.models.user import User, UserRole
 from decimal import Decimal
 from datetime import datetime
@@ -30,7 +30,8 @@ def create_transaction(
     razorpay_payment_id: Optional[str] = None,
     razorpay_order_id: Optional[str] = None,
     description: Optional[str] = None,
-    transaction_id: Optional[str] = None
+    transaction_id: Optional[str] = None,
+    transaction_direction: str = TransactionDirection.CREDIT.value
 ) -> Transaction:
     
     transaction_id = transaction_id or generate_transaction_id()
@@ -39,6 +40,7 @@ def create_transaction(
         transaction_id=transaction_id,
         wallet_id=wallet_id,
         transaction_type=transaction_type,
+        transaction_direction=transaction_direction,
         amount=amount,
         status=status,
         tournament_id=tournament_id,
@@ -68,11 +70,12 @@ def add_to_admin_wallet(
     # Get or create wallet
     wallet = get_or_create_admin_wallet(db, admin_id)
     
-    # Create transaction
+    # Create transaction with CREDIT direction (money coming in for admin)
     transaction = create_transaction(
         db=db,
         wallet_id=wallet.id,
         transaction_type=TransactionType.TOURNAMENT_PAYMENT.value,
+        transaction_direction=TransactionDirection.CREDIT.value,  # Admin receives money = Credit
         amount=amount,
         status=TransactionStatus.SUCCESS.value,
         tournament_id=tournament_id,
