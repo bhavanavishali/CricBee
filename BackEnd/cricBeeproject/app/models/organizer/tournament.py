@@ -58,6 +58,7 @@ class TournamentPayment(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     tournament_id = Column(Integer, ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False, unique=True)
+    transaction_id = Column(String, nullable=True, unique=True, index=True)
     razorpay_order_id = Column(String, nullable=True, unique=True, index=True)
     razorpay_payment_id = Column(String, nullable=True, unique=True, index=True)
     razorpay_signature = Column(String, nullable=True)

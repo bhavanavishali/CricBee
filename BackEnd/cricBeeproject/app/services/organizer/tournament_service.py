@@ -1,12 +1,17 @@
 from sqlalchemy.orm import Session, joinedload
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentStatus, PaymentStatus
 from app.models.admin.plan_pricing import TournamentPricingPlan
-from app.schemas.organizer.tournament import TournamentCreate, TournamentResponse
+from app.schemas.organizer.tournament import (
+    TournamentCreate,
+    TournamentResponse,
+    OrganizerTransactionResponse
+)
 from app.services.organizer.payment_service import create_razorpay_order, verify_payment_signature
 from app.core.config import settings
-from decimal import Decimal
 from datetime import datetime, date
 from typing import List
+from app.services.admin.transaction_service import add_to_admin_wallet, generate_transaction_id
+from app.models.user import UserRole, User
 
 LEGACY_STATUS_MAP = {
     "payment_completed": TournamentStatus.REGISTRATION_OPEN.value,
@@ -64,7 +69,7 @@ def create_tournament_with_payment(
     tournament_data: TournamentCreate,
     organizer_id: int
 ) -> dict:
-    """Create tournament and initiate payment"""
+
     
     # Verify plan exists and is active
     plan = db.query(TournamentPricingPlan).filter(
@@ -106,6 +111,7 @@ def create_tournament_with_payment(
         amount=plan.amount,
         payment_status=PaymentStatus.PENDING.value
     )
+    payment.transaction_id = generate_transaction_id()
     db.add(payment)
     db.flush()
     
@@ -133,7 +139,6 @@ def create_tournament_with_payment(
             "key": settings.razorpay_key_id
         }
     }
-
 def verify_and_complete_payment(
     db: Session,
     tournament_id: int,
@@ -162,6 +167,27 @@ def verify_and_complete_payment(
     payment.razorpay_signature = razorpay_signature
     payment.payment_status = PaymentStatus.SUCCESS.value
     payment.payment_date = datetime.now()
+    
+    # Ensure payment has a transaction ID
+    if not payment.transaction_id:
+        payment.transaction_id = generate_transaction_id()
+    
+    # Get admin user (assuming first admin or you can modify this logic)
+    admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+    if admin:
+        # Add payment to admin wallet
+        transaction, wallet = add_to_admin_wallet(
+            db=db,
+            admin_id=admin.id,
+            amount=payment.amount,
+            tournament_id=tournament_id,
+            razorpay_payment_id=razorpay_payment_id,
+            razorpay_order_id=razorpay_order_id,
+            description=f"Tournament payment for {tournament.tournament_name}",
+            transaction_id=payment.transaction_id
+        )
+        # Update payment with transaction_id from the transaction record
+        payment.transaction_id = transaction.transaction_id
     
     # Activate tournament and move to registration flow
     tournament.status = TournamentStatus.REGISTRATION_OPEN.value
@@ -192,3 +218,27 @@ def get_organizer_tournaments(db: Session, organizer_id: int) -> List[Tournament
             db.refresh(tournament)
     
     return [TournamentResponse.model_validate(tournament) for tournament in tournaments]
+
+
+def get_organizer_transactions(db: Session, organizer_id: int) -> List[OrganizerTransactionResponse]:
+    """Return payment transactions for an organizer"""
+    payments = (
+        db.query(TournamentPayment, Tournament.tournament_name)
+        .join(Tournament, Tournament.id == TournamentPayment.tournament_id)
+        .filter(Tournament.organizer_id == organizer_id)
+        .order_by(TournamentPayment.created_at.desc())
+        .all()
+    )
+    
+    return [
+        OrganizerTransactionResponse(
+            tournament_id=payment.tournament_id,
+            tournament_name=tournament_name,
+            transaction_id=payment.transaction_id,
+            amount=payment.amount,
+            payment_status=payment.payment_status,
+            payment_date=payment.payment_date,
+            created_at=payment.created_at
+        )
+        for payment, tournament_name in payments
+    ]

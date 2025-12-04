@@ -126,9 +126,9 @@ export default function AdminDashboard() {
         { label: 'Pending Settlements', value: '12' },
         { label: 'Gift Volume', value: '₹45K' },
       ],
-      buttonText: 'Manage Financial',
+      buttonText: 'View Payments',
       color: 'bg-orange-500',
-      route: 'admin/financial',
+      route: '/admin/transaction',
     },
     {
       icon: Bell,
@@ -204,9 +204,9 @@ export default function AdminDashboard() {
       route: 'admin/tournaments',
     },
     {
-      title: 'Financial Reports',
-      description: 'View revenue and payment analytics',
-      route: 'admin/financial',
+      title: 'View Payments',
+      description: 'View all transaction details and payment history',
+      route: '/admin/transaction',
     },
     {
       title: 'Send Notification',

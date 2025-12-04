@@ -54,8 +54,21 @@ class TournamentDetailsResponse(BaseModel):
 class TournamentPaymentResponse(BaseModel):
     id: int
     tournament_id: int
+    transaction_id: Optional[str] = None 
     razorpay_order_id: Optional[str] = None
     razorpay_payment_id: Optional[str] = None
+    amount: Decimal
+    payment_status: str
+    payment_date: Optional[datetime] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class OrganizerTransactionResponse(BaseModel):
+    tournament_id: int
+    tournament_name: str
+    transaction_id: Optional[str] = None
     amount: Decimal
     payment_status: str
     payment_date: Optional[datetime] = None

@@ -19,3 +19,8 @@ export const getMyTournaments = async () => {
   const response = await api.get('/tournaments/');
   return response.data;
 };
+
+export const getMyTransactions = async () => {
+  const response = await api.get('/tournaments/transactions');
+  return response.data;
+};

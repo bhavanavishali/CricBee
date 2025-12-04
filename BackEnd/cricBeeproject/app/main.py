@@ -9,7 +9,8 @@ from app.models.club_player import ClubPlayer
 from app.models.user import User 
 from app.models.organizer import OrganizationDetails
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment
-from app.models.admin.plan_pricing import TournamentPricingPlan  
+from app.models.admin.plan_pricing import TournamentPricingPlan
+from app.models.admin.transaction import AdminWallet, Transaction
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router

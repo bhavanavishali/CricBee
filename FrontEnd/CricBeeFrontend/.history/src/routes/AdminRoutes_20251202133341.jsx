@@ -15,7 +15,6 @@ const AdminRoutes = () => {
            <Route path="dashboard" element={<AdminDashboard/>} />
            <Route path="usermanagement" element={<UserManagement/>} />
            <Route path="plans" element={<PricingPlans/>} />
-           <Route path="transaction" element={<Transactions/>} />
     </Routes>
   );
 };

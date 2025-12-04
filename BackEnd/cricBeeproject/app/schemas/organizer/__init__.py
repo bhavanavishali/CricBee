@@ -11,6 +11,7 @@ from app.schemas.organizer.tournament import (
     TournamentDetailsCreate,
     TournamentDetailsResponse,
     TournamentPaymentResponse,
+    OrganizerTransactionResponse,
     PaymentVerification,
     RazorpayOrderCreate,
     RazorpayOrderResponse
@@ -27,6 +28,7 @@ __all__ = [
     "TournamentDetailsCreate",
     "TournamentDetailsResponse",
     "TournamentPaymentResponse",
+    "OrganizerTransactionResponse",
     "PaymentVerification",
     "RazorpayOrderCreate",
     "RazorpayOrderResponse"

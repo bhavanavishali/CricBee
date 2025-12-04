@@ -19,7 +19,7 @@ import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import Layout from '@/components/layouts/Layout'
-import { getMyTournaments } from '@/api/organizer/tournament'
+import { getMyTournaments, getMyTransactions } from '@/api/organizer/tournament'
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
@@ -27,10 +27,13 @@ export default function OrganizerDashboard() {
   const user = useSelector((state) => state.auth.user);
   const userRole = user?.role;
   const [tournaments, setTournaments] = useState([])
+  const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [transactionsLoading, setTransactionsLoading] = useState(true)
 
   useEffect(() => {
     loadTournaments();
+    loadTransactions();
   }, []);
 
   const loadTournaments = async () => {
@@ -43,6 +46,19 @@ export default function OrganizerDashboard() {
       setTournaments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTransactions = async () => {
+    try {
+      setTransactionsLoading(true);
+      const data = await getMyTransactions();
+      setTransactions(data);
+    } catch (error) {
+      console.error('Failed to load transactions:', error);
+      setTransactions([]);
+    } finally {
+      setTransactionsLoading(false);
     }
   };
 
@@ -81,6 +97,15 @@ export default function OrganizerDashboard() {
     };
     return iconMap[status] || '🔵';
   };
+  const getPaymentStatusStyles = (status) => {
+    const styleMap = {
+      'success': 'bg-green-100 text-green-800',
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'failed': 'bg-red-100 text-red-800',
+      'refunded': 'bg-blue-100 text-blue-800'
+    };
+    return styleMap[status] || 'bg-gray-100 text-gray-800';
+  };
 
   const pendingTournaments = tournaments.filter(t => t.status === 'pending_payment').length;
   const activeTournaments = tournaments.filter(t => t.status === 'tournament_start').length;
@@ -91,6 +116,7 @@ export default function OrganizerDashboard() {
     }
     return sum;
   }, 0);
+  const recentTransactions = transactions.slice(0, 5);
 
   const statCards = [
     {
@@ -360,6 +386,73 @@ export default function OrganizerDashboard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Recent Transactions */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Recent Transactions</h2>
+              <p className="text-sm text-gray-600">Track payments for your tournaments</p>
+            </div>
+            <button
+              onClick={loadTransactions}
+              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="bg-white rounded-lg border border-gray-200">
+            {transactionsLoading ? (
+              <div className="text-center py-10">
+                <p className="text-gray-600">Loading transactions...</p>
+              </div>
+            ) : recentTransactions.length === 0 ? (
+              <div className="text-center py-10">
+                <DollarSign size={36} className="mx-auto text-gray-400 mb-3" />
+                <p className="text-gray-600">No transactions recorded yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {recentTransactions.map((transaction, index) => (
+                      <tr key={`${transaction.transaction_id}-${index}`}>
+                        <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                          {transaction.transaction_id || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <p className="text-sm font-semibold text-gray-900">{transaction.tournament_name}</p>
+                          <p className="text-xs text-gray-500">#{transaction.tournament_id}</p>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                          ₹{parseFloat(transaction.amount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPaymentStatusStyles(transaction.payment_status)}`}>
+                            {transaction.payment_status?.replace('_', ' ') || 'pending'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(transaction.payment_date || transaction.created_at).toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Account Verification Banner */}

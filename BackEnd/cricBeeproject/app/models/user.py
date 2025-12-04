@@ -27,7 +27,11 @@ class User(Base):
     organization = relationship("OrganizationDetails", back_populates="user", uselist=False)
     club = relationship("Club", back_populates="manager", uselist=False)
     player_profile = relationship("PlayerProfile", back_populates="user", uselist=False)
+    admin_wallet = relationship("AdminWallet", back_populates="admin", uselist=False)
     is_verified = Column(Boolean, default=False)
 
-    # Add this relationship in the User class
+    
     tournaments = relationship("Tournament", back_populates="organizer")
+
+    
+    admin_wallet = relationship("AdminWallet", back_populates="admin", uselist=False)

@@ -6,12 +6,14 @@ from app.utils.jwt import get_current_user
 from app.schemas.organizer.tournament import (
     TournamentCreate,
     TournamentResponse,
-    PaymentVerification
+    PaymentVerification,
+    OrganizerTransactionResponse
 )
 from app.services.organizer.tournament_service import (
     create_tournament_with_payment,
     verify_and_complete_payment,
-    get_organizer_tournaments
+    get_organizer_tournaments,
+    get_organizer_transactions
 )
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.schemas.admin.plan_pricing import TournamentPricingPlanResponse
@@ -108,3 +110,18 @@ def verify_payment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+@router.get("/transactions", response_model=List[OrganizerTransactionResponse])
+def get_transactions(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Return transaction history for the logged-in organizer"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view transactions"
+        )
+    
+    return get_organizer_transactions(db, current_user.id)
