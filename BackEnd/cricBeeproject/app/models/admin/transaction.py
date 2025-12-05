@@ -36,7 +36,8 @@ class Transaction(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     transaction_id = Column(String, nullable=False, unique=True, index=True)  # Unique transaction ID
-    wallet_id = Column(Integer, ForeignKey("admin_wallets.id"), nullable=False)
+    wallet_id = Column(Integer, ForeignKey("admin_wallets.id"), nullable=True)  # Nullable for organizer transactions
+    organizer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # For organizer transactions
     transaction_type = Column(String, nullable=False)
     transaction_direction = Column(String, nullable=False, default="credit")  # debit or credit
     amount = Column(Numeric(10, 2), nullable=False)
@@ -49,4 +50,5 @@ class Transaction(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     wallet = relationship("AdminWallet", back_populates="transactions")
+    organizer = relationship("User", foreign_keys=[organizer_id])
     tournament = relationship("Tournament")

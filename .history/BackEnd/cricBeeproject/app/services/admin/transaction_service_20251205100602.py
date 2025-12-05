@@ -155,7 +155,7 @@ def refund_tournament_transactions(
     tournament_id: int,
     organizer_id: int
 ) -> Tuple[Transaction, Transaction]:
-    # Find organizer transaction (original: DEBIT, SUCCESS)
+   
     organizer_transaction = db.query(Transaction).filter(
         Transaction.tournament_id == tournament_id,
         Transaction.organizer_id == organizer_id,

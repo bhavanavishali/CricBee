@@ -295,7 +295,11 @@ def cancel_tournament(
     tournament_id: int,
     organizer_id: int
 ) -> TournamentResponse:
-   
+    """
+    Cancel a tournament and refund the payment.
+    Can only cancel before registration end date.
+    Updates transactions to REFUNDED status with reversed directions.
+    """
     # Get tournament with relationships
     tournament = db.query(Tournament).options(
         joinedload(Tournament.details),

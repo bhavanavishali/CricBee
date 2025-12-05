@@ -74,10 +74,10 @@ def add_to_admin_wallet(
     if not admin:
         raise ValueError("Admin user not found")
     
-   
+    # Get or create wallet
     wallet = get_or_create_admin_wallet(db, admin_id)
     
-   
+    # Create transaction with CREDIT direction (money coming in for admin)
     transaction = create_transaction(
         db=db,
         wallet_id=wallet.id,
@@ -100,7 +100,7 @@ def add_to_admin_wallet(
     return transaction, wallet
 
 def get_all_transactions(db: Session, skip: int = 0, limit: int = 100):
-   
+    """Get all admin wallet transactions with pagination (only transactions with wallet_id)"""
     transactions = db.query(Transaction).filter(
         Transaction.wallet_id.isnot(None)  # Only admin wallet transactions
     ).order_by(
@@ -109,13 +109,13 @@ def get_all_transactions(db: Session, skip: int = 0, limit: int = 100):
     return transactions
 
 def get_transactions_count(db: Session) -> int:
-    
+    """Get total count of admin wallet transactions"""
     return db.query(Transaction).filter(
         Transaction.wallet_id.isnot(None)  # Only admin wallet transactions
     ).count()
 
 def get_admin_wallet(db: Session, admin_id: int) -> AdminWallet:
-    
+    """Get admin wallet, create if it doesn't exist"""
     return get_or_create_admin_wallet(db, admin_id)
 
 def create_organizer_transaction(
@@ -131,7 +131,8 @@ def create_organizer_transaction(
     transaction_id: Optional[str] = None,
     transaction_direction: str = TransactionDirection.DEBIT.value
 ) -> Transaction:
-    
+    """Create a transaction for an organizer"""
+    # Verify organizer exists
     organizer = db.query(User).filter(User.id == organizer_id, User.role == UserRole.ORGANIZER).first()
     if not organizer:
         raise ValueError("Organizer user not found")
@@ -155,6 +156,12 @@ def refund_tournament_transactions(
     tournament_id: int,
     organizer_id: int
 ) -> Tuple[Transaction, Transaction]:
+    """
+    Refund tournament payment by updating existing transactions.
+    Updates organizer transaction: status=REFUNDED, direction=CREDIT
+    Updates admin transaction: status=REFUNDED, direction=DEBIT
+    Updates admin wallet balance (debits the refunded amount)
+    """
     # Find organizer transaction (original: DEBIT, SUCCESS)
     organizer_transaction = db.query(Transaction).filter(
         Transaction.tournament_id == tournament_id,

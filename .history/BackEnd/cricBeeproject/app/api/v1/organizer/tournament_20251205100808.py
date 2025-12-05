@@ -46,7 +46,7 @@ def get_active_pricing_plans(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get active pricing plans for tournament creation"""
+    """Get active pricing plans for tournament creation"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -66,7 +66,7 @@ def create_tournament(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Create tournament and initiate payment
+    """Create tournament and initiate payment"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -135,7 +135,7 @@ def get_wallet_balance(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get organizer wallet balance calculated from transactions
+    #Get organizer wallet balance calculated from transactions"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -159,7 +159,7 @@ def cancel_tournament_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Cancel a tournament and refund the payment. Only allowed before registration end date.
+    """Cancel a tournament and refund the payment. Only allowed before registration end date."""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(

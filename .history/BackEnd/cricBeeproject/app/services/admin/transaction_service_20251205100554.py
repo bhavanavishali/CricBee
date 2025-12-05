@@ -155,6 +155,12 @@ def refund_tournament_transactions(
     tournament_id: int,
     organizer_id: int
 ) -> Tuple[Transaction, Transaction]:
+    """
+    Refund tournament payment by updating existing transactions.
+    Updates organizer transaction: status=REFUNDED, direction=CREDIT
+    Updates admin transaction: status=REFUNDED, direction=DEBIT
+    Updates admin wallet balance (debits the refunded amount)
+    """
     # Find organizer transaction (original: DEBIT, SUCCESS)
     organizer_transaction = db.query(Transaction).filter(
         Transaction.tournament_id == tournament_id,

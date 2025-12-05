@@ -24,3 +24,13 @@ export const getMyTransactions = async () => {
   const response = await api.get('/tournaments/transactions');
   return response.data;
 };
+
+export const cancelTournament = async (tournamentId) => {
+  const response = await api.post(`/tournaments/${tournamentId}/cancel`);
+  return response.data;
+};
+
+export const getWalletBalance = async () => {
+  const response = await api.get('/tournaments/wallet/balance');
+  return response.data;
+};

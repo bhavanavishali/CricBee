@@ -95,5 +95,12 @@ class PaymentVerification(BaseModel):
     razorpay_signature: str
     tournament_id: int
 
+class OrganizerWalletBalanceResponse(BaseModel):
+    balance: Decimal
+    total_transactions: int
+    
+    class Config:
+        from_attributes = True
+
 # Update forward references
 TournamentResponse.model_rebuild()

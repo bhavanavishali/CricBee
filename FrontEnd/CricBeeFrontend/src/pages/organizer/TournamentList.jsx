@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyTournaments } from '@/api/organizer/tournament';
+import { getMyTournaments, cancelTournament } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
-import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft } from 'lucide-react';
+import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X } from 'lucide-react';
 
 const TournamentList = () => {
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(null);
 
   useEffect(() => {
     loadTournaments();
@@ -41,6 +43,38 @@ const TournamentList = () => {
 
   const canEdit = (status) => {
     return status === 'pending_payment' || status === 'registration_open' || status === 'registration_end';
+  };
+
+  const canCancel = (tournament) => {
+    // Can cancel only if:
+    // 1. Tournament is not already cancelled
+    // 2. Payment was successful
+    // 3. Current date is before registration end date
+    if (tournament.status === 'cancelled') return false;
+    if (!tournament.payment || tournament.payment.payment_status !== 'success') return false;
+    if (!tournament.details?.registration_end_date) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const regEndDate = new Date(tournament.details.registration_end_date);
+    regEndDate.setHours(0, 0, 0, 0);
+    
+    return today <= regEndDate;
+  };
+
+  const handleCancelTournament = async (tournamentId) => {
+    try {
+      setCancellingId(tournamentId);
+      await cancelTournament(tournamentId);
+      setShowCancelConfirm(null);
+      // Reload tournaments to reflect the cancellation
+      await loadTournaments();
+    } catch (error) {
+      console.error('Failed to cancel tournament:', error);
+      alert(error.response?.data?.detail || 'Failed to cancel tournament. Please try again.');
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -189,6 +223,15 @@ const TournamentList = () => {
                             <Edit size={20} />
                           </button>
                         )}
+                        {canCancel(tournament) && (
+                          <button
+                            onClick={() => setShowCancelConfirm(tournament.id)}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Cancel Tournament"
+                          >
+                            <X size={20} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -198,6 +241,34 @@ const TournamentList = () => {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Tournament</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel this tournament? The tournament creation fee will be refunded to your account. This action cannot be undone.
+            </p>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setShowCancelConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
+                disabled={cancellingId !== null}
+              >
+                No, Keep Tournament
+              </button>
+              <button
+                onClick={() => handleCancelTournament(showCancelConfirm)}
+                disabled={cancellingId !== null}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancellingId ? 'Cancelling...' : 'Yes, Cancel Tournament'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

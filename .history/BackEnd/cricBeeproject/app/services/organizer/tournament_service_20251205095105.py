@@ -30,7 +30,7 @@ LEGACY_STATUS_MAP = {
 
 
 def _sync_tournament_status(db: Session, tournament: Tournament) -> bool:
-    
+    """Ensure tournament.status reflects current timeline."""
     changed = False
 
     # Don't sync status if tournament is cancelled - preserve cancelled status
@@ -159,7 +159,7 @@ def verify_and_complete_payment(
     razorpay_payment_id: str,
     razorpay_signature: str
 ) -> TournamentResponse:
-   
+    """Verify payment and activate tournament"""
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise ValueError("Tournament not found")
@@ -251,7 +251,7 @@ def get_organizer_tournaments(db: Session, organizer_id: int) -> List[Tournament
 
 
 def get_organizer_transactions(db: Session, organizer_id: int) -> List[OrganizerTransactionResponse]:
-    
+    """Return transaction history for an organizer from Transaction table"""
     transactions = (
         db.query(Transaction, Tournament.tournament_name)
         .join(Tournament, Tournament.id == Transaction.tournament_id)
@@ -295,7 +295,11 @@ def cancel_tournament(
     tournament_id: int,
     organizer_id: int
 ) -> TournamentResponse:
-   
+    """
+    Cancel a tournament and refund the payment.
+    Can only cancel before registration end date.
+    Updates transactions to REFUNDED status with reversed directions.
+    """
     # Get tournament with relationships
     tournament = db.query(Tournament).options(
         joinedload(Tournament.details),

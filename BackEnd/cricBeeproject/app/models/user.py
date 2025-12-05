@@ -32,6 +32,5 @@ class User(Base):
 
     
     tournaments = relationship("Tournament", back_populates="organizer")
-
     
     admin_wallet = relationship("AdminWallet", back_populates="admin", uselist=False)
