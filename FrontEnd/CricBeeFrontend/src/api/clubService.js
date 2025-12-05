@@ -146,3 +146,13 @@ export const getClubPlayers = async (clubId) => {
     };
   }
 };
+
+export const getEligibleTournaments = async () => {
+  try {
+    const response = await api.get('/clubmanager/tournaments');
+    return response.data;
+  } catch (error) {
+    console.error("Get eligible tournaments error:", error);
+    throw error;
+  }
+};

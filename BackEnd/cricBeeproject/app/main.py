@@ -15,6 +15,7 @@ from app.models.admin.transaction import AdminWallet, Transaction
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
 from app.api.v1.club_manager import router as club_router
+from app.api.v1.clubmanager import router as clubmanager_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.player import router as player_router
 from app.api.v1.organizer.tournament import router as tournament_router
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(organizer_router)
 app.include_router(club_router)
+app.include_router(clubmanager_router)
 app.include_router(admin_router)
 app.include_router(player_router)
 app.include_router(tournament_router)

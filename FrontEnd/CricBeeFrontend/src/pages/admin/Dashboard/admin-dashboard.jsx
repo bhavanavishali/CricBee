@@ -1,326 +1,335 @@
-
-
-import { 
-  Users, 
-  Trophy, 
-  DollarSign, 
-  AlertCircle, 
-  Activity, 
-  Clock, 
-  UserCheck, 
-  Briefcase, 
-  Bell, 
-  Settings,
+"use client"
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import {
+  Users,
+  Trophy,
+  DollarSign,
+  AlertCircle,
+  UserCheck,
+  Briefcase,
   BarChart3,
+  Bell,
+  Settings,
+  Calendar,
+  ChevronRight,
+  CheckCircle,
+  Star,
+  Gift,
+  Activity,
+  Clock,
   ArrowRight
-} from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import Layout from '@/components/layouts/Layout'
-
-const StatCard = ({ icon: Icon, label, value, color, bgColor }) => (
-  <div className={`${bgColor} rounded-lg p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow flex-1 min-w-0`}>
-    <div className={`${color} p-3 rounded-lg flex-shrink-0`}>
-      <Icon className="w-6 h-6 text-white" />
-    </div>
-    <div className="min-w-0 flex-1">
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 truncate">{value}</p>
-    </div>
-  </div>
-)
-
-const ModuleCard = ({ icon: Icon, title, description, stats, buttonText, color, navigate, route }) => (
-  <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100 h-full flex flex-col">
-    <div className="flex items-start gap-3 mb-4">
-      <div className={`${color} p-3 rounded-lg flex-shrink-0`}>
-        <Icon className="w-5 h-5 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-        </div>
-      </div>
-    </div>
-
-    <p className="text-sm text-gray-600 mb-4 flex-1">{description}</p>
-    
-    {stats && stats.length > 0 && (
-      <div className="grid grid-cols-3 gap-3 mb-4 py-4 border-t border-gray-100">
-        {stats.map((stat, index) => (
-          <div key={index} className="text-center">
-            <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-            <p className="font-semibold text-gray-900 text-sm">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-    )}
-
-    <button
-      onClick={() => navigate(route )}
-      className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium text-sm transition-colors"
-    >
-      {buttonText}
-    </button>
-  </div>
-)
+} from 'lucide-react';
+import Layout from '@/components/layouts/Layout';
+import { getUsers } from '@/api/adminService';
+import { getTransactions, getWalletBalance } from '@/api/adminService';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeTournaments: 0,
+    monthlyRevenue: 0,
+    pendingApprovals: 0
+  });
 
-  const stats = [
-    { icon: Users, label: 'TOTAL USERS', value: '15,847', color: 'bg-blue-500', bgColor: 'bg-blue-50' },
-    { icon: Trophy, label: 'ACTIVE TOURNAMENTS', value: '23', color: 'bg-purple-500', bgColor: 'bg-purple-50' },
-    { icon: DollarSign, label: 'MONTHLY REVENUE', value: '₹285K', color: 'bg-green-500', bgColor: 'bg-green-50' },
-    { icon: AlertCircle, label: 'PENDING APPROVALS', value: '12', color: 'bg-orange-500', bgColor: 'bg-orange-50' },
-    { icon: Activity, label: 'LIVE MATCHES', value: '8', color: 'bg-red-500', bgColor: 'bg-red-50' },
-    { icon: Clock, label: 'RECENT ACTIVITIES', value: '47', color: 'bg-gray-500', bgColor: 'bg-gray-50' },
-  ]
- 
-  const modules = [
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Load users
+      const usersResponse = await getUsers();
+      if (usersResponse.success) {
+        const totalUsers = usersResponse.data?.length || 0;
+        const pendingApprovals = usersResponse.data?.filter(u => !u.is_active)?.length || 0;
+        setStats(prev => ({
+          ...prev,
+          totalUsers,
+          pendingApprovals
+        }));
+      }
+
+      // Load wallet balance for revenue
+      const walletResponse = await getWalletBalance();
+      if (walletResponse.success && walletResponse.data) {
+        setStats(prev => ({
+          ...prev,
+          monthlyRevenue: parseFloat(walletResponse.data.balance || 0)
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
     {
-      icon: UserCheck,
-      title: 'User & Role Management',
-      description: 'Manage organizers, clubs, players, and fans. Approve registrations and handle violations.',
-      stats: [
-        { label: 'Pending', value: '8' },
-        { label: 'Suspended', value: '3' },
-        { label: 'Total', value: '15847' },
-      ],
-      buttonText: 'Manage User',
-      color: 'bg-blue-500',
-      route: '/admin/usermanagement',
+      title: "Total Users",
+      value: loading ? "..." : stats.totalUsers.toLocaleString('en-IN'),
+      change: "+12 this month",
+      changeColor: "text-green-600",
+      icon: Users,
+      bgColor: "bg-green-100",
+      iconBg: "bg-green-200",
     },
     {
-      icon: Briefcase,
-      title: 'Plans & Pricing',
-      description: 'Configure tournament plans, features, and pricing. Track subscription revenue.',
-      stats: [
-        { label: 'Active Plans', value: '3' },
-        { label: 'Subscribers', value: '234' },
-        { label: 'Revenue', value: '₹2.8L' },
-      ],
-      buttonText: 'Manage Plans',
-      color: 'bg-green-500',
-      route: '/admin/plans',
-    },
-    {
+      title: "Active Tournaments",
+      value: loading ? "..." : "23",
+      change: "8 live now",
+      changeColor: "text-blue-600",
       icon: Trophy,
-      title: 'Tournament Oversight',
-      description: 'Monitor and approve tournaments. Intervene in disputes and flag suspicious activities.',
-      stats: [
-        { label: 'Active', value: '23' },
-        { label: 'Pending Approval', value: '5' },
-        { label: 'Flagged', value: '2' },
-      ],
-      buttonText: 'Manage Tournament',
-      color: 'bg-purple-500',
-      route: 'admin/tournaments',
+      bgColor: "bg-blue-100",
+      iconBg: "bg-blue-200",
     },
     {
-      icon: BarChart3,
-      title: 'Financial Control',
-      description: 'Manage payments, settlements, and revenue reports. Monitor fan gifting transactions.',
-      stats: [
-        { label: 'Monthly Revenue', value: '₹2.8L' },
-        { label: 'Pending Settlements', value: '12' },
-        { label: 'Gift Volume', value: '₹45K' },
-      ],
-      buttonText: 'View Payments',
-      color: 'bg-orange-500',
-      route: '/admin/transaction',
+      title: "Monthly Revenue",
+      value: loading ? "..." : `₹${stats.monthlyRevenue.toLocaleString('en-IN')}`,
+      change: "From all transactions",
+      changeColor: "text-orange-600",
+      icon: DollarSign,
+      bgColor: "bg-orange-100",
+      iconBg: "bg-orange-200",
     },
     {
-      icon: Bell,
-      title: 'Content & Notifications',
-      description: 'Manage banners, promotions, news updates, and push notifications.',
-      stats: [
-        { label: 'Active Banners', value: '4' },
-        { label: 'Scheduled Notifications', value: '7' },
-        { label: 'Featured Tournaments', value: '3' },
-      ],
-      buttonText: 'Manage Content',
-      color: 'bg-pink-500',
-      route: 'admin/content',
+      title: "Pending Approvals",
+      value: loading ? "..." : stats.pendingApprovals.toString(),
+      change: "Awaiting review",
+      changeColor: "text-yellow-600",
+      icon: AlertCircle,
+      bgColor: "bg-yellow-100",
+      iconBg: "bg-yellow-200",
     },
-    {
-      icon: Settings,
-      title: 'Platform Settings',
-      description: 'Configure global settings, KYC policies, audit logs, and system configurations.',
-      stats: [
-        { label: 'Configurations', value: '15' },
-        { label: 'Policies', value: '8' },
-        { label: 'Audit Logs', value: '2.3K' },
-      ],
-      buttonText: 'Manage Platform',
-      color: 'bg-indigo-500',
-      route: 'admin/settings',
-    },
-  ]
-
-  const recentActivities = [
-    {
-      text: 'New organizer registration: Mumbai Cricket Association',
-      time: '5 minutes ago',
-      status: 'pending',
-      statusColor: 'bg-yellow-100 text-yellow-700',
-    },
-    {
-      text: 'Tournament created: Delhi Corporate League 2024',
-      time: '12 minutes ago',
-      status: 'needs approval',
-      statusColor: 'bg-orange-100 text-orange-700',
-    },
-    {
-      text: 'Payment processed: ₹15,000 tournament entry fee',
-      time: '23 minutes ago',
-      status: 'completed',
-      statusColor: 'bg-green-100 text-green-700',
-    },
-    {
-      text: 'User suspended for policy violation: fake_organizer@test.com',
-      time: '1 hour ago',
-      status: 'action taken',
-      statusColor: 'bg-red-100 text-red-700',
-    },
-    {
-      text: 'Fan gift processed: ₹500 to Chennai Super Kings',
-      time: '2 hours ago',
-      status: 'completed',
-      statusColor: 'bg-green-100 text-green-700',
-    },
-  ]
+  ];
 
   const quickActions = [
     {
-      title: 'Review Pending Users',
-      description: '12 users waiting for approval',
-      gradient: 'from-green-500 to-orange-500',
-      route: '/admin/usermanagement',
+      icon: UserCheck,
+      title: "User Management",
+      description: "Manage users and roles",
+      bgColor: "from-teal-500 to-orange-500",
+      isPrimary: true,
+      route: "/admin/usermanagement"
     },
     {
-      title: 'Tournament Approvals',
-      description: '5 tournaments need approval',
-      route: 'admin/tournaments',
+      icon: Briefcase,
+      title: "Plans & Pricing",
+      description: "Configure tournament plans",
+      bgColor: "bg-gray-200",
+      route: "/admin/plans"
     },
     {
-      title: 'View Payments',
-      description: 'View all transaction details and payment history',
-      route: '/admin/transaction',
+      icon: Trophy,
+      title: "Tournament Oversight",
+      description: "Monitor tournaments",
+      bgColor: "bg-gray-100",
+      route: "/admin/tournaments"
     },
     {
-      title: 'Send Notification',
-      description: 'Broadcast to all platform users',
-      route: 'admin/content',
+      icon: DollarSign,
+      title: "Payments",
+      description: "Transaction history",
+      bgColor: "bg-gray-100",
+      route: "/admin/transaction"
     },
     {
-      title: 'Platform Settings',
-      description: 'Configure global system settings',
-      route: 'admin/settings',
+      icon: Bell,
+      title: "Notifications",
+      description: "Manage notifications",
+      bgColor: "bg-gray-100",
+      route: "/admin/content"
     },
-  ]
+    {
+      icon: Settings,
+      title: "Settings",
+      description: "Platform settings",
+      bgColor: "bg-gray-100",
+      route: "/admin/settings"
+    },
+  ];
 
-  const platformHealth = [
-    { label: 'System Uptime', value: '98.7%' },
-    { label: 'Avg Response Time', value: '2.3s' },
-    { label: 'Active Users', value: '1.2K' },
-    { label: 'Payment Success Rate', value: '99.1%' },
-  ]
+  const recentActivities = [
+    {
+      icon: Users,
+      iconColor: "text-green-600",
+      text: "New organizer registration: Mumbai Cricket Association",
+      time: "2 hours ago",
+      status: "Live",
+      statusColor: "bg-red-100 text-red-700"
+    },
+    {
+      icon: DollarSign,
+      iconColor: "text-green-600",
+      text: "Payment processed: Corporate Cricket Championship • ₹25,000",
+      time: "1 day ago",
+      status: "✔ Paid",
+      statusColor: "bg-green-100 text-green-700"
+    },
+    {
+      icon: Users,
+      iconColor: "text-blue-600",
+      text: "User status updated: Added 2 new organizers",
+      time: "2 days ago",
+      status: "✓ Completed",
+      statusColor: "bg-purple-100 text-purple-700"
+    },
+  ];
 
   return (
-    <Layout title="Admin Control Center" showFooter={false}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Page Title Section */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Control Center</h1>
-            <p className="text-gray-600 text-sm mt-1">Welcome back! Here's your platform overview.</p>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Statistics Cards - All 6 in Single Row */}
-          <div className="mb-12">
-            <div className="flex flex-wrap md:flex-nowrap gap-4">
-              {stats.map((stat, index) => (
-                <StatCard key={index} {...stat} />
-              ))}
+    <div className="min-h-screen bg-gray-50">
+      <Layout title="Admin Dashboard" profilePath="/admin/profile">
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          {/* Breadcrumb and Welcome */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
+              <BarChart3 size={16} />
+              <span>Dashboard</span>
             </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Welcome back, {user?.full_name || 'Admin'}! 👋
+            </h1>
+            <p className="text-gray-600">Manage your platform and monitor activities from here.</p>
           </div>
 
-          {/* Admin Modules - 3 Cards per Row on Desktop, 1 Card per Row on Mobile */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Modules</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {modules.map((module, index) => (
-                <ModuleCard key={index} {...module} navigate={navigate} />
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activities and Quick Actions - Side by Side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-            {/* Recent Platform Activities */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Platform Activities</h3>
-              <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <p className="text-sm text-gray-900 mb-2">{activity.text}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">{activity.time}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${activity.statusColor}`}>
-                        {activity.status}
-                      </span>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {statCards.map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">{card.title}</p>
+                      <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+                      <p className={`text-sm ${card.changeColor} mt-1`}>{card.change}</p>
+                    </div>
+                    <div className={`${card.iconBg} p-3 rounded-lg`}>
+                      <Icon size={24} className="text-gray-700" />
                     </div>
                   </div>
-                ))}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+              <p className="text-sm text-gray-600">Manage your platform activities</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Primary User Management Button */}
+              <div
+                onClick={() => navigate('/admin/usermanagement')}
+                className={`lg:col-span-1 bg-gradient-to-r from-teal-500 to-orange-500 rounded-lg p-6 text-white cursor-pointer hover:shadow-lg transition-shadow`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <UserCheck size={24} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">User Management</p>
+                    <p className="text-sm text-white/90">Manage users and roles</p>
+                  </div>
+                </div>
               </div>
-              <button className="mt-4 w-full py-2 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
-                View All Activities
-                <ArrowRight size={16} />
+
+              {/* Other Quick Actions */}
+              {quickActions.slice(1).map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <div
+                    key={index}
+                    onClick={() => navigate(action.route)}
+                    className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-gray-100 p-3 rounded-lg">
+                        <Icon size={24} className="text-gray-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{action.title}</p>
+                        <p className="text-sm text-gray-600">{action.description}</p>
+                      </div>
+                      <ChevronRight size={20} className="text-gray-400" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Recent Activities */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+              <button
+                onClick={() => navigate('/admin/transactions')}
+                className="text-blue-600 font-semibold flex items-center space-x-1 hover:text-blue-700"
+              >
+                <span>Latest updates</span>
+                <ChevronRight size={18} />
               </button>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    onClick={() => navigate(action.route)}
-                    className={`w-full p-4 rounded-lg text-left transition-all ${
-                      index === 0
-                        ? `bg-gradient-to-r ${action.gradient} text-white hover:shadow-lg`
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    <div className="font-semibold mb-1">{action.title}</div>
-                    <div className={`text-sm ${index === 0 ? 'text-white/90' : 'text-gray-600'}`}>
-                      {action.description}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => {
+                  const Icon = activity.icon;
+                  return (
+                    <div key={index} className="flex items-start space-x-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                      <div className={`${activity.iconColor} p-2 rounded-lg bg-gray-50`}>
+                        <Icon size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-900 mb-1">{activity.text}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">{activity.time}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${activity.statusColor}`}>
+                            {activity.status}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Platform Health & Performance */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Platform Health & Performance</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {platformHealth.map((metric, index) => (
-                <div key={index} className="text-center">
-                  <p className="text-3xl font-bold text-gray-900 mb-2">{metric.value}</p>
-                  <p className="text-sm text-gray-600">{metric.label}</p>
-                </div>
-              ))}
+          {/* Platform Performance Summary */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-green-100 p-3 rounded-lg">
+                <Star className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-900">
+                  Excellent Performance! Your platform has processed 98% of transactions successfully.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                ✔ Verified Platform
+              </span>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                ★4.9 Rating
+              </span>
             </div>
           </div>
-        </div>
-      </div>
-    </Layout>
-  )
+        </main>
+      </Layout>
+    </div>
+  );
 }
-
