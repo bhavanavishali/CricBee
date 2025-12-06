@@ -148,7 +148,8 @@ export default function EnrollTournament() {
       console.error('Payment failed:', response.error);
     });
 
-
+    // Open Razorpay checkout immediately
+    // Enrollment will only be completed after successful payment verification
     razorpay.open();
   };
 

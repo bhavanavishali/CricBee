@@ -34,6 +34,8 @@ class Tournament(Base):
     plan = relationship("TournamentPricingPlan")
     details = relationship("TournamentDetails", back_populates="tournament", uselist=False, cascade="all, delete-orphan")
     payment = relationship("TournamentPayment", back_populates="tournament", uselist=False, cascade="all, delete-orphan")
+    fixture_rounds = relationship("FixtureRound", back_populates="tournament", cascade="all, delete-orphan")
+    matches = relationship("Match", back_populates="tournament", cascade="all, delete-orphan")
 
 class TournamentDetails(Base):
     __tablename__ = "tournament_details"

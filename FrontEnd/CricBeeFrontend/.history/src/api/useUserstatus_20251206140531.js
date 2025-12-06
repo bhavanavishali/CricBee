@@ -33,8 +33,8 @@ export const useUserStatusCheck = () => {
           }
         }
       }
-    }, 30000); 
+    }, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
-  }, [user]); 
+  }, [user]); // Removed navigate from dependencies
 };

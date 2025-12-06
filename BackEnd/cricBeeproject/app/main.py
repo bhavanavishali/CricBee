@@ -9,6 +9,7 @@ from app.models.club_player import ClubPlayer
 from app.models.user import User 
 from app.models.organizer import OrganizationDetails
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
+from app.models.organizer.fixture import FixtureRound, Match
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
 
@@ -19,6 +20,7 @@ from app.api.v1.clubmanager import router as clubmanager_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.player import router as player_router
 from app.api.v1.organizer.tournament import router as tournament_router
+from app.api.v1.organizer.fixture import router as fixture_router
 from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
@@ -46,6 +48,7 @@ app.include_router(clubmanager_router)
 app.include_router(admin_router)
 app.include_router(player_router)
 app.include_router(tournament_router)
+app.include_router(fixture_router)
 
 
 @app.get("/health")

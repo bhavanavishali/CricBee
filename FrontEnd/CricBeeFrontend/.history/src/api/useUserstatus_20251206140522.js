@@ -15,7 +15,8 @@ export const useUserStatusCheck = () => {
      
         await api.get("/admin/users"); // Use any protected endpoint
       } catch (error) {
-    
+        // The interceptor will handle the logout
+        // This is just a fallback
         if (error.response?.status === 403 || error.response?.status === 401) {
           const errorMessage = error.response?.data?.detail || "";
           if (errorMessage.includes("inactive") || 
@@ -25,7 +26,7 @@ export const useUserStatusCheck = () => {
             document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
             document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
             localStorage.removeItem("user");
-         
+            // Use window.location.href instead of navigate since we're outside Router context
             if (window.location.pathname !== "/signin" && 
                 !window.location.pathname.includes("/admin/signin")) {
               window.location.href = "/signin";
@@ -33,8 +34,8 @@ export const useUserStatusCheck = () => {
           }
         }
       }
-    }, 30000); 
+    }, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
-  }, [user]); 
+  }, [user]); // Removed navigate from dependencies
 };

@@ -314,6 +314,8 @@ export default function OrganizerDashboard() {
               const handleClick = () => {
                 if (action.title === "My Tournaments") {
                   navigate('/organizer/tournaments');
+                } else if (action.title === "Manage Fixtures") {
+                  navigate('/organizer/manage-fixtures');
                 } else if (action.title === "Tournament Enrollments") {
                   navigate('/organizer/tournament-enrollments');
                 } else if (action.title === "View Payments") {

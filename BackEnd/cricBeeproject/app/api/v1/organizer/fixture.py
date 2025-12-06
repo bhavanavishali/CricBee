@@ -1,0 +1,210 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.models.user import UserRole
+from app.utils.jwt import get_current_user
+from app.schemas.organizer.fixture import (
+    FixtureRoundCreate,
+    FixtureRoundResponse,
+    MatchCreate,
+    MatchResponse,
+    FixtureRoundWithMatchesResponse
+)
+from app.services.organizer.fixture_service import (
+    can_create_fixture,
+    create_fixture_round,
+    get_tournament_rounds,
+    create_match,
+    get_round_matches,
+    get_tournament_matches
+)
+from typing import List
+
+router = APIRouter(prefix="/fixtures", tags=["fixtures"])
+
+@router.get("/tournaments/{tournament_id}/can-create", response_model=dict)
+def check_can_create_fixture(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Check if fixture can be created for a tournament"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can manage fixtures"
+        )
+    
+    can_create, message = can_create_fixture(db, tournament_id, current_user.id)
+    return {
+        "can_create": can_create,
+        "message": message
+    }
+
+@router.post("/rounds", response_model=FixtureRoundResponse, status_code=status.HTTP_201_CREATED)
+def create_round(
+    round_data: FixtureRoundCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a fixture round"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can create fixture rounds"
+        )
+    
+    try:
+        round = create_fixture_round(db, round_data, current_user.id)
+        return round
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/tournaments/{tournament_id}/rounds", response_model=List[FixtureRoundResponse])
+def get_rounds(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all rounds for a tournament"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view fixture rounds"
+        )
+    
+    try:
+        rounds = get_tournament_rounds(db, tournament_id, current_user.id)
+        return rounds
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/matches", response_model=MatchResponse, status_code=status.HTTP_201_CREATED)
+def create_match_endpoint(
+    match_data: MatchCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a match"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can create matches"
+        )
+    
+    try:
+        match = create_match(db, match_data, current_user.id)
+        # Add team names to response
+        match_response = MatchResponse(
+            id=match.id,
+            round_id=match.round_id,
+            tournament_id=match.tournament_id,
+            match_number=match.match_number,
+            team_a_id=match.team_a_id,
+            team_a_name=match.team_a.club_name if match.team_a else None,
+            team_b_id=match.team_b_id,
+            team_b_name=match.team_b.club_name if match.team_b else None,
+            match_date=match.match_date,
+            match_time=match.match_time,
+            venue=match.venue,
+            created_at=match.created_at,
+            updated_at=match.updated_at
+        )
+        return match_response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/rounds/{round_id}/matches", response_model=List[MatchResponse])
+def get_matches_for_round(
+    round_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all matches for a round"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view matches"
+        )
+    
+    try:
+        matches = get_round_matches(db, round_id, current_user.id)
+        match_responses = [
+            MatchResponse(
+                id=match.id,
+                round_id=match.round_id,
+                tournament_id=match.tournament_id,
+                match_number=match.match_number,
+                team_a_id=match.team_a_id,
+                team_a_name=match.team_a.club_name if match.team_a else None,
+                team_b_id=match.team_b_id,
+                team_b_name=match.team_b.club_name if match.team_b else None,
+                match_date=match.match_date,
+                match_time=match.match_time,
+                venue=match.venue,
+                created_at=match.created_at,
+                updated_at=match.updated_at
+            )
+            for match in matches
+        ]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/tournaments/{tournament_id}/matches", response_model=List[MatchResponse])
+def get_matches_for_tournament(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all matches for a tournament"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view matches"
+        )
+    
+    try:
+        matches = get_tournament_matches(db, tournament_id, current_user.id)
+        match_responses = [
+            MatchResponse(
+                id=match.id,
+                round_id=match.round_id,
+                tournament_id=match.tournament_id,
+                match_number=match.match_number,
+                team_a_id=match.team_a_id,
+                team_a_name=match.team_a.club_name if match.team_a else None,
+                team_b_id=match.team_b_id,
+                team_b_name=match.team_b.club_name if match.team_b else None,
+                match_date=match.match_date,
+                match_time=match.match_time,
+                venue=match.venue,
+                created_at=match.created_at,
+                updated_at=match.updated_at
+            )
+            for match in matches
+        ]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

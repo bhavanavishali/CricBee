@@ -37,4 +37,3 @@ export const useUserStatusCheck = () => {
 
     return () => clearInterval(interval);
   }, [user]); 
-};

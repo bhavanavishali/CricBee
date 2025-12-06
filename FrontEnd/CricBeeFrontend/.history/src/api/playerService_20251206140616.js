@@ -1,5 +1,5 @@
-
-import api from '@/api'; 
+// src/services/playerServices.js
+import api from '@/api'; // Adjust path as needed
 
 export const getPlayerProfile = async () => {
   try {
