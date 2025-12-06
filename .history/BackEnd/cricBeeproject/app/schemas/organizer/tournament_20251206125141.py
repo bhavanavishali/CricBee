@@ -105,5 +105,5 @@ class OrganizerWalletBalanceResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
+# Update forward references
 TournamentResponse.model_rebuild()

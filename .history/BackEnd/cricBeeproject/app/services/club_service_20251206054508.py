@@ -1,4 +1,4 @@
-
+# app/club/services.py
 from sqlalchemy.orm import Session, joinedload
 from fastapi import UploadFile
 from app.models.club import Club

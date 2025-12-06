@@ -78,11 +78,11 @@ def initiate_enrollment(
     if not tournament.details:
         raise ValueError("Tournament details not found")
     
-
+    # Check tournament status
     if tournament.status != TournamentStatus.REGISTRATION_OPEN.value:
         raise ValueError("Tournament is not open for registration")
     
-  
+    # Check registration dates
     today = date.today()
     if today > tournament.details.registration_end_date:
         raise ValueError("Registration period has ended")
@@ -110,7 +110,8 @@ def initiate_enrollment(
     
     # Get enrollment fee from tournament details
     enrollment_fee = tournament.details.enrollment_fee
-
+    
+    # Validate enrollment fee - must be set and greater than 0
     if enrollment_fee is None:
         raise ValueError("Enrollment fee is not set for this tournament")
     
@@ -124,7 +125,8 @@ def initiate_enrollment(
     if enrollment_fee < Decimal('1.00'):
         raise ValueError("Enrollment fee must be at least ₹1.00")
     
-    
+    # Always require payment through Razorpay - Create Razorpay order with enrollment fee amount
+    # Enrollment will only be completed after successful payment verification
     try:
         receipt = f"ENR_{tournament_id}_{club_id}_{int(datetime.now().timestamp())}"
         razorpay_order = create_razorpay_order(
@@ -138,8 +140,8 @@ def initiate_enrollment(
             tournament_id=tournament_id,
             club_id=club_id,
             enrolled_by=club_manager_id,
-            enrolled_fee=enrollment_fee,
-            payment_status=PaymentStatus.PENDING.value
+            enrolled_fee=enrollment_fee,  # Store the enrollment fee amount
+            payment_status=PaymentStatus.PENDING.value  # Will be updated to SUCCESS after payment
         )
         db.add(enrollment)
         db.flush()
@@ -166,9 +168,9 @@ def verify_and_complete_enrollment(
     razorpay_payment_id: str,
     razorpay_signature: str
 ) -> TournamentEnrollment:
-    #Verify payment and complete enrollment
+    """Verify payment and complete enrollment"""
     
-    
+    # Verify tournament and club
     tournament = (
         db.query(Tournament)
         .options(joinedload(Tournament.details))
@@ -187,7 +189,7 @@ def verify_and_complete_enrollment(
     if not club:
         raise ValueError("Club not found or access denied")
     
-  
+    # Get enrollment record
     enrollment = db.query(TournamentEnrollment).filter(
         TournamentEnrollment.tournament_id == tournament_id,
         TournamentEnrollment.club_id == club_id,
@@ -200,22 +202,22 @@ def verify_and_complete_enrollment(
     if enrollment.payment_status == PaymentStatus.SUCCESS.value:
         raise ValueError("Enrollment already completed")
     
-
+    # Verify payment signature - enrollment only completes after successful payment
     if not verify_payment_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature):
         raise ValueError("Invalid payment signature")
     
-    
+    # Get enrollment fee amount (this is the amount that was paid)
     enrollment_fee = enrollment.enrolled_fee
     
-
+    # Create DEBIT transaction for club manager (enrollment fee debited from club manager's wallet)
     club_manager_transaction_id = generate_transaction_id()
     club_manager_transaction = create_transaction(
         db=db,
         club_manager_id=club_manager_id,
-        transaction_type=TransactionType.ENROLLMENT_FEE.value,  
-        transaction_direction=TransactionDirection.DEBIT.value,
+        transaction_type=TransactionType.ENROLLMENT_FEE.value,  # Transaction Type: Enrollment Fee
+        transaction_direction=TransactionDirection.DEBIT.value,  # Debit from club manager
         amount=enrollment_fee,
-        status=TransactionStatus.SUCCESS.value, 
+        status=TransactionStatus.SUCCESS.value,  # Transaction Status: Success
         tournament_id=tournament_id,
         razorpay_payment_id=razorpay_payment_id,
         razorpay_order_id=razorpay_order_id,
@@ -223,15 +225,19 @@ def verify_and_complete_enrollment(
         transaction_id=club_manager_transaction_id
     )
     
-    
+    # Create CREDIT transaction for organizer (enrollment fee credited to organizer's wallet)
+    # Transaction Details:
+    # - Transaction Direction: CREDIT (amount credited to organizer's wallet)
+    # - Transaction Type: ENROLLMENT_FEE
+    # - Transaction Status: SUCCESS
     organizer_transaction_id = generate_transaction_id()
     organizer_transaction = create_transaction(
         db=db,
         organizer_id=tournament.organizer_id,
-        transaction_type=TransactionType.ENROLLMENT_FEE.value,  
-        transaction_direction=TransactionDirection.CREDIT.value,  
+        transaction_type=TransactionType.ENROLLMENT_FEE.value,  # Transaction Type: Enrollment Fee
+        transaction_direction=TransactionDirection.CREDIT.value,  # Transaction Direction: Credit
         amount=enrollment_fee,
-        status=TransactionStatus.SUCCESS.value,
+        status=TransactionStatus.SUCCESS.value,  # Transaction Status: Success
         tournament_id=tournament_id,
         razorpay_payment_id=razorpay_payment_id,
         razorpay_order_id=razorpay_order_id,
@@ -239,7 +245,7 @@ def verify_and_complete_enrollment(
         transaction_id=organizer_transaction_id
     )
     
-
+    # Update enrollment status
     enrollment.payment_status = PaymentStatus.SUCCESS.value
     enrollment.updated_at = datetime.now()
     

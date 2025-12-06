@@ -239,7 +239,7 @@ def verify_and_complete_enrollment(
         transaction_id=organizer_transaction_id
     )
     
-
+    # Update enrollment status
     enrollment.payment_status = PaymentStatus.SUCCESS.value
     enrollment.updated_at = datetime.now()
     

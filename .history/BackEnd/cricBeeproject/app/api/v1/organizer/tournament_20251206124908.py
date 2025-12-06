@@ -187,7 +187,7 @@ def get_enrolled_clubs(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get all clubs enrolled in a tournament
+    """Get all clubs enrolled in a tournament"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -210,7 +210,7 @@ def get_club_details(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get club details (for organizers viewing enrolled clubs)
+    Get club details (for organizers viewing enrolled clubs)
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(

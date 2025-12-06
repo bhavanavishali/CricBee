@@ -314,6 +314,8 @@ export default function OrganizerDashboard() {
               const handleClick = () => {
                 if (action.title === "My Tournaments") {
                   navigate('/organizer/tournaments');
+                } else if (action.title === "Tournament Enrollments") {
+                  navigate('/organizer/tournament-enrollments');
                 } else if (action.title === "View Payments") {
                   navigate('/organizer/transactions');
                 } else {
@@ -473,6 +475,7 @@ export default function OrganizerDashboard() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direction</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -488,6 +491,11 @@ export default function OrganizerDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <p className="text-sm font-semibold text-gray-900">{transaction.tournament_name}</p>
                           <p className="text-xs text-gray-500">#{transaction.tournament_id}</p>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 capitalize">
+                            {transaction.transaction_type?.replace('_', ' ') || '—'}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

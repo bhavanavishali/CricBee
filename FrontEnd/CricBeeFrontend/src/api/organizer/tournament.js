@@ -34,3 +34,13 @@ export const getWalletBalance = async () => {
   const response = await api.get('/tournaments/wallet/balance');
   return response.data;
 };
+
+export const getEnrolledClubs = async (tournamentId) => {
+  const response = await api.get(`/tournaments/${tournamentId}/enrolled-clubs`);
+  return response.data;
+};
+
+export const getClubDetails = async (clubId) => {
+  const response = await api.get(`/tournaments/clubs/${clubId}/details`);
+  return response.data;
+};

@@ -39,9 +39,9 @@ class Transaction(Base):
     transaction_id = Column(String, nullable=False, unique=True, index=True) 
     wallet_id = Column(Integer, ForeignKey("admin_wallets.id"), nullable=True)  #
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 
-    club_manager_id = Column(Integer, ForeignKey("users.id"), nullable=True) 
+    club_manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # For club manager transactions
     transaction_type = Column(String, nullable=False)
-    transaction_direction = Column(String, nullable=False, default="credit")  
+    transaction_direction = Column(String, nullable=False, default="credit")  # debit or credit
     amount = Column(Numeric(10, 2), nullable=False)
     status = Column(String, nullable=False, default=TransactionStatus.PENDING.value)
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)

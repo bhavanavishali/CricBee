@@ -8,7 +8,7 @@ from app.models.club import Club
 from app.models.club_player import ClubPlayer  
 from app.models.user import User 
 from app.models.organizer import OrganizationDetails
-from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
 

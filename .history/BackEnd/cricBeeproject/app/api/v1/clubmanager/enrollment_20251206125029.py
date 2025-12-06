@@ -22,7 +22,7 @@ def get_eligible_tournaments_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get tournaments eligible for club manager enrollment
+    """Get tournaments eligible for club manager enrollment"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -69,7 +69,7 @@ def verify_enrollment_payment(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Verify payment and complete enrollment
+    #Verify payment and complete enrollment"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(

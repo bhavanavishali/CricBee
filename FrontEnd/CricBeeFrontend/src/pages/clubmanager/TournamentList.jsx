@@ -1,17 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
-import { getEligibleTournaments } from '@/api/clubService';
-import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock } from 'lucide-react';
+import { getEligibleTournaments, initiateTournamentEnrollment } from '@/api/clubService';
+import { getClubProfile } from '@/api/clubService';
+import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle } from 'lucide-react';
 
 export default function ClubManagerTournamentList() {
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clubId, setClubId] = useState(null);
+  const [enrollingId, setEnrollingId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
+    loadClubProfile();
     loadTournaments();
+    
+    // Check for success message from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('enrolled') === 'true') {
+      setSuccessMessage('Successfully enrolled in tournament!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
+
+  const loadClubProfile = async () => {
+    try {
+      const result = await getClubProfile();
+      if (result.success && result.profile?.club?.id) {
+        setClubId(result.profile.club.id);
+      }
+    } catch (error) {
+      console.error('Failed to load club profile:', error);
+    }
+  };
 
   const loadTournaments = async () => {
     try {
@@ -51,6 +76,45 @@ export default function ClubManagerTournamentList() {
     return today <= regEndDate;
   };
 
+  const formatCurrency = (amount) => {
+    if (!amount || amount === 0) return 'Free';
+    return `₹${parseFloat(amount).toLocaleString('en-IN')}`;
+  };
+
+  const handleEnroll = async (tournament) => {
+    if (!clubId) {
+      alert('Club profile not found. Please create a club first.');
+      return;
+    }
+
+    try {
+      setEnrollingId(tournament.id);
+      const result = await initiateTournamentEnrollment(tournament.id, clubId);
+      
+      // Check if Razorpay order was created
+      if (!result.razorpay_order) {
+        alert('Payment setup failed. Please contact support.');
+        return;
+      }
+
+      // Always navigate to payment page for Razorpay payment
+      navigate(`/clubmanager/tournaments/${tournament.id}/enroll`, {
+        state: {
+          tournament,
+          enrollment: result.enrollment,
+          razorpayOrder: result.razorpay_order,
+          clubId
+        }
+      });
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to initiate enrollment. Please try again.';
+      alert(errorMessage);
+      console.error('Enrollment error:', error);
+    } finally {
+      setEnrollingId(null);
+    }
+  };
+
   return (
     <Layout title="Available Tournaments" profilePath="/clubmanager/profile">
       <div className="min-h-screen bg-gray-50">
@@ -69,6 +133,22 @@ export default function ClubManagerTournamentList() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Available Tournaments</h1>
             <p className="text-gray-600">Browse and enroll in tournaments open for registration</p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-green-800 font-medium">{successMessage}</span>
+              </div>
+              <button
+                onClick={() => setSuccessMessage(null)}
+                className="text-green-600 hover:text-green-800"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="text-center py-12">
@@ -153,6 +233,15 @@ export default function ClubManagerTournamentList() {
                               </p>
                             </div>
                           </div>
+                          <div className="flex items-center space-x-2">
+                            <DollarSign size={18} className="text-gray-500" />
+                            <div>
+                              <p className="text-xs text-gray-500">Enrollment Fee</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {formatCurrency(tournament.details?.enrollment_fee)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Registration Dates */}
@@ -167,14 +256,11 @@ export default function ClubManagerTournamentList() {
                       <div className="flex items-center space-x-3 flex-shrink-0">
                         {canEnroll ? (
                           <button
-                            onClick={() => {
-                              // Navigate to enrollment page when implemented
-                              console.log('Enroll in tournament:', tournament.id);
-                              // navigate(`/clubmanager/tournaments/${tournament.id}/enroll`);
-                            }}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            onClick={() => handleEnroll(tournament)}
+                            disabled={enrollingId === tournament.id || !clubId}
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Enroll Now
+                            {enrollingId === tournament.id ? 'Processing...' : 'Enroll Now'}
                           </button>
                         ) : (
                           <button

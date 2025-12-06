@@ -213,9 +213,9 @@ def verify_and_complete_enrollment(
         db=db,
         club_manager_id=club_manager_id,
         transaction_type=TransactionType.ENROLLMENT_FEE.value,  
-        transaction_direction=TransactionDirection.DEBIT.value,
+        transaction_direction=TransactionDirection.DEBIT.value,  # Debit from club manager
         amount=enrollment_fee,
-        status=TransactionStatus.SUCCESS.value, 
+        status=TransactionStatus.SUCCESS.value,  # Transaction Status: Success
         tournament_id=tournament_id,
         razorpay_payment_id=razorpay_payment_id,
         razorpay_order_id=razorpay_order_id,
@@ -228,10 +228,10 @@ def verify_and_complete_enrollment(
     organizer_transaction = create_transaction(
         db=db,
         organizer_id=tournament.organizer_id,
-        transaction_type=TransactionType.ENROLLMENT_FEE.value,  
-        transaction_direction=TransactionDirection.CREDIT.value,  
+        transaction_type=TransactionType.ENROLLMENT_FEE.value,  # Transaction Type: Enrollment Fee
+        transaction_direction=TransactionDirection.CREDIT.value,  # Transaction Direction: Credit
         amount=enrollment_fee,
-        status=TransactionStatus.SUCCESS.value,
+        status=TransactionStatus.SUCCESS.value,  # Transaction Status: Success
         tournament_id=tournament_id,
         razorpay_payment_id=razorpay_payment_id,
         razorpay_order_id=razorpay_order_id,
@@ -239,7 +239,7 @@ def verify_and_complete_enrollment(
         transaction_id=organizer_transaction_id
     )
     
-
+    # Update enrollment status
     enrollment.payment_status = PaymentStatus.SUCCESS.value
     enrollment.updated_at = datetime.now()
     

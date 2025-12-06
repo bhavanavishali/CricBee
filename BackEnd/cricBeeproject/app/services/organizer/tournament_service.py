@@ -114,7 +114,8 @@ def create_tournament_with_payment(
         location=tournament_data.details.location,
         venue_details=tournament_data.details.venue_details,
         team_range=tournament_data.details.team_range,
-        is_public=tournament_data.details.is_public
+        is_public=tournament_data.details.is_public,
+        enrollment_fee=tournament_data.details.enrollment_fee
     )
     db.add(details)
     
@@ -265,6 +266,7 @@ def get_organizer_transactions(db: Session, organizer_id: int) -> List[Organizer
             tournament_id=transaction.tournament_id,
             tournament_name=tournament_name,
             transaction_id=transaction.transaction_id,
+            transaction_type=transaction.transaction_type,
             transaction_direction=transaction.transaction_direction,
             amount=transaction.amount,
             payment_status=transaction.status,  # Use transaction status
@@ -275,10 +277,11 @@ def get_organizer_transactions(db: Session, organizer_id: int) -> List[Organizer
     ]
 
 def get_organizer_wallet_balance(db: Session, organizer_id: int) -> Decimal:
- 
+
     transactions = db.query(Transaction).filter(
         Transaction.organizer_id == organizer_id,
-        Transaction.status.in_([TransactionStatus.SUCCESS.value, TransactionStatus.REFUNDED.value])
+        Transaction.status.in_([TransactionStatus.SUCCESS.value, TransactionStatus.REFUNDED.value]),
+        Transaction.transaction_type != TransactionType.TOURNAMENT_PAYMENT.value  # Exclude tournament creation payments
     ).all()
     
     balance = Decimal('0.00')

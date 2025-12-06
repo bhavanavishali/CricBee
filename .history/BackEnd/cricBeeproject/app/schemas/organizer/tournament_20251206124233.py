@@ -13,7 +13,7 @@ class TournamentDetailsCreate(BaseModel):
     venue_details: Optional[str] = None
     team_range: str
     is_public: bool = True
-    enrollment_fee: Decimal = Field(..., ge=1, description="fee must be at least ₹1.00")
+    enrollment_fee: Decimal = Field(..., ge=1, description="Enrollment fee must be at least ₹1.00")
 
 class TournamentCreate(BaseModel):
     tournament_name: str
@@ -105,5 +105,5 @@ class OrganizerWalletBalanceResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
+# Update forward references
 TournamentResponse.model_rebuild()

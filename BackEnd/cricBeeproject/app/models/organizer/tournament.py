@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Numeric, Date, func, Enum
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+from decimal import Decimal
 import enum
 
 class TournamentStatus(str, enum.Enum):
@@ -48,6 +49,7 @@ class TournamentDetails(Base):
     venue_details = Column(String, nullable=True)
     team_range = Column(String, nullable=False)  # e.g., "4-8 teams"
     is_public = Column(Boolean, default=True, nullable=False)
+    enrollment_fee = Column(Numeric(10, 2), nullable=False, default=Decimal('0.00'))
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -69,3 +71,23 @@ class TournamentPayment(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     tournament = relationship("Tournament", back_populates="payment")
+
+class TournamentEnrollment(Base):
+    __tablename__ = "tournament_enrollments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tournament_id = Column(Integer, ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False, index=True)
+    club_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True)
+    enrolled_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # Club Manager user ID
+    enrolled_fee = Column(Numeric(10, 2), nullable=False)
+    payment_status = Column(String, nullable=False, default=PaymentStatus.PENDING.value)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    
+    tournament = relationship("Tournament")
+    club = relationship("Club")
+    enrolled_by_user = relationship("User", foreign_keys=[enrolled_by])
+    
+    __table_args__ = (
+        {'extend_existing': True},
+    )

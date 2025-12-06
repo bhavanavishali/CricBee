@@ -156,3 +156,26 @@ export const getEligibleTournaments = async () => {
     throw error;
   }
 };
+
+export const initiateTournamentEnrollment = async (tournamentId, clubId) => {
+  try {
+    const response = await api.post('/clubmanager/enroll/initiate', {
+      tournament_id: tournamentId,
+      club_id: clubId
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Initiate enrollment error:", error);
+    throw error;
+  }
+};
+
+export const verifyEnrollmentPayment = async (paymentData) => {
+  try {
+    const response = await api.post('/clubmanager/enroll/verify', paymentData);
+    return response.data;
+  } catch (error) {
+    console.error("Verify enrollment payment error:", error);
+    throw error;
+  }
+};

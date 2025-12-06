@@ -20,12 +20,18 @@ const CreateTournament = () => {
       location: '',
       venue_details: '',
       team_range: '',
-      is_public: true
+      is_public: true,
+      enrollment_fee: ''
     }
   });
 
   useEffect(() => {
     loadPricingPlans();
+    // Preload Razorpay script when component mounts
+    loadRazorpayScript().catch(err => {
+      console.warn('Razorpay preload warning:', err);
+      // Don't show error on mount, just log it
+    });
   }, []);
 
   const loadPricingPlans = async () => {
@@ -37,12 +43,107 @@ const CreateTournament = () => {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve, reject) => {
+      // Check if Razorpay is already available and is a constructor
+      if (window.Razorpay && typeof window.Razorpay === 'function') {
+        resolve();
+        return;
+      }
+
+      // Check if script is already in the DOM
+      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existingScript) {
+        // Script exists, wait for it to load and initialize
+        let attempts = 0;
+        const maxAttempts = 100; // 10 seconds (100 * 100ms)
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.Razorpay && typeof window.Razorpay === 'function') {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            reject(new Error('Razorpay SDK loading timeout'));
+          }
+        }, 100);
+        return;
+      }
+
+      // Create and load script
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => {
+        // Wait for Razorpay to initialize (may take a moment)
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.Razorpay && typeof window.Razorpay === 'function') {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            reject(new Error('Razorpay SDK failed to initialize'));
+          }
+        }, 100);
+      };
+      script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+      document.head.appendChild(script);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const result = await createTournament(formData);
+      // Ensure enrollment_fee is a number and at least 1.00 (required for Razorpay)
+      const enrollmentFee = formData.details.enrollment_fee === '' 
+        ? 0 
+        : parseFloat(formData.details.enrollment_fee) || 0;
+      
+      if (enrollmentFee < 1) {
+        alert('Enrollment fee must be at least ₹1.00');
+        setLoading(false);
+        return;
+      }
+      
+      const submitData = {
+        ...formData,
+        details: {
+          ...formData.details,
+          enrollment_fee: enrollmentFee
+        }
+      };
+      
+      const result = await createTournament(submitData);
+      
+      // Ensure Razorpay SDK is loaded before proceeding
+      try {
+        await loadRazorpayScript();
+      } catch (error) {
+        alert('Failed to load payment gateway. Please refresh the page and try again.');
+        console.error('Razorpay load error:', error);
+        setLoading(false);
+        return;
+      }
+      
+      // Double check Razorpay is available and is a constructor
+      if (!window.Razorpay) {
+        alert('Payment gateway not loaded. Please refresh the page and try again.');
+        console.error('Razorpay not found in window object');
+        setLoading(false);
+        return;
+      }
+      
+      if (typeof window.Razorpay !== 'function') {
+        alert('Payment gateway not properly initialized. Please refresh the page and try again.');
+        console.error('Razorpay is not a constructor:', typeof window.Razorpay, window.Razorpay);
+        setLoading(false);
+        return;
+      }
       
       // Initialize Razorpay payment
       const amountInPaise = Math.round(parseFloat(result.razorpay_order.amount) * 100);
@@ -67,7 +168,9 @@ const CreateTournament = () => {
             navigate('/organizer/dashboard');
           } catch (error) {
             alert('Payment verification failed. Please contact support.');
-            console.error(error);
+            console.error('Payment verification error:', error);
+          } finally {
+            setLoading(false);
           }
         },
         prefill: {
@@ -81,21 +184,32 @@ const CreateTournament = () => {
         modal: {
           ondismiss: function() {
             console.log('Payment modal closed');
+            setLoading(false);
           }
         }
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-      razorpay.on('payment.failed', function (response) {
-        alert(`Payment failed: ${response.error.description || 'Please try again.'}`);
-        console.error('Payment failed:', response.error);
-      });
+      try {
+        console.log('Initializing Razorpay with options:', options);
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+        razorpay.on('payment.failed', function (response) {
+          setLoading(false);
+          alert(`Payment failed: ${response.error.description || 'Please try again.'}`);
+          console.error('Payment failed:', response.error);
+        });
+      } catch (error) {
+        alert(`Failed to initialize payment: ${error.message || 'Please try again.'}`);
+        console.error('Razorpay initialization error:', error);
+        console.error('Razorpay type:', typeof window.Razorpay);
+        console.error('Window.Razorpay:', window.Razorpay);
+        setLoading(false);
+      }
 
     } catch (error) {
-      alert('Failed to create tournament. Please try again.');
-      console.error(error);
-    } finally {
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to create tournament. Please try again.';
+      alert(errorMessage);
+      console.error('Tournament creation error:', error);
       setLoading(false);
     }
   };
@@ -295,6 +409,32 @@ const CreateTournament = () => {
                   })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+
+              {/* Enrollment Fee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enrollment Fee (₹) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  step="0.01"
+                  placeholder="1.00"
+                  value={formData.details.enrollment_fee}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                    setFormData({
+                      ...formData,
+                      details: {...formData.details, enrollment_fee: value}
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Amount clubs need to pay to enroll in this tournament (minimum ₹1.00)
+                </p>
               </div>
 
               {/* Is Public */}
