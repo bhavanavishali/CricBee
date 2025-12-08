@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getEnrolledClubs, getMyTournaments, getClubDetails } from '@/api/organizer/tournament';
+import { getEnrolledClubs, getMyTournaments, getClubDetails, removeClubFromTournament, cancelTournament } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft, Trophy, MapPin, Calendar, Users, Search, Filter, Eye, CheckCircle, Clock, RefreshCw, X, Mail, Phone, User as UserIcon, DollarSign } from 'lucide-react';
 
@@ -16,6 +16,11 @@ const EnrolledClubs = () => {
   const [clubDetails, setClubDetails] = useState(null);
   const [loadingClubDetails, setLoadingClubDetails] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [clubToRemove, setClubToRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     loadTournamentAndClubs();
@@ -90,6 +95,68 @@ const EnrolledClubs = () => {
     setShowModal(false);
     setSelectedClub(null);
     setClubDetails(null);
+  };
+
+  const handleRemoveClub = (club) => {
+    setClubToRemove(club);
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemoveClub = async () => {
+    if (!clubToRemove) return;
+    
+    try {
+      setRemoving(true);
+      await removeClubFromTournament(tournamentId, clubToRemove.club_id);
+      
+
+      await loadTournamentAndClubs();
+      
+      // Close popup
+      setShowRemoveConfirm(false);
+      setClubToRemove(null);
+      
+      alert('Club removed successfully and enrollment fee refunded.');
+    } catch (error) {
+      console.error('Failed to remove club:', error);
+      alert(error.response?.data?.detail || 'Failed to remove club. Please try again.');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const cancelRemoveClub = () => {
+    setShowRemoveConfirm(false);
+    setClubToRemove(null);
+  };
+
+  const canCancelTournament = () => {
+    if (!tournament) return false;
+    if (tournament.status === 'cancelled') return false;
+    if (!tournament.payment || tournament.payment.payment_status !== 'success') return false;
+    
+    // Check if all clubs with successful payments are removed
+    const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
+    return enrolledClubsWithPayment.length === 0;
+  };
+
+  const handleCancelTournament = async () => {
+    try {
+      setCancelling(true);
+      await cancelTournament(tournamentId);
+      setShowCancelConfirm(false);
+      // Reload data
+      await loadTournamentAndClubs();
+      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+      // Navigate back to tournament enrollments
+      navigate('/organizer/tournament-enrollments');
+    } catch (error) {
+      console.error('Failed to cancel tournament:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setCancelling(false);
+    }
   };
 
   // Filter clubs based on search and payment status
@@ -184,6 +251,15 @@ const EnrolledClubs = () => {
             <span className={`px-4 py-2 rounded-full text-sm font-semibold ${statusBadge.color}`}>
               {statusBadge.icon} {statusBadge.label}
             </span>
+            {canCancelTournament() && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 flex items-center space-x-2"
+              >
+                <X size={18} />
+                <span>Cancel Tournament</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -263,13 +339,24 @@ const EnrolledClubs = () => {
                           {paymentBadge.icon}
                           <span>{paymentBadge.label}</span>
                         </span>
-                        <button
-                          onClick={() => handleViewDetails(club)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2"
-                        >
-                          <Eye size={18} />
-                          <span>View Details</span>
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleViewDetails(club)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2"
+                          >
+                            <Eye size={18} />
+                            <span>View Details</span>
+                          </button>
+                          {club.payment_status === 'success' && (
+                            <button
+                              onClick={() => handleRemoveClub(club)}
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 flex items-center space-x-2"
+                            >
+                              <X size={18} />
+                              <span>Remove</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -459,6 +546,96 @@ const EnrolledClubs = () => {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Remove Club Confirmation Modal */}
+        {showRemoveConfirm && clubToRemove && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Remove Club from Tournament</h2>
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to remove <strong>{clubToRemove.club_name}</strong> from this tournament?
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Note:</strong> The club will receive a refund of the enrollment fee (₹{formatCurrency(clubToRemove.enrolled_fee)}) paid during registration.
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={cancelRemoveClub}
+                    disabled={removing}
+                    className="px-4 py-2 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmRemoveClub}
+                    disabled={removing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    {removing ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Removing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <X size={18} />
+                        <span>Remove Club</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Tournament Confirmation Modal */}
+        {showCancelConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Cancel Tournament</h2>
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to cancel <strong>{tournament?.tournament_name}</strong>?
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> The tournament creation fee will be refunded to your wallet by the admin.
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    disabled={cancelling}
+                    className="px-4 py-2 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    No, Keep Tournament
+                  </button>
+                  <button
+                    onClick={handleCancelTournament}
+                    disabled={cancelling}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    {cancelling ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Cancelling...</span>
+                      </>
+                    ) : (
+                      <>
+                        <X size={18} />
+                        <span>Yes, Cancel Tournament</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

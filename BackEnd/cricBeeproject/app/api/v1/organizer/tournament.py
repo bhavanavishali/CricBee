@@ -11,7 +11,7 @@ from app.schemas.organizer.tournament import (
     OrganizerWalletBalanceResponse
 )
 from app.schemas.clubmanager.enrollment import EnrolledClubResponse
-from app.services.clubmanager.enrollment import get_enrolled_clubs_for_tournament
+from app.services.clubmanager.enrollment import get_enrolled_clubs_for_tournament, remove_club_from_tournament_with_refund
 from app.services.club_service import get_club_by_id
 from app.schemas.club_manager import ClubRead
 from app.schemas.user import UserRead
@@ -51,7 +51,7 @@ def get_active_pricing_plans(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get active pricing plans for tournament creation"""
+    #Get active pricing plans for tournament creation
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -229,3 +229,29 @@ def get_club_details(
         "club": ClubRead.model_validate(club),
         "manager": UserRead.model_validate(club.manager)
     }
+
+@router.delete("/{tournament_id}/enrolled-clubs/{club_id}", response_model=dict)
+def remove_club_from_tournament(
+    tournament_id: int,
+    club_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Remove a club from tournament and refund the enrollment fee"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can remove clubs from tournaments"
+        )
+    
+    try:
+        result = remove_club_from_tournament_with_refund(
+            db, tournament_id, club_id, current_user.id
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

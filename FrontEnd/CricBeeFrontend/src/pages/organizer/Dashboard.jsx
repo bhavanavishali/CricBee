@@ -20,7 +20,7 @@ import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import Layout from '@/components/layouts/Layout'
-import { getMyTournaments, getMyTransactions, cancelTournament } from '@/api/organizer/tournament'
+import { getMyTournaments, getMyTransactions, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament'
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
@@ -120,15 +120,29 @@ export default function OrganizerDashboard() {
 
   const handleCancelTournament = async (tournamentId) => {
     try {
+      // First check if there are enrolled clubs
+      const enrolledClubs = await getEnrolledClubs(tournamentId);
+      const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
+      
+      if (enrolledClubsWithPayment.length > 0) {
+        // Show error popup if clubs are still enrolled
+        setShowCancelConfirm(null);
+        alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
+        return;
+      }
+      
+      // If no enrolled clubs, proceed with cancellation
       setCancellingId(tournamentId);
       await cancelTournament(tournamentId);
       setShowCancelConfirm(null);
       // Reload tournaments and transactions to reflect the cancellation
       await loadTournaments();
       await loadTransactions();
+      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
-      alert(error.response?.data?.detail || 'Failed to cancel tournament. Please try again.');
+      const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
+      alert(errorMessage);
     } finally {
       setCancellingId(null);
     }

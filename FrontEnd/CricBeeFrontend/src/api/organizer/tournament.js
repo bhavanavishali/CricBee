@@ -44,3 +44,8 @@ export const getClubDetails = async (clubId) => {
   const response = await api.get(`/tournaments/clubs/${clubId}/details`);
   return response.data;
 };
+
+export const removeClubFromTournament = async (tournamentId, clubId) => {
+  const response = await api.delete(`/tournaments/${tournamentId}/enrolled-clubs/${clubId}`);
+  return response.data;
+};

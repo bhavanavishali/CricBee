@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyTournaments } from '@/api/organizer/tournament';
+import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
-import { Trophy, Users, MapPin, Calendar, ArrowLeft, Eye } from 'lucide-react';
+import { Trophy, Users, MapPin, Calendar, ArrowLeft, Eye, X, AlertCircle } from 'lucide-react';
 
 const TournamentEnrollments = () => {
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(null);
+  const [cancellableTournaments, setCancellableTournaments] = useState(new Set());
 
   useEffect(() => {
     loadTournaments();
@@ -18,6 +21,42 @@ const TournamentEnrollments = () => {
       setLoading(true);
       const data = await getMyTournaments();
       setTournaments(data);
+      
+      // Check which tournaments can be cancelled
+      // Show cancel button if: not cancelled, payment successful
+      // Backend will validate if clubs are removed
+      const cancellable = new Set();
+      for (const tournament of data) {
+        if (tournament.status === 'cancelled') continue;
+        if (!tournament.payment || tournament.payment.payment_status !== 'success') continue;
+        
+        // Check if registration end date has passed
+        let registrationEnded = false;
+        if (tournament.details?.registration_end_date) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const regEndDate = new Date(tournament.details.registration_end_date);
+          regEndDate.setHours(0, 0, 0, 0);
+          registrationEnded = today > regEndDate;
+        }
+        
+        // If registration hasn't ended, allow cancellation
+        if (!registrationEnded) {
+          cancellable.add(tournament.id);
+        } else {
+          // If registration has ended, check if all clubs are removed
+          try {
+            const enrolledClubs = await getEnrolledClubs(tournament.id);
+            const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
+            if (enrolledClubsWithPayment.length === 0) {
+              cancellable.add(tournament.id);
+            }
+          } catch (error) {
+            console.error(`Error checking enrolled clubs for tournament ${tournament.id}:`, error);
+          }
+        }
+      }
+      setCancellableTournaments(cancellable);
     } catch (error) {
       console.error('Failed to load tournaments:', error);
       setTournaments([]);
@@ -44,6 +83,41 @@ const TournamentEnrollments = () => {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const canCancel = (tournament) => {
+    // Check if tournament is in the cancellable set
+    return cancellableTournaments.has(tournament.id);
+  };
+
+  const handleCancelTournament = async (tournamentId) => {
+    try {
+      // First check if there are enrolled clubs
+      const enrolledClubs = await getEnrolledClubs(tournamentId);
+      const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
+      
+      if (enrolledClubsWithPayment.length > 0) {
+        // Show error popup if clubs are still enrolled
+        setShowCancelConfirm(null);
+        alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
+        return;
+      }
+      
+      // If no enrolled clubs, proceed with cancellation
+      setCancellingId(tournamentId);
+      await cancelTournament(tournamentId);
+      setShowCancelConfirm(null);
+      // Reload tournaments to reflect the cancellation
+      await loadTournaments();
+      setCancellableTournaments(new Set());
+      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+    } catch (error) {
+      console.error('Failed to cancel tournament:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50 p-6">
@@ -63,7 +137,19 @@ const TournamentEnrollments = () => {
         {/* Main Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Select Tournament</h2>
-          <p className="text-gray-600 mb-6">Choose a tournament to view enrolled clubs</p>
+          <p className="text-gray-600 mb-4">Choose a tournament to view enrolled clubs</p>
+          
+          {/* Info Message */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
+            <AlertCircle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-yellow-800 font-semibold mb-1">Important: Tournament Cancellation</p>
+              <p className="text-sm text-yellow-700">
+                If you want to cancel a tournament, you must first remove and refund all enrolled clubs. 
+                Only after all clubs have been removed and refunded can you proceed with tournament cancellation.
+              </p>
+            </div>
+          </div>
 
           {loading ? (
             <div className="text-center py-12">
@@ -129,6 +215,16 @@ const TournamentEnrollments = () => {
                           <Eye size={18} />
                           <span>View Clubs</span>
                         </button>
+                        {canCancel(tournament) && (
+                          <button
+                            onClick={() => setShowCancelConfirm(tournament.id)}
+                            disabled={cancellingId !== null}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <X size={18} />
+                            <span>Cancel Tournament</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -138,6 +234,34 @@ const TournamentEnrollments = () => {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Tournament</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel this tournament? The tournament creation fee will be refunded to your account. This action cannot be undone.
+            </p>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setShowCancelConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
+                disabled={cancellingId !== null}
+              >
+                No, Keep Tournament
+              </button>
+              <button
+                onClick={() => handleCancelTournament(showCancelConfirm)}
+                disabled={cancellingId !== null}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancellingId ? 'Cancelling...' : 'Yes, Cancel Tournament'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

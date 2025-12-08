@@ -41,7 +41,7 @@ def get_eligible_tournaments_for_club_manager(db: Session) -> List[TournamentRes
     return [TournamentResponse.model_validate(tournament) for tournament in tournaments]
 
 def get_club_manager_wallet_balance(db: Session, club_manager_id: int) -> Decimal:
-    #Calculate club manager wallet balance from transactions"
+
     transactions = db.query(Transaction).filter(
         Transaction.club_manager_id == club_manager_id,
         Transaction.status.in_([TransactionStatus.SUCCESS.value, TransactionStatus.REFUNDED.value])
@@ -62,9 +62,7 @@ def initiate_enrollment(
     club_id: int,
     club_manager_id: int
 ) -> dict:
-    #Initiate tournament enrollment and create Razorpay order for payment
     
-    # Verify tournament exists and is eligible
     tournament = (
         db.query(Tournament)
         .options(joinedload(Tournament.details))
@@ -90,7 +88,7 @@ def initiate_enrollment(
     if today < tournament.details.registration_start_date:
         raise ValueError("Registration has not started yet")
     
-    # Verify club exists and belongs to the club manager
+   
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == club_manager_id
@@ -99,7 +97,7 @@ def initiate_enrollment(
     if not club:
         raise ValueError("Club not found or access denied")
     
-    # Check if already enrolled
+    
     existing_enrollment = db.query(TournamentEnrollment).filter(
         TournamentEnrollment.tournament_id == tournament_id,
         TournamentEnrollment.club_id == club_id
@@ -108,7 +106,7 @@ def initiate_enrollment(
     if existing_enrollment:
         raise ValueError("Club is already enrolled in this tournament")
     
-    # Get enrollment fee from tournament details
+    
     enrollment_fee = tournament.details.enrollment_fee
 
     if enrollment_fee is None:
@@ -117,10 +115,10 @@ def initiate_enrollment(
     if enrollment_fee < 0:
         raise ValueError("Enrollment fee cannot be negative")
     
-    # Convert to Decimal if needed
+    
     enrollment_fee = Decimal(str(enrollment_fee))
     
-    # Minimum enrollment fee is 1 rupee (Razorpay requirement)
+    
     if enrollment_fee < Decimal('1.00'):
         raise ValueError("Enrollment fee must be at least ₹1.00")
     
@@ -128,7 +126,7 @@ def initiate_enrollment(
     try:
         receipt = f"ENR_{tournament_id}_{club_id}_{int(datetime.now().timestamp())}"
         razorpay_order = create_razorpay_order(
-            amount=enrollment_fee,  # Payment amount = enrollment fee
+            amount=enrollment_fee,  
             receipt=receipt,
             currency="INR"
         )
@@ -166,7 +164,7 @@ def verify_and_complete_enrollment(
     razorpay_payment_id: str,
     razorpay_signature: str
 ) -> TournamentEnrollment:
-    #Verify payment and complete enrollment
+    
     
     
     tournament = (
@@ -252,9 +250,7 @@ def get_enrolled_clubs_for_tournament(
     tournament_id: int,
     organizer_id: int
 ) -> List[dict]:
-    """Get all clubs enrolled in a tournament (for organizer)"""
     
-    # Verify tournament exists and belongs to organizer
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
         Tournament.organizer_id == organizer_id
@@ -289,3 +285,115 @@ def get_enrolled_clubs_for_tournament(
         })
     
     return result
+
+def remove_club_from_tournament_with_refund(
+    db: Session,
+    tournament_id: int,
+    club_id: int,
+    organizer_id: int
+) -> dict:
+
+    tournament = db.query(Tournament).filter(
+        Tournament.id == tournament_id,
+        Tournament.organizer_id == organizer_id
+    ).first()
+    
+    if not tournament:
+        raise ValueError("Tournament not found or access denied")
+    
+
+    if tournament.status == TournamentStatus.CANCELLED.value:
+        raise ValueError("Cannot remove clubs from a cancelled tournament")
+    
+
+    enrollment = db.query(TournamentEnrollment).filter(
+        TournamentEnrollment.tournament_id == tournament_id,
+        TournamentEnrollment.club_id == club_id
+    ).first()
+    
+    if not enrollment:
+        raise ValueError("Club is not enrolled in this tournament")
+    
+ 
+    if enrollment.payment_status != PaymentStatus.SUCCESS.value:
+        
+        db.delete(enrollment)
+        db.commit()
+        return {
+            "message": "Club removed from tournament (no refund needed - payment was not successful)",
+            "club_id": club_id,
+            "tournament_id": tournament_id
+        }
+    
+    # Find the club manager transaction (original: DEBIT, SUCCESS)
+    # Match by club_manager_id, tournament_id, amount, and status to get the specific enrollment transaction
+    club_manager_transaction = db.query(Transaction).filter(
+        Transaction.tournament_id == tournament_id,
+        Transaction.club_manager_id == enrollment.enrolled_by,
+        Transaction.transaction_type == TransactionType.ENROLLMENT_FEE.value,
+        Transaction.transaction_direction == TransactionDirection.DEBIT.value,
+        Transaction.status == TransactionStatus.SUCCESS.value,
+        Transaction.amount == enrollment.enrolled_fee
+    ).order_by(Transaction.created_at.desc()).first()
+    
+    # Find the organizer transaction (original: CREDIT, SUCCESS)
+    # Match by organizer_id, tournament_id, amount, and use razorpay details if available
+    # If we found the club manager transaction, use its razorpay details to find the matching organizer transaction
+    if club_manager_transaction and club_manager_transaction.razorpay_payment_id:
+        organizer_transaction = db.query(Transaction).filter(
+            Transaction.tournament_id == tournament_id,
+            Transaction.organizer_id == organizer_id,
+            Transaction.transaction_type == TransactionType.ENROLLMENT_FEE.value,
+            Transaction.transaction_direction == TransactionDirection.CREDIT.value,
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.amount == enrollment.enrolled_fee,
+            Transaction.razorpay_payment_id == club_manager_transaction.razorpay_payment_id
+        ).first()
+    else:
+        # Fallback: find by amount and tournament, get the most recent one
+        organizer_transaction = db.query(Transaction).filter(
+            Transaction.tournament_id == tournament_id,
+            Transaction.organizer_id == organizer_id,
+            Transaction.transaction_type == TransactionType.ENROLLMENT_FEE.value,
+            Transaction.transaction_direction == TransactionDirection.CREDIT.value,
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.amount == enrollment.enrolled_fee
+        ).order_by(Transaction.created_at.desc()).first()
+    
+    # Verify we found both transactions
+    if not club_manager_transaction:
+        raise ValueError("Club manager transaction not found for refund")
+    if not organizer_transaction:
+        raise ValueError("Organizer transaction not found for refund")
+    
+    # Refund club manager: Reverse the original transaction (DEBIT -> CREDIT)
+    # Change direction from DEBIT to CREDIT (refund = credit back to club manager)
+    club_manager_transaction.transaction_direction = TransactionDirection.CREDIT.value
+    club_manager_transaction.status = TransactionStatus.REFUNDED.value
+    club_manager_transaction.description = f"Refund for club removal from tournament {tournament.tournament_name} - {club_manager_transaction.description or ''}"
+    club_manager_transaction.updated_at = datetime.now()
+    db.add(club_manager_transaction)
+    
+    # Refund organizer: Reverse the original transaction (CREDIT -> DEBIT)
+    # Change direction from CREDIT to DEBIT (refund = debit from organizer)
+    organizer_transaction.transaction_direction = TransactionDirection.DEBIT.value
+    organizer_transaction.status = TransactionStatus.REFUNDED.value
+    organizer_transaction.description = f"Refund for club removal from tournament {tournament.tournament_name} - {organizer_transaction.description or ''}"
+    organizer_transaction.updated_at = datetime.now()
+    db.add(organizer_transaction)
+    
+    # Update enrollment payment status to REFUNDED
+    enrollment.payment_status = PaymentStatus.REFUNDED.value
+    enrollment.updated_at = datetime.now()
+    
+    # Delete the enrollment record
+    db.delete(enrollment)
+    
+    db.commit()
+    
+    return {
+        "message": "Club removed from tournament and enrollment fee refunded",
+        "club_id": club_id,
+        "tournament_id": tournament_id,
+        "refunded_amount": float(enrollment.enrolled_fee)
+    }
