@@ -29,7 +29,7 @@ class Tournament(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
-    # Relationships
+
     organizer = relationship("User", back_populates="tournaments")
     plan = relationship("TournamentPricingPlan")
     details = relationship("TournamentDetails", back_populates="tournament", uselist=False, cascade="all, delete-orphan")

@@ -52,7 +52,7 @@ def update_tournament_pricing_plan(
     if not plan:
         return None
     
-    # Update fields if provided
+
     if plan_data.plan_name is not None:
         plan.plan_name = plan_data.plan_name
     if plan_data.plan_range is not None:
@@ -62,7 +62,7 @@ def update_tournament_pricing_plan(
     if plan_data.status is not None:
         plan.status = plan_data.status
     
-    # updated_at will be automatically set by SQLAlchemy's onupdate
+
     db.commit()
     db.refresh(plan)
     return TournamentPricingPlanResponse.model_validate(plan)
@@ -79,7 +79,7 @@ def update_tournament_pricing_plan_status(
         return None
     
     plan.status = status
-    # updated_at will be automatically set by SQLAlchemy's onupdate
+ 
     db.commit()
     db.refresh(plan)
     return TournamentPricingPlanResponse.model_validate(plan)

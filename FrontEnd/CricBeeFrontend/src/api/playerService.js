@@ -100,3 +100,54 @@ export const changePassword = async (currentPassword, newPassword, confirmPasswo
     };
   }
 };
+
+// Club invitation functions
+export const getPlayerInvitations = async () => {
+  try {
+    const response = await api.get(`/player-profile/invitations`);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Get invitations error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to fetch invitations",
+    };
+  }
+};
+
+export const acceptInvitation = async (invitationId) => {
+  try {
+    const response = await api.post(`/player-profile/invitations/${invitationId}/accept`);
+    return {
+      success: true,
+      message: response.data.message || "Invitation accepted successfully",
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Accept invitation error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to accept invitation",
+    };
+  }
+};
+
+export const rejectInvitation = async (invitationId) => {
+  try {
+    const response = await api.post(`/player-profile/invitations/${invitationId}/reject`);
+    return {
+      success: true,
+      message: response.data.message || "Invitation rejected successfully",
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Reject invitation error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to reject invitation",
+    };
+  }
+};

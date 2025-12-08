@@ -15,4 +15,5 @@ class PlayerProfile(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     clubs = relationship("ClubPlayer", back_populates="player", cascade="all, delete-orphan")
+    club_invitations = relationship("ClubPlayerInvitation", back_populates="player", cascade="all, delete-orphan")
     user = relationship("User", back_populates="player_profile")

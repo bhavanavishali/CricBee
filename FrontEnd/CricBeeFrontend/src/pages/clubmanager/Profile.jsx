@@ -21,7 +21,7 @@ import {
   Upload,
   Image as ImageIcon,
 } from 'lucide-react';
-import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage, getClubPlayers } from '@/api/clubService';
+import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage, getClubPlayers, getPendingInvitations } from '@/api/clubService';
 import AddPlayerModal from '@/components/clubmanager/AddPlayerModal';
 
 const ClubProfile = () => {
@@ -46,6 +46,8 @@ const ClubProfile = () => {
   const [imageUploading, setImageUploading] = useState(false);
   const [players, setPlayers] = useState([]);
   const [playersLoading, setPlayersLoading] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,6 +57,9 @@ const ClubProfile = () => {
   useEffect(() => {
     if (activeTab === 'players' && profile?.club) {
       fetchPlayers();
+    }
+    if (activeTab === 'invitations' && profile?.club) {
+      fetchPendingInvitations();
     }
   }, [activeTab, profile?.club?.id]);
 
@@ -244,6 +249,19 @@ const ClubProfile = () => {
     setPlayersLoading(false);
   };
 
+  const fetchPendingInvitations = async () => {
+    if (!profile?.club?.id) return;
+    
+    setInvitationsLoading(true);
+    const result = await getPendingInvitations(profile.club.id);
+    if (result.success) {
+      setPendingInvitations(result.data.invitations || []);
+    } else {
+      setError(result.message || 'Failed to fetch invitations');
+    }
+    setInvitationsLoading(false);
+  };
+
   const handleAddPlayer = () => {
     if (profile && profile.club) {
       navigate(`/club/${profile.club.id}/add-player`);
@@ -286,6 +304,7 @@ const ClubProfile = () => {
   const tabs = [
     { id: 'profile', label: 'Profile Details' },
     { id: 'players', label: 'Players' },
+    { id: 'invitations', label: 'Pending Invitations' },
     { id: 'statistics', label: 'Statistics' },
   ];
 
@@ -1013,6 +1032,83 @@ const ClubProfile = () => {
               </div>
             )}
 
+            {activeTab === 'invitations' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-xl font-semibold text-gray-900">
+                    Pending Invitations ({pendingInvitations.length})
+                  </h4>
+                </div>
+
+                {invitationsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-500 mt-4">Loading invitations...</p>
+                  </div>
+                ) : pendingInvitations.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <Bell size={48} className="text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg mb-2">No pending invitations</p>
+                    <p className="text-gray-400 text-sm">All invitations have been responded to</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingInvitations.map((invitation) => (
+                      <div
+                        key={invitation.id}
+                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-blue-600 font-semibold text-lg">
+                                  {invitation.user?.full_name?.charAt(0).toUpperCase() || 'P'}
+                                </span>
+                              </div>
+                              <div>
+                                <h5 className="font-semibold text-gray-900 text-lg">
+                                  {invitation.user?.full_name || 'Unknown Player'}
+                                </h5>
+                                <p className="text-sm text-gray-600">
+                                  {invitation.player_profile?.cricb_id || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Mail size={14} className="text-gray-400" />
+                                <span>{invitation.user?.email || 'N/A'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Phone size={14} className="text-gray-400" />
+                                <span>{invitation.user?.phone || 'N/A'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Calendar size={14} className="text-gray-400" />
+                                <span>Age: {invitation.player_profile?.age || 'N/A'} years</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <MapPin size={14} className="text-gray-400" />
+                                <span className="truncate">{invitation.player_profile?.address || 'N/A'}</span>
+                              </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100">
+                              <p className="text-xs text-gray-500">
+                                Invited: {new Date(invitation.requested_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === 'statistics' && (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">Statistics section coming soon</p>
@@ -1031,6 +1127,7 @@ const ClubProfile = () => {
           onPlayerAdded={() => {
             fetchProfile(); // Refresh profile to update player count
             fetchPlayers(); // Refresh players list
+            fetchPendingInvitations(); // Refresh pending invitations
             setShowAddPlayerModal(false);
           }}
         />

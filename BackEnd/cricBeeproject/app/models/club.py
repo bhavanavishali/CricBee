@@ -16,6 +16,7 @@ class Club(Base):
     club_image = Column(String, nullable=True) 
 
     players = relationship("ClubPlayer", back_populates="club", cascade="all, delete-orphan")
+    player_invitations = relationship("ClubPlayerInvitation", back_populates="club", cascade="all, delete-orphan")
     manager = relationship("User", back_populates="club")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

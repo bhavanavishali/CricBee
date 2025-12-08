@@ -53,7 +53,8 @@ class PlayerSearchResponse(BaseModel):
     
     player_profile: PlayerRead
     user: UserRead
-    is_already_in_club: bool = False  
+    is_already_in_club: bool = False
+    has_pending_invitation: bool = False  
 
 class AddPlayerRequest(BaseModel):
     
@@ -70,3 +71,24 @@ class ClubPlayersListResponse(BaseModel):
     
     players: list[ClubPlayerResponse]
     total: int
+
+# ---------   Club Player Invitation Schemas-----------------
+
+class ClubPlayerInvitationResponse(BaseModel):
+    id: int
+    club: ClubRead
+    player_profile: PlayerRead
+    user: UserRead
+    status: str
+    requested_at: datetime
+    responded_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class ClubPlayerInvitationListResponse(BaseModel):
+    invitations: list[ClubPlayerInvitationResponse]
+    total: int
+
+class InvitationResponseRequest(BaseModel):
+    invitation_id: int

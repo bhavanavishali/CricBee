@@ -5,11 +5,13 @@ from app.db.session import get_db
 from app.models.user import UserRole
 from app.schemas.club_manager import (
     ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse, ClubProfileUpdate,
-    PlayerSearchResponse, AddPlayerRequest, ClubPlayerResponse, ClubPlayersListResponse
+    PlayerSearchResponse, AddPlayerRequest, ClubPlayerResponse, ClubPlayersListResponse,
+    ClubPlayerInvitationResponse, ClubPlayerInvitationListResponse
 )
 from app.services.club_service import (
     get_profile, create_club, update_club, update_club_image, get_club,
-    search_player_by_cricb_id, add_player_to_club, get_club_players, remove_player_from_club
+    search_player_by_cricb_id, invite_player_to_club, get_club_players, remove_player_from_club,
+    get_pending_invitations_for_club
 )
 from app.schemas.player import PlayerRead
 from app.schemas.user import UserRead
@@ -208,24 +210,25 @@ def search_player_by_cricb_endpoint(
         return PlayerSearchResponse(
             player_profile=PlayerRead.model_validate(result["player_profile"]),
             user=UserRead.model_validate(result["user"]),
-            is_already_in_club=result["is_already_in_club"]
+            is_already_in_club=result["is_already_in_club"],
+            has_pending_invitation=result.get("has_pending_invitation", False)
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-@router.post("/club/{club_id}/players", response_model=ClubPlayerResponse, status_code=status.HTTP_201_CREATED)
-def add_player_to_club_endpoint(
+@router.post("/club/{club_id}/players/invite", status_code=status.HTTP_201_CREATED)
+def invite_player_to_club_endpoint(
     club_id: int,
     payload: AddPlayerRequest,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    
+    """Send an invitation to a player to join the club"""
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only club managers can add players"
+            detail="Only club managers can invite players"
         )
     
     try:
@@ -239,16 +242,22 @@ def add_player_to_club_endpoint(
                 detail="Player is already in this club"
             )
         
-        # Add player to club
-        club_player = add_player_to_club(db, club_id, player_profile.id, current_user.id)
+        if search_result.get("has_pending_invitation", False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A pending invitation already exists for this player"
+            )
+        
+        # Create invitation
+        invitation = invite_player_to_club(db, club_id, player_profile.id, current_user.id)
         
         # Return response
-        return ClubPlayerResponse(
-            id=club_player.id,
-            player_profile=PlayerRead.model_validate(player_profile),
-            user=UserRead.model_validate(player_profile.user),
-            joined_at=club_player.joined_at
-        )
+        return {
+            "message": "Invitation sent successfully",
+            "invitation_id": invitation.id,
+            "player_profile": PlayerRead.model_validate(player_profile),
+            "user": UserRead.model_validate(player_profile.user)
+        }
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -279,6 +288,40 @@ def get_club_players_endpoint(
                 for cp in club_players
             ],
             total=len(club_players)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.get("/club/{club_id}/invitations/pending", response_model=ClubPlayerInvitationListResponse)
+def get_pending_invitations_endpoint(
+    club_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all pending invitations for a club"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can view invitations"
+        )
+    
+    try:
+        invitations = get_pending_invitations_for_club(db, club_id, current_user.id)
+        return ClubPlayerInvitationListResponse(
+            invitations=[
+                ClubPlayerInvitationResponse(
+                    id=inv.id,
+                    club=ClubRead.model_validate(inv.club),
+                    player_profile=PlayerRead.model_validate(inv.player),
+                    user=UserRead.model_validate(inv.player.user),
+                    status=inv.status.value,
+                    requested_at=inv.requested_at,
+                    responded_at=inv.responded_at
+                )
+                for inv in invitations
+            ],
+            total=len(invitations)
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

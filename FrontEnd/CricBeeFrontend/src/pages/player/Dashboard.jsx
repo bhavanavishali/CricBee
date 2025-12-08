@@ -16,6 +16,7 @@ import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import { useDispatch } from "react-redux";
 import Layout from '@/components/layouts/Layout'
+import ClubInvitations from '@/components/player/ClubInvitations'
 export default function PlayerDashboard() {
   const dispatch = useDispatch();
   const [matches, setMatches] = useState([
@@ -138,6 +139,11 @@ export default function PlayerDashboard() {
               </div>
             )
           })}
+        </div>
+
+        {/* Club Invitations */}
+        <div className="mb-8">
+          <ClubInvitations />
         </div>
 
         {/* Upcoming Matches */}

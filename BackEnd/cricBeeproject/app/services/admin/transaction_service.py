@@ -7,11 +7,9 @@ from typing import Optional, Tuple
 import uuid
 
 def generate_transaction_id() -> str:
-   
-    return f"TXN{datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex[:12].upper()}"
+   return f"TXN{datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex[:12].upper()}"
 
 def get_or_create_admin_wallet(db: Session, admin_id: int) -> AdminWallet:
-
     wallet = db.query(AdminWallet).filter(AdminWallet.admin_id == admin_id).first()
     if not wallet:
         wallet = AdminWallet(admin_id=admin_id, balance=Decimal('0.00'))
@@ -38,8 +36,7 @@ def create_transaction(
     
     if not wallet_id and not organizer_id and not club_manager_id:
         raise ValueError("Either wallet_id, organizer_id, or club_manager_id must be provided")
-    
-    # Ensure only one ID is provided
+
     ids_provided = sum([bool(wallet_id), bool(organizer_id), bool(club_manager_id)])
     if ids_provided > 1:
         raise ValueError("Cannot specify multiple IDs (wallet_id, organizer_id, club_manager_id)")
@@ -74,7 +71,7 @@ def add_to_admin_wallet(
     transaction_id: Optional[str] = None
 ) -> Tuple[Transaction, AdminWallet]:
     
-    # Get admin user
+ 
     admin = db.query(User).filter(User.id == admin_id, User.role == UserRole.ADMIN).first()
     if not admin:
         raise ValueError("Admin user not found")
@@ -96,8 +93,7 @@ def add_to_admin_wallet(
         description=description,
         transaction_id=transaction_id
     )
-    
-    # Update wallet balance
+
     wallet.balance += amount
     wallet.updated_at = datetime.now()
     

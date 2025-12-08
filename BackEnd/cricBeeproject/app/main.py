@@ -6,6 +6,7 @@ from app.db.session import engine
 from app.models.player import PlayerProfile  
 from app.models.club import Club  
 from app.models.club_player import ClubPlayer  
+from app.models.club_player_invitation import ClubPlayerInvitation
 from app.models.user import User 
 from app.models.organizer import OrganizationDetails
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment

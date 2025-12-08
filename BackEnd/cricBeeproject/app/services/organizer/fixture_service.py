@@ -7,7 +7,7 @@ from app.schemas.organizer.fixture import FixtureRoundCreate, MatchCreate
 from typing import List
 
 def can_create_fixture(db: Session, tournament_id: int, organizer_id: int) -> tuple[bool, str]:
-    """Check if fixture can be created (registration must have ended)"""
+    
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
         Tournament.organizer_id == organizer_id
@@ -32,8 +32,7 @@ def create_fixture_round(
     round_data: FixtureRoundCreate,
     organizer_id: int
 ) -> FixtureRound:
-    """Create a fixture round for a tournament"""
-    # Verify tournament exists and belongs to organizer
+   
     tournament = db.query(Tournament).filter(
         Tournament.id == round_data.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -65,8 +64,7 @@ def get_tournament_rounds(
     tournament_id: int,
     organizer_id: int
 ) -> List[FixtureRound]:
-    """Get all rounds for a tournament"""
-    # Verify tournament exists and belongs to organizer
+   
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
         Tournament.organizer_id == organizer_id
@@ -86,7 +84,7 @@ def create_match(
     match_data: MatchCreate,
     organizer_id: int
 ) -> Match:
-    """Create a match for a round"""
+
     # Verify tournament exists and belongs to organizer
     tournament = db.query(Tournament).filter(
         Tournament.id == match_data.tournament_id,
@@ -138,7 +136,7 @@ def get_round_matches(
     round_id: int,
     organizer_id: int
 ) -> List[Match]:
-    """Get all matches for a round"""
+   
     round = db.query(FixtureRound).filter(FixtureRound.id == round_id).first()
     
     if not round:
@@ -167,7 +165,7 @@ def get_tournament_matches(
     tournament_id: int,
     organizer_id: int
 ) -> List[Match]:
-    """Get all matches for a tournament"""
+
     # Verify tournament exists and belongs to organizer
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,

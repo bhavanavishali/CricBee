@@ -33,7 +33,7 @@ def _sync_tournament_status(db: Session, tournament: Tournament) -> bool:
     
     changed = False
 
-    # Don't sync status if tournament is cancelled - preserve cancelled status
+    
     if tournament.status == TournamentStatus.CANCELLED.value:
         return False
 
@@ -56,7 +56,7 @@ def _sync_tournament_status(db: Session, tournament: Tournament) -> bool:
     new_status = tournament.status
 
     if reg_end and today <= reg_end:
-        # Before or during registration window
+    
         if not reg_start or today < reg_start:
             new_status = TournamentStatus.REGISTRATION_OPEN.value
         elif reg_start <= today <= reg_end:
@@ -101,7 +101,7 @@ def create_tournament_with_payment(
         status=TournamentStatus.PENDING_PAYMENT.value
     )
     db.add(tournament)
-    db.flush()  # Get tournament ID without committing
+    db.flush()  
     
     # Create tournament details
     details = TournamentDetails(

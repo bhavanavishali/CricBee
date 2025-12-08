@@ -7,9 +7,17 @@ from app.schemas.player import (
     PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse
 )
 from app.schemas.user import ChangePasswordRequest
+from app.schemas.club_manager import (
+    ClubPlayerInvitationResponse, ClubPlayerInvitationListResponse, InvitationResponseRequest
+)
 from app.services.player_service import (
     get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo
 )
+from app.services.club_service import (
+    get_invitations_for_player, accept_club_invitation, reject_club_invitation
+)
+from app.schemas.club_manager import ClubRead
+from app.schemas.user import UserRead
 from app.services.auth_service import change_user_password
 from app.services.s3_service import generate_presigned_url
 from app.utils.jwt import get_current_user  # From the auth utils
@@ -157,3 +165,87 @@ def get_image_proxy(request: Request, url: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate image URL: {str(e)}"
         )
+
+# Club invitation endpoints
+
+@router.get("/invitations", response_model=ClubPlayerInvitationListResponse)
+def get_player_invitations_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all club invitations for the current player"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can view invitations"
+        )
+    
+    try:
+        invitations = get_invitations_for_player(db, current_user.id)
+        return ClubPlayerInvitationListResponse(
+            invitations=[
+                ClubPlayerInvitationResponse(
+                    id=inv.id,
+                    club=ClubRead.model_validate(inv.club),
+                    player_profile=PlayerRead.model_validate(inv.player),
+                    user=UserRead.model_validate(inv.player.user),
+                    status=inv.status.value,
+                    requested_at=inv.requested_at,
+                    responded_at=inv.responded_at
+                )
+                for inv in invitations
+            ],
+            total=len(invitations)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.post("/invitations/{invitation_id}/accept", status_code=status.HTTP_200_OK)
+def accept_invitation_endpoint(
+    invitation_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Accept a club invitation"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can accept invitations"
+        )
+    
+    try:
+        club_player = accept_club_invitation(db, invitation_id, current_user.id)
+        return {
+            "message": "Invitation accepted successfully",
+            "club_player": {
+                "id": club_player.id,
+                "joined_at": club_player.joined_at
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/invitations/{invitation_id}/reject", status_code=status.HTTP_200_OK)
+def reject_invitation_endpoint(
+    invitation_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Reject a club invitation"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can reject invitations"
+        )
+    
+    try:
+        invitation = reject_club_invitation(db, invitation_id, current_user.id)
+        return {
+            "message": "Invitation rejected successfully",
+            "invitation_id": invitation.id
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

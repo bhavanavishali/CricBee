@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Search, User, Mail, Phone, MapPin, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
-import { searchPlayerByCricbId, addPlayerToClub } from '@/api/clubService';
+import { X, Search, User, Mail, Phone, MapPin, Calendar, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { searchPlayerByCricbId, invitePlayerToClub } from '@/api/clubService';
 
 const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
   const [cricbId, setCricbId] = useState('');
@@ -25,6 +25,8 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
       setPlayerData(result.data);
       if (result.data.is_already_in_club) {
         setError('This player is already in your club');
+      } else if (result.data.has_pending_invitation) {
+        setError('A pending invitation already exists for this player');
       }
     } else {
       setError(result.message || 'Player not found');
@@ -33,19 +35,19 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
     setSearching(false);
   };
 
-  const handleAddPlayer = async () => {
-    if (!playerData || playerData.is_already_in_club) return;
+  const handleInvitePlayer = async () => {
+    if (!playerData || playerData.is_already_in_club || playerData.has_pending_invitation) return;
 
     setAdding(true);
     setError(null);
 
-    const result = await addPlayerToClub(clubId, cricbId.trim().toUpperCase());
+    const result = await invitePlayerToClub(clubId, cricbId.trim().toUpperCase());
     
     if (result.success) {
       onPlayerAdded?.(result.data);
       handleClose();
     } else {
-      setError(result.message || 'Failed to add player');
+      setError(result.message || 'Failed to send invitation');
     }
     
     setAdding(false);
@@ -71,7 +73,7 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">Add Player to Club</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Invite Player to Club</h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -122,6 +124,11 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
                   <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
                     <AlertCircle size={16} />
                     Already in Club
+                  </span>
+                ) : playerData.has_pending_invitation ? (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium flex items-center gap-1">
+                    <Clock size={16} />
+                    Pending Invitation
                   </span>
                 ) : (
                   <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
@@ -196,19 +203,19 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleAddPlayer}
-                  disabled={adding || playerData.is_already_in_club}
+                  onClick={handleInvitePlayer}
+                  disabled={adding || playerData.is_already_in_club || playerData.has_pending_invitation}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {adding ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Adding...
+                      Sending...
                     </>
                   ) : (
                     <>
                       <CheckCircle size={20} />
-                      Confirm & Add
+                      Send Invitation
                     </>
                   )}
                 </button>

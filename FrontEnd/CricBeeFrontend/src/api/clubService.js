@@ -114,19 +114,35 @@ export const searchPlayerByCricbId = async (clubId, cricbId) => {
   }
 };
 
-export const addPlayerToClub = async (clubId, cricbId) => {
+export const invitePlayerToClub = async (clubId, cricbId) => {
   try {
-    const response = await api.post(`/club-profile/club/${clubId}/players`, { cricb_id: cricbId });
+    const response = await api.post(`/club-profile/club/${clubId}/players/invite`, { cricb_id: cricbId });
     return {
       success: true,
-      message: "Player added successfully",
+      message: "Invitation sent successfully",
       data: response.data,
     };
   } catch (error) {
-    console.error("Add player error:", error);
+    console.error("Invite player error:", error);
     return {
       success: false,
-      message: error.response?.data?.detail || error.message || "Failed to add player",
+      message: error.response?.data?.detail || error.message || "Failed to send invitation",
+    };
+  }
+};
+
+export const getPendingInvitations = async (clubId) => {
+  try {
+    const response = await api.get(`/club-profile/club/${clubId}/invitations/pending`);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Get pending invitations error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to fetch invitations",
     };
   }
 };
