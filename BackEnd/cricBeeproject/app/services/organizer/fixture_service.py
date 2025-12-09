@@ -209,7 +209,7 @@ def toggle_match_published_status(
         raise ValueError("Tournament not found or access denied")
     
     # Toggle published status
-    match.is_published = not match.is_published
+    match.is_fixture_published = not match.is_fixture_published
     db.commit()
     db.refresh(match)
     
@@ -226,7 +226,7 @@ def get_published_tournament_matches(
         joinedload(Match.round)
     ).filter(
         Match.tournament_id == tournament_id,
-        Match.is_published == True
+        Match.is_fixture_published == True
     ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
     
     return matches
@@ -241,7 +241,7 @@ def get_published_round_matches(
         joinedload(Match.team_b)
     ).filter(
         Match.round_id == round_id,
-        Match.is_published == True
+        Match.is_fixture_published == True
     ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
     
     return matches

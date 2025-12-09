@@ -13,6 +13,9 @@ from app.services.club_service import (
     search_player_by_cricb_id, invite_player_to_club, get_club_players, remove_player_from_club,
     get_pending_invitations_for_club
 )
+from app.services.clubmanager.fixture_service import get_club_manager_matches
+from app.schemas.organizer.fixture import MatchResponse
+from typing import List
 from app.schemas.player import PlayerRead
 from app.schemas.user import UserRead
 from app.services.auth_service import update_user
@@ -325,3 +328,52 @@ def get_pending_invitations_endpoint(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.get("/fixtures", response_model=List[MatchResponse])
+def get_my_fixtures(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can access this endpoint"
+        )
+    
+    # Get the club for this manager
+    club = get_club(db, current_user.id)
+    if not club:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Club not found for this manager"
+        )
+    
+    try:
+        matches = get_club_manager_matches(db, club.id, current_user.id)
+        match_responses = [
+            MatchResponse(
+                id=match.id,
+                round_id=match.round_id,
+                tournament_id=match.tournament_id,
+                match_number=match.match_number,
+                team_a_id=match.team_a_id,
+                team_a_name=match.team_a.club_name if match.team_a else None,
+                team_b_id=match.team_b_id,
+                team_b_name=match.team_b.club_name if match.team_b else None,
+                match_date=match.match_date,
+                match_time=match.match_time,
+                venue=match.venue,
+                is_fixture_published=match.is_fixture_published,
+                created_at=match.created_at,
+                updated_at=match.updated_at
+            )
+            for match in matches
+        ]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

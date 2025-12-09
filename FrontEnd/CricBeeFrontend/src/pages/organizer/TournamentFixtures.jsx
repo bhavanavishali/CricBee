@@ -168,11 +168,11 @@ const TournamentFixtures = () => {
       setRoundMatches(prevMatches => 
         prevMatches.map(match => 
           match.id === matchId 
-            ? { ...match, is_published: updatedMatch.is_published }
+            ? { ...match, is_fixture_published: updatedMatch.is_fixture_published }
             : match
         )
       );
-      alert(updatedMatch.is_published ? 'Match published successfully!' : 'Match unpublished successfully!');
+      alert(updatedMatch.is_fixture_published ? 'Match published successfully!' : 'Match unpublished successfully!');
     } catch (error) {
       console.error('Failed to toggle publish status:', error);
       alert(error.response?.data?.detail || 'Failed to toggle publish status');
@@ -537,13 +537,13 @@ const TournamentFixtures = () => {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="text-lg font-bold text-gray-900">{match.match_number}</h3>
-                            {match.is_published && (
+                            {match.is_fixture_published && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                                 <Globe size={12} className="mr-1" />
                                 Published
                               </span>
                             )}
-                            {!match.is_published && (
+                            {!match.is_fixture_published && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
                                 <EyeOff size={12} className="mr-1" />
                                 Unpublished
@@ -575,14 +575,14 @@ const TournamentFixtures = () => {
                         </div>
                         <div className="ml-4">
                           <button
-                            onClick={() => handleTogglePublish(match.id, match.is_published)}
+                            onClick={() => handleTogglePublish(match.id, match.is_fixture_published)}
                             className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                              match.is_published
+                              match.is_fixture_published
                                 ? 'bg-orange-600 text-white hover:bg-orange-700'
                                 : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                           >
-                            {match.is_published ? (
+                            {match.is_fixture_published ? (
                               <span className="flex items-center space-x-1">
                                 <EyeOff size={16} />
                                 <span>Unpublish</span>

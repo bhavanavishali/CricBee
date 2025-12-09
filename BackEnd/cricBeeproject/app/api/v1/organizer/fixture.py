@@ -120,7 +120,7 @@ def create_match_endpoint(
             match_date=match.match_date,
             match_time=match.match_time,
             venue=match.venue,
-            is_published=match.is_published,
+            is_fixture_published=match.is_fixture_published,
             created_at=match.created_at,
             updated_at=match.updated_at
         )
@@ -160,7 +160,7 @@ def get_matches_for_round(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
-                is_published=match.is_published,
+                is_fixture_published=match.is_fixture_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )
@@ -202,7 +202,7 @@ def get_matches_for_tournament(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
-                is_published=match.is_published,
+                is_fixture_published=match.is_fixture_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )
@@ -243,7 +243,7 @@ def toggle_match_publish(
             match_date=match.match_date,
             match_time=match.match_time,
             venue=match.venue,
-            is_published=match.is_published,
+            is_fixture_published=match.is_fixture_published,
             created_at=match.created_at,
             updated_at=match.updated_at
         )
@@ -279,7 +279,7 @@ def get_published_matches_for_tournament(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
-                is_published=match.is_published,
+                is_fixture_published=match.is_fixture_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )
@@ -317,7 +317,7 @@ def get_published_matches_for_round(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
-                is_published=match.is_published,
+                is_fixture_published=match.is_fixture_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )

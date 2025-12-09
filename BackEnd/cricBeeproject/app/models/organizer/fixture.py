@@ -27,7 +27,7 @@ class Match(Base):
     match_date = Column(Date, nullable=False)
     match_time = Column(Time, nullable=False)
     venue = Column(String, nullable=False)
-    is_published = Column(Boolean, default=False, nullable=False)
+    is_fixture_published = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
