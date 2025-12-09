@@ -113,7 +113,7 @@ def create_match(
     if match_data.team_a_id == match_data.team_b_id:
         raise ValueError("Team A and Team B cannot be the same")
     
-    # Create the match
+ 
     match = Match(
         round_id=match_data.round_id,
         tournament_id=match_data.tournament_id,
@@ -142,7 +142,7 @@ def get_round_matches(
     if not round:
         raise ValueError("Round not found")
     
-    # Verify tournament belongs to organizer
+    
     tournament = db.query(Tournament).filter(
         Tournament.id == round.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -166,7 +166,7 @@ def get_tournament_matches(
     organizer_id: int
 ) -> List[Match]:
 
-    # Verify tournament exists and belongs to organizer
+    
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
         Tournament.organizer_id == organizer_id
@@ -181,6 +181,67 @@ def get_tournament_matches(
         joinedload(Match.round)
     ).filter(
         Match.tournament_id == tournament_id
+    ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
+    
+    return matches
+
+def toggle_match_published_status(
+    db: Session,
+    match_id: int,
+    organizer_id: int
+) -> Match:
+    
+    match = db.query(Match).options(
+        joinedload(Match.team_a),
+        joinedload(Match.team_b)
+    ).filter(Match.id == match_id).first()
+    
+    if not match:
+        raise ValueError("Match not found")
+    
+    # Verify tournament belongs to organizer
+    tournament = db.query(Tournament).filter(
+        Tournament.id == match.tournament_id,
+        Tournament.organizer_id == organizer_id
+    ).first()
+    
+    if not tournament:
+        raise ValueError("Tournament not found or access denied")
+    
+    # Toggle published status
+    match.is_published = not match.is_published
+    db.commit()
+    db.refresh(match)
+    
+    return match
+
+def get_published_tournament_matches(
+    db: Session,
+    tournament_id: int
+) -> List[Match]:
+   
+    matches = db.query(Match).options(
+        joinedload(Match.team_a),
+        joinedload(Match.team_b),
+        joinedload(Match.round)
+    ).filter(
+        Match.tournament_id == tournament_id,
+        Match.is_published == True
+    ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
+    
+    return matches
+
+def get_published_round_matches(
+    db: Session,
+    round_id: int
+) -> List[Match]:
+    """Get all published matches for a round (public endpoint)"""
+    matches = db.query(Match).options(
+        joinedload(Match.team_a),
+        joinedload(Match.team_b)
+    ).filter(
+        Match.round_id == round_id,
+        Match.is_published == True
     ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
     
     return matches

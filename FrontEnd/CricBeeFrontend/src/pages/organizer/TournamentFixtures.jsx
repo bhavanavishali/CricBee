@@ -5,10 +5,11 @@ import {
   createFixtureRound, 
   getTournamentRounds, 
   createMatch, 
-  getRoundMatches 
+  getRoundMatches,
+  toggleMatchPublish
 } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff } from 'lucide-react';
 
 const TournamentFixtures = () => {
   const navigate = useNavigate();
@@ -158,6 +159,24 @@ const TournamentFixtures = () => {
     if (!timeString) return '';
     // Convert HH:MM:SS to HH:MM if needed
     return timeString.substring(0, 5);
+  };
+
+  const handleTogglePublish = async (matchId, currentStatus) => {
+    try {
+      const updatedMatch = await toggleMatchPublish(matchId);
+      // Update the match in the local state
+      setRoundMatches(prevMatches => 
+        prevMatches.map(match => 
+          match.id === matchId 
+            ? { ...match, is_published: updatedMatch.is_published }
+            : match
+        )
+      );
+      alert(updatedMatch.is_published ? 'Match published successfully!' : 'Match unpublished successfully!');
+    } catch (error) {
+      console.error('Failed to toggle publish status:', error);
+      alert(error.response?.data?.detail || 'Failed to toggle publish status');
+    }
   };
 
   if (loading) {
@@ -516,7 +535,21 @@ const TournamentFixtures = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2">{match.match_number}</h3>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="text-lg font-bold text-gray-900">{match.match_number}</h3>
+                            {match.is_published && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                <Globe size={12} className="mr-1" />
+                                Published
+                              </span>
+                            )}
+                            {!match.is_published && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                                <EyeOff size={12} className="mr-1" />
+                                Unpublished
+                              </span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div className="flex items-center space-x-2">
                               <Users size={16} className="text-gray-600" />
@@ -539,6 +572,28 @@ const TournamentFixtures = () => {
                               </div>
                             </div>
                           </div>
+                        </div>
+                        <div className="ml-4">
+                          <button
+                            onClick={() => handleTogglePublish(match.id, match.is_published)}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                              match.is_published
+                                ? 'bg-orange-600 text-white hover:bg-orange-700'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                          >
+                            {match.is_published ? (
+                              <span className="flex items-center space-x-1">
+                                <EyeOff size={16} />
+                                <span>Unpublish</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center space-x-1">
+                                <Globe size={16} />
+                                <span>Publish</span>
+                              </span>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>

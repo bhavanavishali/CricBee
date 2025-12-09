@@ -112,7 +112,7 @@ def get_all_transactions(db: Session, skip: int = 0, limit: int = 100):
 def get_transactions_count(db: Session) -> int:
     
     return db.query(Transaction).filter(
-        Transaction.wallet_id.isnot(None)  # Only admin wallet transactions
+        Transaction.wallet_id.isnot(None)  
     ).count()
 
 def get_admin_wallet(db: Session, admin_id: int) -> AdminWallet:
@@ -168,7 +168,7 @@ def refund_tournament_transactions(
     if not organizer_transaction:
         raise ValueError("Organizer transaction not found for refund")
     
-    # Find admin transaction (original: CREDIT, SUCCESS)
+ 
     admin_transaction = db.query(Transaction).filter(
         Transaction.tournament_id == tournament_id,
         Transaction.wallet_id.isnot(None),
@@ -180,13 +180,12 @@ def refund_tournament_transactions(
     if not admin_transaction:
         raise ValueError("Admin transaction not found for refund")
     
-    # Update organizer transaction: REFUNDED, CREDIT
+
     organizer_transaction.status = TransactionStatus.REFUNDED.value
     organizer_transaction.transaction_direction = TransactionDirection.CREDIT.value
     organizer_transaction.updated_at = datetime.now()
     organizer_transaction.description = f"Refund for tournament cancellation - {organizer_transaction.description or ''}"
-    
-    # Update admin transaction: REFUNDED, DEBIT
+
     admin_transaction.status = TransactionStatus.REFUNDED.value
     admin_transaction.transaction_direction = TransactionDirection.DEBIT.value
     admin_transaction.updated_at = datetime.now()

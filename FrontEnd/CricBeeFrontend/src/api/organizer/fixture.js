@@ -30,3 +30,8 @@ export const getTournamentMatches = async (tournamentId) => {
   return response.data;
 };
 
+export const toggleMatchPublish = async (matchId) => {
+  const response = await api.patch(`/fixtures/matches/${matchId}/toggle-publish`);
+  return response.data;
+};
+

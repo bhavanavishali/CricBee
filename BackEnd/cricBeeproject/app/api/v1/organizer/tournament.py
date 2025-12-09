@@ -237,7 +237,7 @@ def remove_club_from_tournament(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Remove a club from tournament and refund the enrollment fee"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(

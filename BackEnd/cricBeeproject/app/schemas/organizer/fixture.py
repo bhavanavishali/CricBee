@@ -40,6 +40,7 @@ class MatchResponse(BaseModel):
     match_date: date
     match_time: time
     venue: str
+    is_published: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
     

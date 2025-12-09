@@ -22,9 +22,7 @@ const TournamentEnrollments = () => {
       const data = await getMyTournaments();
       setTournaments(data);
       
-      // Check which tournaments can be cancelled
-      // Show cancel button if: not cancelled, payment successful
-      // Backend will validate if clubs are removed
+
       const cancellable = new Set();
       for (const tournament of data) {
         if (tournament.status === 'cancelled') continue;

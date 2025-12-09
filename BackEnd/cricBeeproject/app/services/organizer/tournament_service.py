@@ -319,36 +319,33 @@ def cancel_tournament(
     if not tournament.details:
         raise ValueError("Tournament details not found")
     
-    # Check if there are enrolled clubs with successful payments
     from app.models.organizer.tournament import TournamentEnrollment
     enrolled_clubs_count = db.query(TournamentEnrollment).filter(
         TournamentEnrollment.tournament_id == tournament_id,
         TournamentEnrollment.payment_status == PaymentStatus.SUCCESS.value
     ).count()
-    
-    # Check if cancellation is allowed
+  
     today = date.today()
     registration_end_date = tournament.details.registration_end_date
     
-    # If registration end date has passed, only allow cancellation if all clubs are removed
+    
     if today > registration_end_date:
         if enrolled_clubs_count > 0:
             raise ValueError(f"Tournament cannot be cancelled after registration end date. Please remove and refund all enrolled clubs first. {enrolled_clubs_count} club(s) still enrolled.")
     else:
-        # If registration hasn't ended, check for enrolled clubs
+       
         if enrolled_clubs_count > 0:
             raise ValueError(f"Please remove and refund all enrolled clubs before cancelling the tournament. {enrolled_clubs_count} club(s) still enrolled.")
     
-    # Check if payment was successful
+  
     if not tournament.payment or tournament.payment.payment_status != PaymentStatus.SUCCESS.value:
         raise ValueError("Tournament payment not completed, cannot refund")
-    
-    # Check if already refunded
+
     if tournament.payment.payment_status == PaymentStatus.REFUNDED.value:
         raise ValueError("Tournament payment already refunded")
     
     
-    # Refund transactions (update status and direction, update admin wallet)
+    
     try:
         refund_tournament_transactions(
             db=db,
@@ -358,15 +355,15 @@ def cancel_tournament(
     except ValueError as e:
         raise ValueError(f"Failed to refund transactions: {str(e)}")
     
-    # Update tournament status to CANCELLED
+    
     tournament.status = TournamentStatus.CANCELLED.value
     tournament.updated_at = datetime.now()
     
-    # Update payment status to REFUNDED
+   
     tournament.payment.payment_status = PaymentStatus.REFUNDED.value
     tournament.payment.updated_at = datetime.now()
     
-    db.add(tournament)  # Explicitly add to ensure update is tracked
+    db.add(tournament) 
     db.commit()
     db.refresh(tournament)
     

@@ -325,8 +325,7 @@ def remove_club_from_tournament_with_refund(
             "tournament_id": tournament_id
         }
     
-    # Find the club manager transaction (original: DEBIT, SUCCESS)
-    # Match by club_manager_id, tournament_id, amount, and status to get the specific enrollment transaction
+    
     club_manager_transaction = db.query(Transaction).filter(
         Transaction.tournament_id == tournament_id,
         Transaction.club_manager_id == enrollment.enrolled_by,
@@ -336,9 +335,7 @@ def remove_club_from_tournament_with_refund(
         Transaction.amount == enrollment.enrolled_fee
     ).order_by(Transaction.created_at.desc()).first()
     
-    # Find the organizer transaction (original: CREDIT, SUCCESS)
-    # Match by organizer_id, tournament_id, amount, and use razorpay details if available
-    # If we found the club manager transaction, use its razorpay details to find the matching organizer transaction
+    
     if club_manager_transaction and club_manager_transaction.razorpay_payment_id:
         organizer_transaction = db.query(Transaction).filter(
             Transaction.tournament_id == tournament_id,
@@ -350,7 +347,7 @@ def remove_club_from_tournament_with_refund(
             Transaction.razorpay_payment_id == club_manager_transaction.razorpay_payment_id
         ).first()
     else:
-        # Fallback: find by amount and tournament, get the most recent one
+  
         organizer_transaction = db.query(Transaction).filter(
             Transaction.tournament_id == tournament_id,
             Transaction.organizer_id == organizer_id,
@@ -360,33 +357,30 @@ def remove_club_from_tournament_with_refund(
             Transaction.amount == enrollment.enrolled_fee
         ).order_by(Transaction.created_at.desc()).first()
     
-    # Verify we found both transactions
+
     if not club_manager_transaction:
         raise ValueError("Club manager transaction not found for refund")
     if not organizer_transaction:
         raise ValueError("Organizer transaction not found for refund")
     
-    # Refund club manager: Reverse the original transaction (DEBIT -> CREDIT)
-    # Change direction from DEBIT to CREDIT (refund = credit back to club manager)
+   
     club_manager_transaction.transaction_direction = TransactionDirection.CREDIT.value
     club_manager_transaction.status = TransactionStatus.REFUNDED.value
     club_manager_transaction.description = f"Refund for club removal from tournament {tournament.tournament_name} - {club_manager_transaction.description or ''}"
     club_manager_transaction.updated_at = datetime.now()
     db.add(club_manager_transaction)
     
-    # Refund organizer: Reverse the original transaction (CREDIT -> DEBIT)
-    # Change direction from CREDIT to DEBIT (refund = debit from organizer)
+
     organizer_transaction.transaction_direction = TransactionDirection.DEBIT.value
     organizer_transaction.status = TransactionStatus.REFUNDED.value
     organizer_transaction.description = f"Refund for club removal from tournament {tournament.tournament_name} - {organizer_transaction.description or ''}"
     organizer_transaction.updated_at = datetime.now()
     db.add(organizer_transaction)
-    
-    # Update enrollment payment status to REFUNDED
+
     enrollment.payment_status = PaymentStatus.REFUNDED.value
     enrollment.updated_at = datetime.now()
     
-    # Delete the enrollment record
+
     db.delete(enrollment)
     
     db.commit()

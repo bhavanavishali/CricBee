@@ -16,7 +16,10 @@ from app.services.organizer.fixture_service import (
     get_tournament_rounds,
     create_match,
     get_round_matches,
-    get_tournament_matches
+    get_tournament_matches,
+    toggle_match_published_status,
+    get_published_tournament_matches,
+    get_published_round_matches
 )
 from typing import List
 
@@ -117,6 +120,7 @@ def create_match_endpoint(
             match_date=match.match_date,
             match_time=match.match_time,
             venue=match.venue,
+            is_published=match.is_published,
             created_at=match.created_at,
             updated_at=match.updated_at
         )
@@ -156,6 +160,7 @@ def get_matches_for_round(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
+                is_published=match.is_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )
@@ -197,6 +202,122 @@ def get_matches_for_tournament(
                 match_date=match.match_date,
                 match_time=match.match_time,
                 venue=match.venue,
+                is_published=match.is_published,
+                created_at=match.created_at,
+                updated_at=match.updated_at
+            )
+            for match in matches
+        ]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.patch("/matches/{match_id}/toggle-publish", response_model=MatchResponse)
+def toggle_match_publish(
+    match_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+  
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can toggle match publish status"
+        )
+    
+    try:
+        match = toggle_match_published_status(db, match_id, current_user.id)
+        match_response = MatchResponse(
+            id=match.id,
+            round_id=match.round_id,
+            tournament_id=match.tournament_id,
+            match_number=match.match_number,
+            team_a_id=match.team_a_id,
+            team_a_name=match.team_a.club_name if match.team_a else None,
+            team_b_id=match.team_b_id,
+            team_b_name=match.team_b.club_name if match.team_b else None,
+            match_date=match.match_date,
+            match_time=match.match_time,
+            venue=match.venue,
+            is_published=match.is_published,
+            created_at=match.created_at,
+            updated_at=match.updated_at
+        )
+        return match_response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/tournaments/{tournament_id}/matches/published", response_model=List[MatchResponse])
+def get_published_matches_for_tournament(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all published matches for a tournament (public endpoint for clubs and others)"""
+    # This endpoint is accessible to any authenticated user
+    current_user = get_current_user(request, db)
+    
+    try:
+        matches = get_published_tournament_matches(db, tournament_id)
+        match_responses = [
+            MatchResponse(
+                id=match.id,
+                round_id=match.round_id,
+                tournament_id=match.tournament_id,
+                match_number=match.match_number,
+                team_a_id=match.team_a_id,
+                team_a_name=match.team_a.club_name if match.team_a else None,
+                team_b_id=match.team_b_id,
+                team_b_name=match.team_b.club_name if match.team_b else None,
+                match_date=match.match_date,
+                match_time=match.match_time,
+                venue=match.venue,
+                is_published=match.is_published,
+                created_at=match.created_at,
+                updated_at=match.updated_at
+            )
+            for match in matches
+        ]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/rounds/{round_id}/matches/published", response_model=List[MatchResponse])
+def get_published_matches_for_round(
+    round_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all published matches for a round (public endpoint for clubs and others)"""
+    # This endpoint is accessible to any authenticated user
+    current_user = get_current_user(request, db)
+    
+    try:
+        matches = get_published_round_matches(db, round_id)
+        match_responses = [
+            MatchResponse(
+                id=match.id,
+                round_id=match.round_id,
+                tournament_id=match.tournament_id,
+                match_number=match.match_number,
+                team_a_id=match.team_a_id,
+                team_a_name=match.team_a.club_name if match.team_a else None,
+                team_b_id=match.team_b_id,
+                team_b_name=match.team_b.club_name if match.team_b else None,
+                match_date=match.match_date,
+                match_time=match.match_time,
+                venue=match.venue,
+                is_published=match.is_published,
                 created_at=match.created_at,
                 updated_at=match.updated_at
             )
