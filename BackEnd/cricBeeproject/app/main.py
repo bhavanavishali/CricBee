@@ -10,7 +10,7 @@ from app.models.club_player_invitation import ClubPlayerInvitation
 from app.models.user import User 
 from app.models.organizer import OrganizationDetails
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
-from app.models.organizer.fixture import FixtureRound, Match
+from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
 
