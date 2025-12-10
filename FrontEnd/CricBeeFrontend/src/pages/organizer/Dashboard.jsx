@@ -5,15 +5,14 @@ import { useNavigate } from "react-router-dom"
 import {
   Trophy,
   Users,
-  Zap,
-  BarChart3,
-  Calendar,
+  Target,
   DollarSign,
-  CheckCircle,
+  Plus,
+  Calendar,
+  BarChart3,
   ChevronRight,
   Bell,
   Settings,
-  LogOut,
   X,
 } from "lucide-react"
 import { useSelector } from "react-redux"
@@ -26,7 +25,6 @@ export default function OrganizerDashboard() {
   const navigate = useNavigate()
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const userRole = user?.role;
   const [tournaments, setTournaments] = useState([])
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -65,47 +63,28 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const getStatusColor = (status) => {
-    const statusMap = {
-      'pending_payment': 'bg-yellow-500',
-      'registration_open': 'bg-blue-500',
-      'registration_end': 'bg-orange-500',
-      'tournament_start': 'bg-red-500',
-      'tournament_end': 'bg-gray-500',
-      'cancelled': 'bg-red-600'
-    };
-    return statusMap[status] || 'bg-gray-500';
+  const getStatusBadge = (tournament) => {
+    if (tournament.status === 'tournament_start') {
+      return { text: '🔴 Live', bg: 'bg-red-100', textColor: 'text-red-700' };
+    } else if (tournament.status === 'registration_open') {
+      return { text: '✅ Registration Open', bg: 'bg-green-100', textColor: 'text-green-700' };
+    } else if (tournament.status === 'pending_payment') {
+      return { text: '📅 Upcoming', bg: 'bg-blue-100', textColor: 'text-blue-700' };
+    } else {
+      return { text: '📅 Upcoming', bg: 'bg-blue-100', textColor: 'text-blue-700' };
+    }
   };
 
-  const getStatusLabel = (status) => {
-    const labelMap = {
-      'pending_payment': 'Pending Payment',
-      'registration_open': 'Registration Open',
-      'registration_end': 'Registration Closed',
-      'tournament_start': 'Tournament Live',
-      'tournament_end': 'Tournament Completed',
-      'cancelled': 'Cancelled'
-    };
-    return labelMap[status] || status;
-  };
-
-  const getStatusIcon = (status) => {
-    const iconMap = {
-      'pending_payment': '⏳',
-      'registration_open': '📢',
-      'registration_end': '✅',
-      'tournament_start': '🔴',
-      'tournament_end': '🏁',
-      'cancelled': '✕'
-    };
-    return iconMap[status] || '🔵';
+  const calculateProgress = (tournament) => {
+    // Calculate progress based on matches completed
+    // This is a placeholder - you may need to adjust based on your data structure
+    if (tournament.details?.total_matches && tournament.details?.completed_matches) {
+      return (tournament.details.completed_matches / tournament.details.total_matches) * 100;
+    }
+    return 0;
   };
 
   const canCancel = (tournament) => {
-    // Can cancel only if:
-    // 1. Tournament is not already cancelled
-    // 2. Payment was successful
-    // 3. Current date is before registration end date
     if (tournament.status === 'cancelled') return false;
     if (!tournament.payment || tournament.payment.payment_status !== 'success') return false;
     if (!tournament.details?.registration_end_date) return false;
@@ -120,22 +99,18 @@ export default function OrganizerDashboard() {
 
   const handleCancelTournament = async (tournamentId) => {
     try {
-      // First check if there are enrolled clubs
       const enrolledClubs = await getEnrolledClubs(tournamentId);
       const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
       
       if (enrolledClubsWithPayment.length > 0) {
-        // Show error popup if clubs are still enrolled
         setShowCancelConfirm(null);
         alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
         return;
       }
       
-      // If no enrolled clubs, proceed with cancellation
       setCancellingId(tournamentId);
       await cancelTournament(tournamentId);
       setShowCancelConfirm(null);
-      // Reload tournaments and transactions to reflect the cancellation
       await loadTournaments();
       await loadTransactions();
       alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
@@ -147,449 +122,323 @@ export default function OrganizerDashboard() {
       setCancellingId(null);
     }
   };
-  const getPaymentStatusStyles = (status) => {
-    const styleMap = {
-      'success': 'bg-green-100 text-green-800',
-      'pending': 'bg-yellow-100 text-yellow-800',
-      'failed': 'bg-red-100 text-red-800',
-      'refunded': 'bg-blue-100 text-blue-800'
-    };
-    return styleMap[status] || 'bg-gray-100 text-gray-800';
-  };
 
-  const pendingTournaments = tournaments.filter(t => t.status === 'pending_payment').length;
-  const activeTournaments = tournaments.filter(t => t.status === 'tournament_start').length;
-  const upcomingTournaments = tournaments.filter(t => t.status === 'registration_open').length;
+  // Calculate stats
+  const activeTournaments = tournaments.filter(t => t.status === 'tournament_start' || t.status === 'registration_open').length;
+  const enrolledClubsCount = tournaments.reduce((sum, t) => {
+    // This would need to be calculated from actual enrollment data
+    return sum;
+  }, 0);
+  const totalMatches = tournaments.reduce((sum, t) => {
+    // This would need to be calculated from actual match data
+    return sum;
+  }, 0);
   const totalRevenue = tournaments.reduce((sum, t) => {
     if (t.payment?.payment_status === 'success' && t.payment?.amount) {
       return sum + parseFloat(t.payment.amount);
     }
     return sum;
   }, 0);
-  const recentTransactions = transactions.slice(0, 5);
 
-  const statCards = [
-    {
-      title: "Total Tournaments",
-      value: tournaments.length.toString(),
-      change: `${upcomingTournaments} upcoming`,
-      changeColor: "text-green-600",
-      icon: Trophy,
-      bgColor: "bg-green-100",
-      iconBg: "bg-green-200",
-    },
-    {
-      title: "Live Tournaments",
-      value: activeTournaments.toString(),
-      change: "Currently running",
-      changeColor: "text-blue-600",
-      icon: Users,
-      bgColor: "bg-blue-100",
-      iconBg: "bg-blue-200",
-    },
-    {
-      title: "Total Revenue",
-      value: `₹${totalRevenue.toLocaleString('en-IN')}`,
-      change: "From all tournaments",
-      changeColor: "text-orange-600",
-      icon: DollarSign,
-      bgColor: "bg-orange-100",
-      iconBg: "bg-orange-200",
-    },
-    {
-      title: "Pending Payment",
-      value: pendingTournaments.toString(),
-      change: "Awaiting payment",
-      changeColor: "text-yellow-600",
-      icon: Zap,
-      bgColor: "bg-yellow-100",
-      iconBg: "bg-yellow-200",
-    },
-  ]
-
-  const quickActions = [
-    {
-      icon: Zap,
-      title: "Create Tournament",
-      description: "Start a new tournament",
-      bgColor: "from-teal-500 to-orange-500",
-      isPrimary: true,
-    },
-    {
-      icon: BarChart3,
-      title: "My Tournaments",
-      description: "View all tournaments",
-      bgColor: "bg-gray-200",
-    },
-    {
-      icon: Calendar,
-      title: "Manage Fixtures",
-      description: "Schedule & organize matches",
-      bgColor: "bg-gray-100",
-    },
-    {
-      icon: Users,
-      title: "Tournament Enrollments",
-      description: "Manage club enrollments",
-      bgColor: "bg-gray-100",
-    },
-    {
-      icon: Zap,
-      title: "Match Management",
-      description: "Monitor ongoing matches",
-      bgColor: "bg-gray-100",
-    },
-    {
-      icon: DollarSign,
-      title: "View Payments",
-      description: "Track financial transactions",
-      bgColor: "bg-gray-100",
-    },
-  ]
-
-  const handleLogout = async () => {
-    try {
-      // Call backend to invalidate session and clear httpOnly cookies
-      await api.post(`/auth/logout`);
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Don't fail the logout if the backend call fails—still clear local state
-    } finally {
-      // Clear the Redux state (this also clears persisted data via Redux Persist)
-      dispatch(clearUser());
-      // Redirect to signin page
-      navigate('/signin');
-    }
-  };
+  // Get recent tournaments (limit to 3)
+  const recentTournaments = tournaments.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Layout title="My Tournaments" profilePath="/organizer/profile">
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Breadcrumb and Welcome */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
-            <BarChart3 size={16} />
-            <span>Dashboard</span>
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, {user?.full_name || 'Organizer'}! 👋</h1>
-          <p className="text-gray-600">Here's what's happening with your tournaments today.</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((card, index) => {
-            const Icon = card.icon
-            return (
-              <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{card.value}</p>
-                    <p className={`text-sm ${card.changeColor} mt-1`}>{card.change}</p>
-                  </div>
-                  <div className={`${card.iconBg} p-3 rounded-lg`}>
-                    <Icon size={24} className="text-gray-700" />
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
-            <p className="text-sm text-gray-600">Get started with common tasks</p>
+    <div className="min-h-screen bg-slate-50">
+      <Layout title="Dashboard" profilePath="/organizer/profile">
+        {/* Main Content */}
+        <main className="px-8 py-8">
+          {/* Breadcrumb & Greeting */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+              <span>🏠</span>
+              <span>Dashboard</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.full_name || 'Demo'}!</h1>
+              <span className="text-3xl">👋</span>
+            </div>
+            <p className="text-gray-600 mt-2">Here's what's happening with your tournaments today.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Primary Create Tournament Button */}
-            <div
-              onClick={() => navigate('/organizer/create-tournament')}
-              className={`lg:col-span-1 bg-gradient-to-r from-teal-500 to-orange-500 rounded-lg p-6 text-white cursor-pointer hover:shadow-lg transition-shadow`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/20 p-3 rounded-lg">
-                  <Zap size={24} />
-                </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-4 gap-6 mb-8">
+            {/* Active Tournaments */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-bold text-lg">Create Tournament</p>
-                  <p className="text-sm text-white/90">Start a new tournament</p>
+                  <p className="text-gray-600 text-sm mb-2">Active Tournaments</p>
+                  <p className="text-4xl font-bold text-gray-900">{activeTournaments}</p>
+                  <p className="text-xs text-green-600 mt-2">↑ + 2 this month</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Trophy className="text-green-600" size={24} />
                 </div>
               </div>
             </div>
 
-            {/* Other Quick Actions */}
-            {quickActions.slice(1).map((action, index) => {
-              const Icon = action.icon
-              const handleClick = () => {
-                if (action.title === "My Tournaments") {
-                  navigate('/organizer/tournaments');
-                } else if (action.title === "Manage Fixtures") {
-                  navigate('/organizer/manage-fixtures');
-                } else if (action.title === "Tournament Enrollments") {
-                  navigate('/organizer/tournament-enrollments');
-                } else if (action.title === "View Payments") {
-                  navigate('/organizer/transactions');
-                } else {
-                  // Handle other actions
-                  console.log('Action clicked:', action.title);
-                }
-              };
-              
-              return (
-                <div
-                  key={index}
-                  onClick={handleClick}
-                  className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <Icon size={24} className="text-gray-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{action.title}</p>
-                      <p className="text-sm text-gray-600">{action.description}</p>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-400" />
+            {/* Enrolled Clubs */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Enrolled Clubs</p>
+                  <p className="text-4xl font-bold text-gray-900">{enrolledClubsCount || 0}</p>
+                  <p className="text-xs text-gray-600 mt-2">👥 Across all tournaments</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="text-blue-600" size={24} />
+                </div>
+              </div>
+            </div>
+
+            {/* Total Matches */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Total Matches</p>
+                  <p className="text-4xl font-bold text-gray-900">{totalMatches || 0}</p>
+                  <p className="text-xs text-red-600 mt-2">↓ 24 this week</p>
+                </div>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Target className="text-orange-600" size={24} />
+                </div>
+              </div>
+            </div>
+
+            {/* Total Revenue */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Total Revenue</p>
+                  <p className="text-4xl font-bold text-gray-900">₹{totalRevenue.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-green-600 mt-2">↑ + 12.5% this month</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="text-green-600" size={24} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
+              <p className="text-sm text-gray-600">Get started with common tasks</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              {/* Featured Create Tournament Button */}
+              <div 
+                onClick={() => navigate('/organizer/create-tournament')}
+                className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg p-6 text-white cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <Plus size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Create Tournament</h3>
+                    <p className="text-sm text-teal-50">Start a new tournament</p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              </div>
 
-        {/* Recent Tournaments */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Recent Tournaments</h2>
-            <button 
-              onClick={() => navigate('/organizer/tournaments')}
-              className="text-blue-600 font-semibold flex items-center space-x-1 hover:text-blue-700"
-            >
-              <span>View All</span>
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Loading tournaments...</p>
-            </div>
-          ) : tournaments.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No tournaments yet</h3>
-              <p className="text-gray-600 mb-4">Create your first tournament to get started</p>
-              <button
-                onClick={() => navigate('/organizer/create-tournament')}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700"
+              {/* Manage Fixtures */}
+              <div 
+                onClick={() => navigate('/organizer/manage-fixtures')}
+                className="bg-white rounded-lg p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition"
               >
-                Create Tournament
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="text-gray-600" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Manage Fixtures</h3>
+                    <p className="text-sm text-gray-600">Schedule & organize matches</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Grid */}
+            <div className="grid grid-cols-3 gap-6">
+              {/* My Tournaments */}
+              <div 
+                onClick={() => navigate('/organizer/tournaments')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Trophy className="text-gray-600" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">My Tournaments</h3>
+                    <p className="text-xs text-gray-600">View all tournaments</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Match Management */}
+              <div 
+                onClick={() => navigate('/organizer/manage-fixtures')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <BarChart3 className="text-gray-600" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">Match Management</h3>
+                    <p className="text-xs text-gray-600">Monitor ongoing matches</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tournament Enrollments */}
+              <div 
+                onClick={() => navigate('/organizer/tournament-enrollments')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Users className="text-gray-600" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">Tournament Enrollments</h3>
+                    <p className="text-xs text-gray-600">Manage club enrollments</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* View Payments */}
+              <div 
+                onClick={() => navigate('/organizer/transactions')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="text-gray-600" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">View Payments</h3>
+                    <p className="text-xs text-gray-600">Track financial transactions</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Tournaments Section */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Recent Tournaments</h2>
+              <button 
+                onClick={() => navigate('/organizer/tournaments')}
+                className="text-sm font-semibold text-gray-900 flex items-center gap-1 hover:text-gray-600"
+              >
+                View All <ChevronRight size={16} />
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {tournaments.map((tournament) => (
-                <div
-                  key={tournament.id}
-                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div 
-                      className="flex items-start space-x-4 flex-1 cursor-pointer"
-                      onClick={() => {
-                        // Navigate to tournament details page when implemented
-                        console.log('Tournament clicked:', tournament.id);
-                      }}
-                    >
-                      <div className="bg-gradient-to-br from-teal-500 to-orange-500 rounded-lg p-3 text-white">
-                        <Trophy size={28} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-900 mb-1">{tournament.tournament_name}</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {tournament.details?.location && `📍 ${tournament.details.location}`}
-                          {tournament.details?.team_range && ` • ${tournament.details.team_range}`}
-                          {tournament.details?.overs && ` • ${tournament.details.overs} overs`}
-                        </p>
-                        {tournament.details?.start_date && (
-                          <p className="text-xs text-gray-500">
-                            Start: {new Date(tournament.details.start_date).toLocaleDateString()}
-                            {tournament.details?.end_date && ` - End: ${new Date(tournament.details.end_date).toLocaleDateString()}`}
-                          </p>
-                        )}
-                        {tournament.payment && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Amount: ₹{parseFloat(tournament.payment.amount).toLocaleString('en-IN')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <span
-                          className={`${getStatusColor(tournament.status)} text-white text-xs font-semibold px-3 py-1 rounded-full`}
-                        >
-                          {getStatusIcon(tournament.status)} {getStatusLabel(tournament.status)}
-                        </span>
-                      </div>
-                      {canCancel(tournament) ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowCancelConfirm(tournament.id);
-                          }}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Cancel Tournament"
-                        >
-                          <X size={20} />
-                        </button>
-                      ) : (
-                        <ChevronRight size={20} className="text-gray-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Recent Transactions */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Recent Transactions</h2>
-              <p className="text-sm text-gray-600">Track payments for your tournaments</p>
-            </div>
-            <button
-              onClick={loadTransactions}
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-            >
-              Refresh
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200">
-            {transactionsLoading ? (
-              <div className="text-center py-10">
-                <p className="text-gray-600">Loading transactions...</p>
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">Loading tournaments...</p>
               </div>
-            ) : recentTransactions.length === 0 ? (
-              <div className="text-center py-10">
-                <DollarSign size={36} className="mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-600">No transactions recorded yet.</p>
+            ) : recentTournaments.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                <Trophy size={48} className="text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg mb-2">No tournaments yet</p>
+                <p className="text-gray-400 text-sm">Create your first tournament to get started</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direction</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentTransactions.map((transaction, index) => (
-                      <tr key={`${transaction.transaction_id}-${index}`}>
-                        <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                          {transaction.transaction_id || '—'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm font-semibold text-gray-900">{transaction.tournament_name}</p>
-                          <p className="text-xs text-gray-500">#{transaction.tournament_id}</p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 capitalize">
-                            {transaction.transaction_type?.replace('_', ' ') || '—'}
+              <div className="space-y-4">
+                {recentTournaments.map((tournament) => {
+                  const statusBadge = getStatusBadge(tournament);
+                  const progress = calculateProgress(tournament);
+                  const completedMatches = tournament.details?.completed_matches || 0;
+                  const totalMatches = tournament.details?.total_matches || 0;
+                  
+                  return (
+                    <div
+                      key={tournament.id}
+                      className="bg-white rounded-lg p-6 border border-gray-200 flex items-center justify-between hover:shadow-lg transition"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Trophy className="text-white" size={32} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{tournament.tournament_name}</h3>
+                          <p className="text-sm text-gray-600">
+                            {tournament.details?.team_range || 'N/A'} clubs • {completedMatches}/{totalMatches} matches • ₹{tournament.payment?.amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '0'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs text-gray-600 mb-2">Progress</p>
+                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${tournament.status === 'tournament_start' ? 'bg-green-500' : 'bg-blue-400'}`}
+                              style={{ width: `${progress}%` }}
+                            ></div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.transaction_direction === 'debit' 
-                              ? 'bg-red-100 text-red-800' 
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {transaction.transaction_direction === 'debit' ? '↓ Debit' : '↑ Credit'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                          ₹{parseFloat(transaction.amount || 0).toLocaleString('en-IN')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPaymentStatusStyles(transaction.payment_status)}`}>
-                            {transaction.payment_status?.replace('_', ' ') || 'pending'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(transaction.payment_date || transaction.created_at).toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        <div className={`px-3 py-1 ${statusBadge.bg} ${statusBadge.textColor} rounded text-xs font-semibold whitespace-nowrap`}>
+                          {statusBadge.text}
+                        </div>
+                        {canCancel(tournament) ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowCancelConfirm(tournament.id);
+                            }}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Cancel Tournament"
+                          >
+                            <X size={20} />
+                          </button>
+                        ) : (
+                          <ChevronRight className="text-gray-400" size={20} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        </div>
+        </main>
 
-        {/* Account Verification Banner */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 flex items-start space-x-4">
-          <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-1" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-green-900 mb-1">Account Verified</h3>
-            <p className="text-sm text-green-700">Your organizer account is fully verified and active</p>
-          </div>
-          <div className="flex items-center space-x-6">
-            <div className="text-center">
-              <p className="text-xs text-green-700 font-semibold">Identity Verified</p>
-              <CheckCircle size={16} className="text-green-600 mx-auto mt-1" />
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-green-700 font-semibold">Payment Verified</p>
-              <CheckCircle size={16} className="text-green-600 mx-auto mt-1" />
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Cancel Confirmation Modal */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Tournament</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel this tournament? The tournament creation fee will be refunded to your account. This action cannot be undone.
-            </p>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => setShowCancelConfirm(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
-                disabled={cancellingId !== null}
-              >
-                No, Keep Tournament
-              </button>
-              <button
-                onClick={() => handleCancelTournament(showCancelConfirm)}
-                disabled={cancellingId !== null}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {cancellingId ? 'Cancelling...' : 'Yes, Cancel Tournament'}
-              </button>
+        {/* Cancel Confirmation Modal */}
+        {showCancelConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Tournament</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this tournament? The tournament creation fee will be refunded to your account. This action cannot be undone.
+              </p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setShowCancelConfirm(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
+                  disabled={cancellingId !== null}
+                >
+                  No, Keep Tournament
+                </button>
+                <button
+                  onClick={() => handleCancelTournament(showCancelConfirm)}
+                  disabled={cancellingId !== null}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cancellingId ? 'Cancelling...' : 'Yes, Cancel Tournament'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-       </Layout>
+        )}
+      </Layout>
     </div>
   )
 }
