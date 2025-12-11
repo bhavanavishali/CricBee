@@ -117,8 +117,8 @@ export default function EnrollTournament() {
             razorpay_signature: response.razorpay_signature
           });
           
-          // Success - navigate to success page or back to tournaments
-          navigate('/clubmanager/tournaments?enrolled=true');
+          // Success - navigate to My Enrollments page
+          navigate('/clubmanager/enrollments?enrolled=true');
         } catch (error) {
           setError(error.response?.data?.detail || 'Payment verification failed. Please contact support.');
           console.error('Payment verification error:', error);

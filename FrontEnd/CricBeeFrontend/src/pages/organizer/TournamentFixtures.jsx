@@ -9,7 +9,8 @@ import {
   toggleMatchPublish
 } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff } from 'lucide-react';
+import TossModal from '@/components/organizer/TossModal';
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff, RotateCcw, Play } from 'lucide-react';
 
 const TournamentFixtures = () => {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ const TournamentFixtures = () => {
   });
   const [showMatchForm, setShowMatchForm] = useState(false);
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [showTossModal, setShowTossModal] = useState(false);
+  const [selectedMatchForToss, setSelectedMatchForToss] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -176,6 +179,34 @@ const TournamentFixtures = () => {
     } catch (error) {
       console.error('Failed to toggle publish status:', error);
       alert(error.response?.data?.detail || 'Failed to toggle publish status');
+    }
+  };
+
+  const handleOpenToss = (match) => {
+    // Check preconditions: match must be published and status should be "toss_pending"
+    if (!match.is_fixture_published) {
+      alert('Please publish the match before conducting the toss.');
+      return;
+    }
+    if (match.match_status && match.match_status !== 'toss_pending' && match.match_status !== 'upcoming') {
+      if (match.toss_winner_id && match.toss_decision) {
+        // Toss already completed, just show it
+        setSelectedMatchForToss(match);
+        setShowTossModal(true);
+        return;
+      } else {
+        alert('Match status does not allow toss at this time.');
+        return;
+      }
+    }
+    setSelectedMatchForToss(match);
+    setShowTossModal(true);
+  };
+
+  const handleTossSaved = async () => {
+    // Reload matches to get updated toss info
+    if (selectedRound) {
+      await loadRoundMatches(selectedRound.id);
     }
   };
 
@@ -549,6 +580,21 @@ const TournamentFixtures = () => {
                                 Unpublished
                               </span>
                             )}
+                            {match.match_status === 'toss_pending' && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                Toss Pending
+                              </span>
+                            )}
+                            {match.match_status === 'toss_completed' && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                Toss Completed
+                              </span>
+                            )}
+                            {match.match_status === 'live' && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                                🔴 Live
+                              </span>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div className="flex items-center space-x-2">
@@ -573,7 +619,30 @@ const TournamentFixtures = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-4 flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleOpenToss(match)}
+                              disabled={!match.is_fixture_published}
+                              className={`px-4 py-2 rounded-lg font-semibold flex items-center space-x-1 ${
+                                match.is_fixture_published
+                                  ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                              title={match.is_fixture_published ? 'Digital Toss' : 'Publish match first'}
+                            >
+                              <RotateCcw size={16} />
+                              <span>Toss</span>
+                            </button>
+                            <button
+                              onClick={() => navigate(`/organizer/matches/${match.id}/live-scoring`, { state: { match } })}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center space-x-1"
+                              title="Live Scoring"
+                            >
+                              <Play size={16} />
+                              <span>Score</span>
+                            </button>
+                          </div>
                           <button
                             onClick={() => handleTogglePublish(match.id, match.is_fixture_published)}
                             className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
@@ -602,6 +671,19 @@ const TournamentFixtures = () => {
               )}
             </div>
           </div>
+        )}
+
+        {/* Toss Modal */}
+        {showTossModal && selectedMatchForToss && (
+          <TossModal
+            isOpen={showTossModal}
+            onClose={() => {
+              setShowTossModal(false);
+              setSelectedMatchForToss(null);
+            }}
+            match={selectedMatchForToss}
+            onTossSaved={handleTossSaved}
+          />
         )}
       </div>
     </Layout>

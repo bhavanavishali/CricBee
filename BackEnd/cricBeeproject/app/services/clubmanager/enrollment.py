@@ -9,7 +9,7 @@ from app.models.admin.transaction import Transaction, TransactionType, Transacti
 from app.services.admin.transaction_service import generate_transaction_id, create_transaction
 from app.services.organizer.payment_service import create_razorpay_order, verify_payment_signature
 from app.schemas.organizer.tournament import TournamentResponse
-from app.schemas.clubmanager.enrollment import TournamentEnrollmentResponse
+from app.schemas.clubmanager.enrollment import TournamentEnrollmentResponse, MyEnrollmentResponse
 from app.core.config import settings
 from decimal import Decimal
 from datetime import date, datetime
@@ -391,3 +391,44 @@ def remove_club_from_tournament_with_refund(
         "tournament_id": tournament_id,
         "refunded_amount": float(enrollment.enrolled_fee)
     }
+
+def get_club_manager_enrollments(db: Session, club_manager_id: int) -> List[MyEnrollmentResponse]:
+    """
+    Get all tournament enrollments for a club manager with tournament details
+    """
+    # Get the club for this manager
+    club = db.query(Club).filter(Club.manager_id == club_manager_id).first()
+    
+    if not club:
+        raise ValueError("Club not found for this manager")
+    
+    # Get all enrollments for this club with tournament details
+    enrollments = (
+        db.query(TournamentEnrollment)
+        .options(
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.details),
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.payment),
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.plan)
+        )
+        .filter(TournamentEnrollment.club_id == club.id)
+        .order_by(TournamentEnrollment.created_at.desc())
+        .all()
+    )
+    
+    result = []
+    for enrollment in enrollments:
+        # Create a response object with tournament details
+        enrollment_dict = {
+            "id": enrollment.id,
+            "tournament_id": enrollment.tournament_id,
+            "club_id": enrollment.club_id,
+            "enrolled_by": enrollment.enrolled_by,
+            "enrolled_fee": enrollment.enrolled_fee,
+            "payment_status": enrollment.payment_status,
+            "created_at": enrollment.created_at,
+            "updated_at": enrollment.updated_at,
+            "tournament": TournamentResponse.model_validate(enrollment.tournament)
+        }
+        result.append(MyEnrollmentResponse(**enrollment_dict))
+    
+    return result

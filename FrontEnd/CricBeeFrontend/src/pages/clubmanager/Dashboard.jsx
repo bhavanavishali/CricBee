@@ -130,7 +130,10 @@ export default function ClubManagerDashboard() {
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
             {/* Enrolled Tournaments */}
-            <div className="bg-white rounded-lg p-6 border border-gray-100">
+            <div 
+              onClick={() => navigate('/clubmanager/enrollments')}
+              className="bg-white rounded-lg p-6 border border-gray-100 cursor-pointer hover:shadow-lg transition"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 mb-2">Enrolled Tournaments</p>
@@ -216,6 +219,22 @@ export default function ClubManagerDashboard() {
                 </div>
               </div>
 
+              {/* My Enrollments */}
+              <div 
+                onClick={() => navigate('/clubmanager/enrollments')}
+                className="bg-white rounded-lg p-6 border border-gray-100 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">My Enrollments</p>
+                    <p className="text-sm text-gray-500">View enrolled tournaments</p>
+                  </div>
+                </div>
+              </div>
+
               {/* My Teams */}
               <div 
                 onClick={() => navigate('/clubmanager/teams')}
@@ -231,7 +250,9 @@ export default function ClubManagerDashboard() {
                   </div>
                 </div>
               </div>
+            </div>
 
+            <div className="grid grid-cols-3 gap-6 mb-6">
               {/* My Fixtures */}
               <div 
                 onClick={() => navigate('/clubmanager/fixtures')}

@@ -10,6 +10,8 @@ import TournamentEnrollments from "@/pages/organizer/TournamentEnrollments"
 import EnrolledClubs from "@/pages/organizer/EnrolledClubs"
 import ManageFixtures from "@/pages/organizer/ManageFixtures"
 import TournamentFixtures from "@/pages/organizer/TournamentFixtures"
+import Toss from "@/pages/organizer/Toss"
+import LiveScoring from "@/pages/organizer/LiveScoring"
 
 const OrganizerRoutes = () => {
   return (
@@ -23,6 +25,8 @@ const OrganizerRoutes = () => {
         <Route path="tournaments/:tournamentId/enrolled-clubs" element={<OrganizerProtectedRoute><EnrolledClubs /></OrganizerProtectedRoute>} />
         <Route path="manage-fixtures" element={<OrganizerProtectedRoute><ManageFixtures /></OrganizerProtectedRoute>} />
         <Route path="tournaments/:tournamentId/fixtures" element={<OrganizerProtectedRoute><TournamentFixtures /></OrganizerProtectedRoute>} />
+        <Route path="matches/:matchId/toss" element={<OrganizerProtectedRoute><Toss /></OrganizerProtectedRoute>} />
+        <Route path="matches/:matchId/live-scoring" element={<OrganizerProtectedRoute><LiveScoring /></OrganizerProtectedRoute>} />
     </Routes>
   );
 };

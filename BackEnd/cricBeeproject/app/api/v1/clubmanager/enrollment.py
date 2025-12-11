@@ -5,12 +5,13 @@ from app.models.user import UserRole
 from app.schemas.organizer.tournament import TournamentResponse
 from app.schemas.clubmanager.enrollment import (
     TournamentEnrollmentCreate, TournamentEnrollmentResponse,
-    EnrollmentPaymentRequest
+    EnrollmentPaymentRequest, MyEnrollmentResponse
 )
 from app.services.clubmanager.enrollment import (
     get_eligible_tournaments_for_club_manager,
     initiate_enrollment,
-    verify_and_complete_enrollment
+    verify_and_complete_enrollment,
+    get_club_manager_enrollments
 )
 from app.utils.jwt import get_current_user
 from typing import List
@@ -91,6 +92,28 @@ def verify_enrollment_payment(
         return enrollment_response
     except ValueError as e:
         db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/enrollments", response_model=List[MyEnrollmentResponse])
+def get_my_enrollments_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all tournament enrollments for the current club manager"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can view enrollments"
+        )
+    
+    try:
+        enrollments = get_club_manager_enrollments(db, current_user.id)
+        return enrollments
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

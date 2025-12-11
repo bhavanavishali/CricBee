@@ -12,6 +12,7 @@ export default function ClubManagerTournamentList() {
   const [clubId, setClubId] = useState(null);
   const [enrollingId, setEnrollingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [loadingClub, setLoadingClub] = useState(true);
 
   useEffect(() => {
     loadClubProfile();
@@ -29,12 +30,18 @@ export default function ClubManagerTournamentList() {
 
   const loadClubProfile = async () => {
     try {
+      setLoadingClub(true);
       const result = await getClubProfile();
       if (result.success && result.profile?.club?.id) {
         setClubId(result.profile.club.id);
+      } else {
+        setClubId(null);
       }
     } catch (error) {
       console.error('Failed to load club profile:', error);
+      setClubId(null);
+    } finally {
+      setLoadingClub(false);
     }
   };
 
@@ -150,6 +157,23 @@ export default function ClubManagerTournamentList() {
             </div>
           )}
 
+          {/* Club Not Found Warning */}
+          {!loadingClub && !clubId && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-yellow-800 font-medium">
+                  ⚠️ You need to create a club profile before enrolling in tournaments.
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/clubmanager/profile')}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-semibold hover:bg-yellow-700 transition-colors"
+              >
+                Create Club
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -253,15 +277,23 @@ export default function ClubManagerTournamentList() {
                       </div>
 
                       {/* Action Button */}
-                      <div className="flex items-center space-x-3 flex-shrink-0">
+                      <div className="flex flex-col items-end space-y-2 flex-shrink-0">
                         {canEnroll ? (
-                          <button
-                            onClick={() => handleEnroll(tournament)}
-                            disabled={enrollingId === tournament.id || !clubId}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {enrollingId === tournament.id ? 'Processing...' : 'Enroll Now'}
-                          </button>
+                          <>
+                            {!clubId && !loadingClub && (
+                              <p className="text-xs text-red-600 text-right mb-1">
+                                Create a club first
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleEnroll(tournament)}
+                              disabled={enrollingId === tournament.id || !clubId || loadingClub}
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={!clubId ? 'Please create a club profile first' : ''}
+                            >
+                              {loadingClub ? 'Loading...' : enrollingId === tournament.id ? 'Processing...' : 'Enroll Now'}
+                            </button>
+                          </>
                         ) : (
                           <button
                             disabled

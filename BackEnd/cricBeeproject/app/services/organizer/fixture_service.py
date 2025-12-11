@@ -114,6 +114,8 @@ def create_match(
         raise ValueError("Team A and Team B cannot be the same")
     
  
+    # Create match with only the required fields
+    # Toss-related fields will be set later when the toss is conducted
     match = Match(
         round_id=match_data.round_id,
         tournament_id=match_data.tournament_id,
@@ -122,12 +124,31 @@ def create_match(
         team_b_id=match_data.team_b_id,
         match_date=match_data.match_date,
         match_time=match_data.match_time,
-        venue=match_data.venue
+        venue=match_data.venue,
+        is_fixture_published=False
     )
     
-    db.add(match)
-    db.commit()
-    db.refresh(match)
+    # Explicitly set toss fields to None to avoid issues if columns don't exist yet
+    # These will be set when the toss is conducted
+    match.toss_winner_id = None
+    match.toss_decision = None
+    match.batting_team_id = None
+    match.bowling_team_id = None
+    match.match_status = 'toss_pending'  # Initial status: Toss Pending (must be published first)
+    
+    try:
+        db.add(match)
+        db.commit()
+        db.refresh(match)
+    except Exception as e:
+        db.rollback()
+        error_msg = str(e)
+        if 'toss_winner_id' in error_msg or 'toss_decision' in error_msg or 'batting_team_id' in error_msg or 'bowling_team_id' in error_msg or 'match_status' in error_msg:
+            raise ValueError(
+                "Database migration required. Please run: alembic upgrade head\n"
+                "The matches table is missing required columns. This migration should add them: add_toss_and_scoreboard_tables"
+            ) from e
+        raise
     
     return match
 
@@ -153,7 +174,10 @@ def get_round_matches(
     
     matches = db.query(Match).options(
         joinedload(Match.team_a),
-        joinedload(Match.team_b)
+        joinedload(Match.team_b),
+        joinedload(Match.toss_winner),
+        joinedload(Match.batting_team),
+        joinedload(Match.bowling_team)
     ).filter(
         Match.round_id == round_id
     ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
@@ -178,7 +202,10 @@ def get_tournament_matches(
     matches = db.query(Match).options(
         joinedload(Match.team_a),
         joinedload(Match.team_b),
-        joinedload(Match.round)
+        joinedload(Match.round),
+        joinedload(Match.toss_winner),
+        joinedload(Match.batting_team),
+        joinedload(Match.bowling_team)
     ).filter(
         Match.tournament_id == tournament_id
     ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
@@ -193,7 +220,10 @@ def toggle_match_published_status(
     
     match = db.query(Match).options(
         joinedload(Match.team_a),
-        joinedload(Match.team_b)
+        joinedload(Match.team_b),
+        joinedload(Match.toss_winner),
+        joinedload(Match.batting_team),
+        joinedload(Match.bowling_team)
     ).filter(Match.id == match_id).first()
     
     if not match:
@@ -223,7 +253,10 @@ def get_published_tournament_matches(
     matches = db.query(Match).options(
         joinedload(Match.team_a),
         joinedload(Match.team_b),
-        joinedload(Match.round)
+        joinedload(Match.round),
+        joinedload(Match.toss_winner),
+        joinedload(Match.batting_team),
+        joinedload(Match.bowling_team)
     ).filter(
         Match.tournament_id == tournament_id,
         Match.is_fixture_published == True
@@ -238,7 +271,10 @@ def get_published_round_matches(
     """Get all published matches for a round (public endpoint)"""
     matches = db.query(Match).options(
         joinedload(Match.team_a),
-        joinedload(Match.team_b)
+        joinedload(Match.team_b),
+        joinedload(Match.toss_winner),
+        joinedload(Match.batting_team),
+        joinedload(Match.bowling_team)
     ).filter(
         Match.round_id == round_id,
         Match.is_fixture_published == True

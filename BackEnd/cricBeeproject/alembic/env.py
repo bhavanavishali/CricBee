@@ -1,4 +1,6 @@
 from logging.config import fileConfig
+import os
+from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -8,16 +10,27 @@ from alembic import context
 from app.db.base import Base
 from app.models.user import User
 from app.models.organizer import OrganizationDetails
-from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
+from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
+from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatchStats
 from app.models.club import Club
 from app.models.player import PlayerProfile
 from app.models.club_player import ClubPlayer
+from app.models.club_player_invitation import ClubPlayerInvitation
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
+
+# Load environment variables
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override sqlalchemy.url with environment variable if available
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

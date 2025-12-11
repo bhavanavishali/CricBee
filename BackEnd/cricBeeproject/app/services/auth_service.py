@@ -185,7 +185,7 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
        
         otp = generate_otp(6)
         
-    
+        print("****",otp)
         if store_otp_in_redis(redis_client, email, otp, expire_minutes=10):
             return True, "OTP resent successfully", otp
         else:

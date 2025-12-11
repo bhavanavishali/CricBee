@@ -41,6 +41,14 @@ class MatchResponse(BaseModel):
     match_time: time
     venue: str
     is_fixture_published: bool = False
+    toss_winner_id: Optional[int] = None
+    toss_winner_name: Optional[str] = None
+    toss_decision: Optional[str] = None
+    batting_team_id: Optional[int] = None
+    batting_team_name: Optional[str] = None
+    bowling_team_id: Optional[int] = None
+    bowling_team_name: Optional[str] = None
+    match_status: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     

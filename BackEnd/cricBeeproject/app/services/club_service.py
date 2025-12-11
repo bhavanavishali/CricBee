@@ -1,5 +1,6 @@
 
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
 from fastapi import UploadFile
 from datetime import datetime
 from app.models.club import Club
@@ -26,6 +27,16 @@ def create_club(db: Session, payload: ClubCreate, user_id: int) -> Club:
     if existing_club:
         raise ValueError("Club already exists for this user")
     
+    # Check if short_name already exists
+    existing_short_name = db.query(Club).filter(Club.short_name == payload.short_name).first()
+    if existing_short_name:
+        raise ValueError(f"Club with short name '{payload.short_name}' already exists. Please choose a different short name.")
+    
+    # Check if club_name already exists
+    existing_club_name = db.query(Club).filter(Club.club_name == payload.club_name).first()
+    if existing_club_name:
+        raise ValueError(f"Club with name '{payload.club_name}' already exists. Please choose a different club name.")
+    
     club = Club(
         manager_id=user_id,
         club_name=payload.club_name,
@@ -37,8 +48,19 @@ def create_club(db: Session, payload: ClubCreate, user_id: int) -> Club:
         no_of_players=0
     )
     db.add(club)
-    db.commit()
-    db.refresh(club)
+    try:
+        db.commit()
+        db.refresh(club)
+    except IntegrityError as e:
+        db.rollback()
+        # Check which constraint was violated
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+        if 'short_name' in error_msg.lower():
+            raise ValueError(f"Club with short name '{payload.short_name}' already exists. Please choose a different short name.")
+        elif 'club_name' in error_msg.lower():
+            raise ValueError(f"Club with name '{payload.club_name}' already exists. Please choose a different club name.")
+        else:
+            raise ValueError("Failed to create club due to a database constraint violation.")
     return club
 
 def update_club(db: Session, club_id: int, payload: ClubUpdate, user_id: int) -> Club:
@@ -50,11 +72,40 @@ def update_club(db: Session, club_id: int, payload: ClubUpdate, user_id: int) ->
         raise ValueError("Club not found or access denied")
     
     update_data = payload.dict(exclude_unset=True)
+    
+    # Check for unique constraint violations before updating
+    if 'short_name' in update_data:
+        existing_short_name = db.query(Club).filter(
+            Club.short_name == update_data['short_name'],
+            Club.id != club_id
+        ).first()
+        if existing_short_name:
+            raise ValueError(f"Club with short name '{update_data['short_name']}' already exists. Please choose a different short name.")
+    
+    if 'club_name' in update_data:
+        existing_club_name = db.query(Club).filter(
+            Club.club_name == update_data['club_name'],
+            Club.id != club_id
+        ).first()
+        if existing_club_name:
+            raise ValueError(f"Club with name '{update_data['club_name']}' already exists. Please choose a different club name.")
+    
     for field, value in update_data.items():
         setattr(club, field, value)
     
-    db.commit()
-    db.refresh(club)
+    try:
+        db.commit()
+        db.refresh(club)
+    except IntegrityError as e:
+        db.rollback()
+        # Check which constraint was violated
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+        if 'short_name' in error_msg.lower():
+            raise ValueError(f"Club with short name '{update_data.get('short_name', '')}' already exists. Please choose a different short name.")
+        elif 'club_name' in error_msg.lower():
+            raise ValueError(f"Club with name '{update_data.get('club_name', '')}' already exists. Please choose a different club name.")
+        else:
+            raise ValueError("Failed to update club due to a database constraint violation.")
     return club
 
 def update_club_image(

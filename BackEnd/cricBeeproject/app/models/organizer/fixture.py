@@ -28,6 +28,14 @@ class Match(Base):
     match_time = Column(Time, nullable=False)
     venue = Column(String, nullable=False)
     is_fixture_published = Column(Boolean, default=False, nullable=False)
+    
+    # Toss fields
+    toss_winner_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=True)
+    toss_decision = Column(String, nullable=True)  # 'bat' or 'bowl'
+    batting_team_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=True)
+    bowling_team_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=True)
+    match_status = Column(String, nullable=True, default='upcoming')  # upcoming, live, completed, cancelled
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -35,7 +43,13 @@ class Match(Base):
     tournament = relationship("Tournament", back_populates="matches")
     team_a = relationship("Club", foreign_keys=[team_a_id])
     team_b = relationship("Club", foreign_keys=[team_b_id])
+    toss_winner = relationship("Club", foreign_keys=[toss_winner_id])
+    batting_team = relationship("Club", foreign_keys=[batting_team_id])
+    bowling_team = relationship("Club", foreign_keys=[bowling_team_id])
     playing_xis = relationship("PlayingXI", back_populates="match", cascade="all, delete-orphan")
+    scores = relationship("MatchScore", back_populates="match", cascade="all, delete-orphan")
+    ball_by_ball = relationship("BallByBall", back_populates="match", cascade="all, delete-orphan", order_by="BallByBall.over_number, BallByBall.ball_number")
+    player_stats = relationship("PlayerMatchStats", back_populates="match", cascade="all, delete-orphan")
 
 class PlayingXI(Base):
     __tablename__ = "playing_xi"

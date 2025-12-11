@@ -195,3 +195,13 @@ export const verifyEnrollmentPayment = async (paymentData) => {
     throw error;
   }
 };
+
+export const getMyEnrollments = async () => {
+  try {
+    const response = await api.get('/clubmanager/enrollments');
+    return response.data;
+  } catch (error) {
+    console.error("Get my enrollments error:", error);
+    throw error;
+  }
+};
