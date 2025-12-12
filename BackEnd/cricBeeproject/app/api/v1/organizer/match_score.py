@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from app.db.session import get_db
 from app.models.user import UserRole
 from app.utils.jwt import get_current_user
@@ -8,14 +9,24 @@ from app.schemas.organizer.match_score import (
     TossResponse,
     UpdateScoreRequest,
     LiveScoreboardResponse,
-    EndInningsRequest
+    EndInningsRequest,
+    ChangeStrikerRequest,
+    SelectBowlerRequest,
+    SelectNewBatsmanRequest,
+    AvailablePlayerResponse,
+    SetBatsmenRequest
 )
 from app.services.organizer.match_score_service import (
     update_toss,
     start_match,
     update_score,
     get_live_scoreboard,
-    end_innings
+    end_innings,
+    get_available_batsmen,
+    get_available_bowlers,
+    validate_bowler_selection,
+    set_opening_batsmen,
+    set_initial_bowler
 )
 from app.models.organizer.fixture import Match
 from app.models.organizer.tournament import Tournament
@@ -107,9 +118,18 @@ def update_score_endpoint(
             "ball": ball_record.ball_number
         }
     except ValueError as e:
+        import traceback
+        traceback.print_exc()  # Log full traceback for debugging
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # Log full traceback for debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
         )
 
 @router.get("/{match_id}/scoreboard", response_model=LiveScoreboardResponse)
@@ -152,6 +172,201 @@ def end_innings_endpoint(
             "match_id": match.id,
             "match_status": match.match_status
         }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/{match_id}/available-batsmen", response_model=List[AvailablePlayerResponse])
+def get_available_batsmen_endpoint(
+    match_id: int,
+    request: Request,
+    team_id: int = Query(..., description="Team ID"),
+    db: Session = Depends(get_db)
+):
+    """Get available batsmen for a team (organizer/scorer only)"""
+    current_user = get_current_user(request, db)
+    if current_user.role not in [UserRole.ORGANIZER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    try:
+        batsmen = get_available_batsmen(db, match_id, team_id)
+        
+        # If no PlayerMatchStats exist yet, get from Playing XI
+        if not batsmen:
+            from app.models.organizer.fixture import PlayingXI
+            from sqlalchemy.orm import joinedload
+            from app.models.player import PlayerProfile
+            playing_xi = db.query(PlayingXI).options(
+                joinedload(PlayingXI.player).joinedload(PlayerProfile.user)
+            ).filter(
+                PlayingXI.match_id == match_id,
+                PlayingXI.club_id == team_id
+            ).all()
+            
+            return [
+                AvailablePlayerResponse(
+                    player_id=pxi.player_id,
+                    player_name=pxi.player.user.full_name if pxi.player and pxi.player.user else "Unknown",
+                    team_id=pxi.club_id
+                )
+                for pxi in playing_xi
+            ]
+        
+        return [
+            AvailablePlayerResponse(
+                player_id=stat.player_id,
+                player_name=stat.player.user.full_name if stat.player and stat.player.user else "Unknown",
+                team_id=stat.team_id
+            )
+            for stat in batsmen
+        ]
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/{match_id}/available-bowlers", response_model=List[AvailablePlayerResponse])
+def get_available_bowlers_endpoint(
+    match_id: int,
+    request: Request,
+    team_id: int = Query(..., description="Team ID"),
+    exclude_bowler_id: Optional[int] = Query(None, description="Bowler ID to exclude"),
+    db: Session = Depends(get_db)
+):
+    """Get available bowlers for a team (organizer/scorer only)"""
+    current_user = get_current_user(request, db)
+    if current_user.role not in [UserRole.ORGANIZER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    try:
+        bowlers = get_available_bowlers(db, match_id, team_id, exclude_bowler_id)
+        
+        # If no PlayerMatchStats exist yet, get from Playing XI
+        if not bowlers:
+            from app.models.organizer.fixture import PlayingXI
+            from sqlalchemy.orm import joinedload
+            from app.models.player import PlayerProfile
+            query = db.query(PlayingXI).options(
+                joinedload(PlayingXI.player).joinedload(PlayerProfile.user)
+            ).filter(
+                PlayingXI.match_id == match_id,
+                PlayingXI.club_id == team_id
+            )
+            
+            if exclude_bowler_id:
+                query = query.filter(PlayingXI.player_id != exclude_bowler_id)
+            
+            playing_xi = query.all()
+            
+            return [
+                AvailablePlayerResponse(
+                    player_id=pxi.player_id,
+                    player_name=pxi.player.user.full_name if pxi.player and pxi.player.user else "Unknown",
+                    team_id=pxi.club_id
+                )
+                for pxi in playing_xi
+            ]
+        
+        return [
+            AvailablePlayerResponse(
+                player_id=stat.player_id,
+                player_name=stat.player.user.full_name if stat.player and stat.player.user else "Unknown",
+                team_id=stat.team_id
+            )
+            for stat in bowlers
+        ]
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/{match_id}/validate-bowler", status_code=status.HTTP_200_OK)
+def validate_bowler_endpoint(
+    match_id: int,
+    request: Request,
+    bowler_id: int = Query(..., description="Bowler ID to validate"),
+    db: Session = Depends(get_db)
+):
+    """Validate if a bowler can be selected (organizer/scorer only)"""
+    current_user = get_current_user(request, db)
+    if current_user.role not in [UserRole.ORGANIZER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    try:
+        result = validate_bowler_selection(db, match_id, bowler_id)
+        return result  # Already returns dict with valid and message
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/{match_id}/set-batsmen", status_code=status.HTTP_200_OK)
+def set_batsmen_endpoint(
+    match_id: int,
+    request: Request,
+    batsmen_data: SetBatsmenRequest,
+    db: Session = Depends(get_db)
+):
+    """Set the opening batsmen (striker and non-striker) for a match (organizer only)"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can set batsmen"
+        )
+    
+    try:
+        result = set_opening_batsmen(
+            db, 
+            match_id, 
+            current_user.id, 
+            batsmen_data.striker_id, 
+            batsmen_data.non_striker_id
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/{match_id}/set-bowler", status_code=status.HTTP_200_OK)
+def set_bowler_endpoint(
+    match_id: int,
+    request: Request,
+    bowler_data: SelectBowlerRequest,
+    db: Session = Depends(get_db)
+):
+    """Set the initial bowler for a match (organizer only)"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can set bowler"
+        )
+    
+    try:
+        result = set_initial_bowler(
+            db, 
+            match_id, 
+            current_user.id, 
+            bowler_data.bowler_id
+        )
+        return result
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

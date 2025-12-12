@@ -28,6 +28,40 @@ export const updateScore = async (matchId, scoreData) => {
   return response.data;
 };
 
+// Get available players
+export const getAvailableBatsmen = async (matchId, teamId) => {
+  const response = await api.get(`/matches/${matchId}/available-batsmen?team_id=${teamId}`);
+  return response.data;
+};
+
+export const getAvailableBowlers = async (matchId, teamId, excludeBowlerId = null) => {
+  const url = excludeBowlerId 
+    ? `/matches/${matchId}/available-bowlers?team_id=${teamId}&exclude_bowler_id=${excludeBowlerId}`
+    : `/matches/${matchId}/available-bowlers?team_id=${teamId}`;
+  const response = await api.get(url);
+  return response.data;
+};
+
+export const validateBowler = async (matchId, bowlerId) => {
+  const response = await api.post(`/matches/${matchId}/validate-bowler?bowler_id=${bowlerId}`);
+  return response.data;
+};
+
+export const setBatsmen = async (matchId, strikerId, nonStrikerId) => {
+  const response = await api.post(`/matches/${matchId}/set-batsmen`, {
+    striker_id: strikerId,
+    non_striker_id: nonStrikerId
+  });
+  return response.data;
+};
+
+export const setBowler = async (matchId, bowlerId) => {
+  const response = await api.post(`/matches/${matchId}/set-bowler`, {
+    bowler_id: bowlerId
+  });
+  return response.data;
+};
+
 
 
 

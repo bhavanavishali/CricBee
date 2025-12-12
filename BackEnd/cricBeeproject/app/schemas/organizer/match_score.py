@@ -127,8 +127,13 @@ class LiveScoreboardResponse(BaseModel):
     current_bowler_id: Optional[int] = None
     current_bowler_name: Optional[str] = None
     last_6_balls: List[BallByBallResponse] = []
+    all_balls: List[BallByBallResponse] = []  # Full ball-by-ball timeline
     player_stats: List[PlayerMatchStatsResponse] = []
     toss_info: Optional[TossResponse] = None
+    current_over: Optional[int] = None
+    current_ball: Optional[int] = None
+    max_overs: Optional[int] = None
+    needs_bowler_selection: Optional[bool] = False  # True if over just completed
 
 # Update Score Request
 class UpdateScoreRequest(BaseModel):
@@ -140,6 +145,8 @@ class UpdateScoreRequest(BaseModel):
     is_no_ball: bool = Field(False, description="Whether it was a no-ball")
     is_bye: bool = Field(False, description="Whether it was a bye")
     is_leg_bye: bool = Field(False, description="Whether it was a leg bye")
+    is_four: bool = Field(False, description="Whether it was a four")
+    is_six: bool = Field(False, description="Whether it was a six")
     batsman_id: int = Field(..., description="ID of the batsman on strike")
     bowler_id: int = Field(..., description="ID of the bowler")
     commentary: Optional[str] = Field(None, max_length=500, description="Commentary for the ball")
@@ -147,6 +154,33 @@ class UpdateScoreRequest(BaseModel):
 # End Innings Request
 class EndInningsRequest(BaseModel):
     pass  # No additional data needed, just ends the current innings
+
+# Change Striker Request
+class ChangeStrikerRequest(BaseModel):
+    striker_id: int = Field(..., description="ID of the new striker")
+    non_striker_id: int = Field(..., description="ID of the new non-striker")
+
+# Set Striker/Non-Striker Request  
+class SetBatsmenRequest(BaseModel):
+    striker_id: int = Field(..., description="ID of the striker")
+    non_striker_id: int = Field(..., description="ID of the non-striker")
+
+# Select Bowler Request
+class SelectBowlerRequest(BaseModel):
+    bowler_id: int = Field(..., description="ID of the bowler to select")
+
+# Select New Batsman Request (after wicket)
+class SelectNewBatsmanRequest(BaseModel):
+    batsman_id: int = Field(..., description="ID of the new batsman")
+
+# Available Players Response
+class AvailablePlayerResponse(BaseModel):
+    player_id: int
+    player_name: str
+    team_id: int
+    
+    class Config:
+        from_attributes = True
 
 
 

@@ -90,6 +90,7 @@ class PlayerMatchStats(Base):
     # Flags
     is_batting = Column(Boolean, nullable=False, default=False)
     is_bowling = Column(Boolean, nullable=False, default=False)
+    is_striker = Column(Boolean, nullable=False, default=False)  # True if this player is on strike
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
