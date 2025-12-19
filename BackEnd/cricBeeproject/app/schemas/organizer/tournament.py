@@ -26,6 +26,7 @@ class TournamentResponse(BaseModel):
     organizer_id: int
     plan_id: int
     status: str
+    is_blocked: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
     details: Optional['TournamentDetailsResponse'] = None

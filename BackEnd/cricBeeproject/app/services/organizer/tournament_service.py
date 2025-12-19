@@ -217,10 +217,10 @@ def verify_and_complete_payment(
             description=f"Tournament payment for {tournament.tournament_name}",
             transaction_id=admin_transaction_id
         )
-        # Update payment with organizer transaction_id as the primary reference
+        
         payment.transaction_id = organizer_transaction.transaction_id
     
-    # Activate tournament and move to registration flow
+    
     tournament.status = TournamentStatus.REGISTRATION_OPEN.value
     _sync_tournament_status(db, tournament)
     
@@ -230,7 +230,7 @@ def verify_and_complete_payment(
     return TournamentResponse.model_validate(tournament)
 
 def get_organizer_tournaments(db: Session, organizer_id: int) -> List[TournamentResponse]:
-    #Get all tournaments for an organizer
+   
     tournaments = db.query(Tournament).options(
         joinedload(Tournament.details),
         joinedload(Tournament.payment),
@@ -269,8 +269,7 @@ def get_organizer_transactions(db: Session, organizer_id: int) -> List[Organizer
             transaction_type=transaction.transaction_type,
             transaction_direction=transaction.transaction_direction,
             amount=transaction.amount,
-            payment_status=transaction.status,  # Use transaction status
-            payment_date=transaction.created_at,  # Use transaction created_at as payment_date
+            payment_status=transaction.status,              payment_date=transaction.created_at,  
             created_at=transaction.created_at
         )
         for transaction, tournament_name in transactions
@@ -281,7 +280,7 @@ def get_organizer_wallet_balance(db: Session, organizer_id: int) -> Decimal:
     transactions = db.query(Transaction).filter(
         Transaction.organizer_id == organizer_id,
         Transaction.status.in_([TransactionStatus.SUCCESS.value, TransactionStatus.REFUNDED.value]),
-        Transaction.transaction_type != TransactionType.TOURNAMENT_PAYMENT.value  # Exclude tournament creation payments
+        Transaction.transaction_type != TransactionType.TOURNAMENT_PAYMENT.value 
     ).all()
     
     balance = Decimal('0.00')
@@ -299,7 +298,7 @@ def cancel_tournament(
     organizer_id: int
 ) -> TournamentResponse:
    
-    # Get tournament with relationships
+   
     tournament = db.query(Tournament).options(
         joinedload(Tournament.details),
         joinedload(Tournament.payment)
@@ -311,11 +310,11 @@ def cancel_tournament(
     if not tournament:
         raise ValueError("Tournament not found or access denied")
     
-    # Check if tournament is already cancelled
+    
     if tournament.status == TournamentStatus.CANCELLED.value:
         raise ValueError("Tournament is already cancelled")
     
-    # Check if tournament has details (registration dates)
+    
     if not tournament.details:
         raise ValueError("Tournament details not found")
     

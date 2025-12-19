@@ -82,7 +82,7 @@ async def upload_profile_photo_endpoint(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Upload player profile photo"""
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -173,7 +173,7 @@ def get_player_invitations_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all club invitations for the current player"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -207,7 +207,7 @@ def accept_invitation_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Accept a club invitation"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -233,7 +233,7 @@ def reject_invitation_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Reject a club invitation"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(

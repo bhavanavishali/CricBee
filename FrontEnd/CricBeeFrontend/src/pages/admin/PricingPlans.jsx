@@ -8,7 +8,8 @@ import {
   XCircle,
   Settings,
   DollarSign,
-  Trophy,
+  BarChart3,
+  CreditCard,
   Users,
   Info,
 } from "lucide-react";
@@ -252,39 +253,39 @@ const PricingPlans = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Trophy className="w-6 h-6 text-blue-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Tournaments</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalTournaments}</p>
               </div>
+              <div className="p-3 rounded-lg">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {formatRevenue(stats.totalRevenue)}
                 </p>
               </div>
+              <div className="p-3 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
             </div>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Plans</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.activePlans}</p>
+              </div>
+              <div className="p-3 rounded-lg">
+                <CreditCard className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -433,27 +434,21 @@ const PricingPlans = () => {
         </div>
 
         {/* Pricing Examples */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-green-600" />
-              <h4 className="font-semibold text-gray-900">4 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-green-700">Free Plan (₹0)</p>
+        <div className="grid grid-cols-3 gap-6 mt-6">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200 flex flex-col items-center text-center">
+            <Users className="w-6 h-6 text-green-600 mb-3" />
+            <h4 className="font-semibold text-gray-900 mb-1">4 Teams Tournament</h4>
+            <p className="text-green-700">→ Free Plan (₹0)</p>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-blue-600" />
-              <h4 className="font-semibold text-gray-900">8 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-blue-700">Standard Plan (₹10,000)</p>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200 flex flex-col items-center text-center">
+            <Users className="w-6 h-6 text-blue-600 mb-3" />
+            <h4 className="font-semibold text-gray-900 mb-1">8 Teams Tournament</h4>
+            <p className="text-blue-700">→ Standard Plan (₹10,000)</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-purple-600" />
-              <h4 className="font-semibold text-gray-900">16 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-purple-700">Premium Plan (₹15,000)</p>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200 flex flex-col items-center text-center">
+            <Users className="w-6 h-6 text-purple-600 mb-3" />
+            <h4 className="font-semibold text-gray-900 mb-1">16 Teams Tournament</h4>
+            <p className="text-purple-700">→ Premium Plan (₹15,000)</p>
           </div>
         </div>
 

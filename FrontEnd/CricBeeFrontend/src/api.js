@@ -230,11 +230,13 @@ api.interceptors.response.use(
     }
 
     // Handle 401 Unauthorized - Token refresh logic
+    // Skip token refresh for public endpoints
     if (error.response?.status === 401 && 
         !originalRequest._retry && 
         !originalRequest.url?.includes("/auth/refresh") &&
         !originalRequest.url?.includes("/auth/signin") &&
-        !originalRequest.url?.includes("/auth/signup")) {
+        !originalRequest.url?.includes("/auth/signup") &&
+        !originalRequest.url?.includes("/public/")) {  // Skip public endpoints
       
       originalRequest._retry = true;
       
@@ -264,8 +266,14 @@ api.interceptors.response.use(
         }
         
         // Refresh failed - clear storage and redirect to signin
-        console.error("Token refresh failed:", refreshError);
-        handleUserBlocked();
+        // But don't redirect if on public pages
+        if (!window.location.pathname.startsWith('/tournaments') && 
+            !window.location.pathname.startsWith('/matches') &&
+            !window.location.pathname.startsWith('/live-matches') &&
+            window.location.pathname !== '/') {
+          console.error("Token refresh failed:", refreshError);
+          handleUserBlocked();
+        }
         return Promise.reject(refreshError);
       }
     }

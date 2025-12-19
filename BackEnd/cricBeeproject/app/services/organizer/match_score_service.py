@@ -25,9 +25,9 @@ def update_toss(
     organizer_id: int,
     toss_data: TossUpdate
 ) -> Match:
-    """Update toss result for a match"""
+   
     
-    # Verify match exists and belongs to organizer's tournament
+   
     match = db.query(Match).options(
         joinedload(Match.team_a),
         joinedload(Match.team_b),
@@ -39,7 +39,7 @@ def update_toss(
     if not match:
         raise ValueError("Match not found")
     
-    # Verify tournament belongs to organizer
+   
     tournament = db.query(Tournament).filter(
         Tournament.id == match.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -48,11 +48,11 @@ def update_toss(
     if not tournament:
         raise ValueError("Tournament not found or access denied")
     
-    # Verify toss winner is one of the teams
+  
     if toss_data.toss_winner_id not in [match.team_a_id, match.team_b_id]:
         raise ValueError("Toss winner must be one of the match teams")
     
-    # Verify toss decision
+ 
     if toss_data.toss_decision not in ['bat', 'bowl']:
         raise ValueError("Toss decision must be 'bat' or 'bowl'")
     
@@ -81,9 +81,8 @@ def start_match(
     match_id: int,
     organizer_id: int
 ) -> Match:
-    """Start a match - initialize scoreboard and player stats"""
     
-    # Verify match exists and belongs to organizer's tournament
+
     match = db.query(Match).options(
         joinedload(Match.team_a),
         joinedload(Match.team_b),
@@ -94,7 +93,7 @@ def start_match(
     if not match:
         raise ValueError("Match not found")
     
-    # Verify tournament belongs to organizer
+    
     tournament = db.query(Tournament).filter(
         Tournament.id == match.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -150,7 +149,7 @@ def start_match(
         )
         db.add(bowling_score)
     
-    # Initialize player stats for all players in Playing XI
+   
     playing_xis = db.query(PlayingXI).filter(PlayingXI.match_id == match_id).all()
     
     for pxi in playing_xis:
@@ -193,9 +192,9 @@ def update_score(
     organizer_id: int,
     score_data: UpdateScoreRequest
 ) -> BallByBall:
-    """Update score for a ball"""
+  
     
-    # Verify match exists and belongs to organizer's tournament
+   
     match = db.query(Match).options(
         joinedload(Match.batting_team),
         joinedload(Match.bowling_team)
@@ -204,7 +203,7 @@ def update_score(
     if not match:
         raise ValueError("Match not found")
     
-    # Verify tournament belongs to organizer
+    
     tournament = db.query(Tournament).filter(
         Tournament.id == match.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -213,11 +212,10 @@ def update_score(
     if not tournament:
         raise ValueError("Tournament not found or access denied")
     
-    # Verify match is live
+   
     if match.match_status != 'live':
         raise ValueError("Match is not live")
     
-    # Get current batting team score
     batting_score = db.query(MatchScore).filter(
         MatchScore.match_id == match_id,
         MatchScore.team_id == match.batting_team_id
@@ -226,17 +224,16 @@ def update_score(
     if not batting_score:
         raise ValueError("Match score not initialized. Please start the match first.")
     
-    # Get tournament details to check max overs
+   
     tournament_details = tournament.details
     max_overs = tournament_details.overs if tournament_details else 20
     max_balls = max_overs * 6
     
-    # Check if innings is complete (all wickets or all overs)
+    
     if batting_score.wickets >= 10 or batting_score.balls >= max_balls:
         raise ValueError("Innings is complete")
     
-    # Calculate over and ball numbers
-    # Get the last ball to determine current over/ball
+    
     last_ball = db.query(BallByBall).filter(
         BallByBall.match_id == match_id
     ).order_by(
@@ -355,24 +352,24 @@ def update_score(
         )
         db.add(bowler_stat)
     
-    # Calculate actual runs (excluding extras)
+    
     actual_runs = score_data.runs
     if score_data.is_wide or score_data.is_no_ball:
-        # Wide and no-ball runs are extras
+       
         batting_score.extras += actual_runs
         batting_score.runs += actual_runs
     elif score_data.is_bye or score_data.is_leg_bye:
-        # Byes and leg-byes: runs go to score but not to batsman
+    
         batting_score.runs += actual_runs
         batting_score.extras += actual_runs
     else:
-        # Normal runs
+       
         batting_score.runs += actual_runs
         batsman_stat.runs += actual_runs
         batsman_stat.balls_faced += 1
         bowler_stat.runs_conceded += actual_runs
     
-    # Update fours and sixes
+   
     if score_data.is_four or actual_runs == 4:
         batting_score.fours += 1
         if not score_data.is_bye and not score_data.is_leg_bye:
@@ -383,13 +380,12 @@ def update_score(
         if not score_data.is_bye and not score_data.is_leg_bye:
             batsman_stat.sixes += 1
     
-    # Update balls and overs
+
     legal_ball_bowled = False
     if not score_data.is_wide and not score_data.is_no_ball:
         batting_score.balls += 1
         legal_ball_bowled = True
-        # Update bowler overs (count balls, convert to overs)
-        # Count all legal balls bowled by this bowler in the match (before adding this ball)
+        
         existing_legal_balls = db.query(BallByBall).filter(
             BallByBall.match_id == match_id,
             BallByBall.bowler_id == score_data.bowler_id,
@@ -397,17 +393,16 @@ def update_score(
             BallByBall.is_no_ball == False
         ).count()
         
-        # Add 1 for the current ball being added
+       
         total_legal_balls = existing_legal_balls + 1
         
-        # Convert balls to overs (e.g., 13 balls = 2.1 overs)
+    
         bowler_stat.overs_bowled = Decimal(str(total_legal_balls // 6)) + Decimal(str(total_legal_balls % 6)) / Decimal('10')
     
-    # Update wickets
     if score_data.is_wicket:
         batting_score.wickets += 1
         
-        # Get the dismissed batsman's stats
+        
         dismissed_stat = db.query(PlayerMatchStats).filter(
             PlayerMatchStats.match_id == match_id,
             PlayerMatchStats.player_id == score_data.dismissed_batsman_id
@@ -474,7 +469,7 @@ def update_score(
     db.refresh(batsman_stat)
     db.refresh(bowler_stat)
     
-    # Check if over is complete (after commit to get accurate count)
+  
     balls_in_over = db.query(BallByBall).filter(
         BallByBall.match_id == match_id,
         BallByBall.over_number == current_over,
@@ -484,8 +479,7 @@ def update_score(
     
     over_complete = balls_in_over >= 6
     
-    # ========== AUTO STRIKER ROTATION LOGIC ==========
-    # Get current batsmen (striker and non-striker)
+   
     current_batsmen = db.query(PlayerMatchStats).filter(
         PlayerMatchStats.match_id == match_id,
         PlayerMatchStats.team_id == match.batting_team_id,
@@ -502,14 +496,13 @@ def update_score(
         else:
             non_striker_stat = stat
     
-    # If no striker set, the batsman who faced the ball should be striker
+    
     if not striker_stat:
         striker_stat = batsman_stat
         if batsman_stat not in current_batsmen:
             batsman_stat.is_batting = True
             batsman_stat.is_striker = True
     
-    # Ensure we have both striker and non-striker
     if not striker_stat:
         striker_stat = batsman_stat
         striker_stat.is_striker = True
@@ -534,7 +527,7 @@ def update_score(
             ).first()
             
             if dismissed_stat:
-                # Check if dismissed batsman was striker before clearing flags
+              
                 was_striker = dismissed_stat.is_striker
                 
                 # Clear striker and batting flags for dismissed batsman
@@ -542,8 +535,7 @@ def update_score(
                 dismissed_stat.is_batting = False
                 
                 if was_striker:
-                    # Striker is out - new batsman comes on strike (no swap needed)
-                    # The new batsman will be set by the frontend via setBatsmen
+               
                     should_swap = False
                 else:
                     # Non-striker is out - striker stays the same
@@ -556,8 +548,7 @@ def update_score(
             should_swap = False
         # Rule 4: No ball handling
         elif score_data.is_no_ball:
-            # If runs from bat (not just penalty), apply normal run logic
-            # Check if there were runs scored beyond the no-ball penalty
+            
             runs_from_bat = actual_runs - 1 if actual_runs > 1 else 0
             if runs_from_bat > 0 and not score_data.is_bye and not score_data.is_leg_bye:
                 # Runs from bat - apply normal logic
@@ -586,7 +577,7 @@ def get_live_scoreboard(
     db: Session,
     match_id: int
 ) -> LiveScoreboardResponse:
-    """Get live scoreboard for a match"""
+    
     
     match = db.query(Match).options(
         joinedload(Match.team_a),
@@ -648,7 +639,6 @@ def get_live_scoreboard(
         else:
             non_striker_stat = stat
     
-    # Fallback: if no striker flag set, use first two batsmen
     if not striker_stat and len(current_batsmen) > 0:
         striker_stat = current_batsmen[0]
         if len(current_batsmen) > 1:
@@ -660,8 +650,7 @@ def get_live_scoreboard(
     current_non_striker_id = non_striker_stat.player_id if non_striker_stat else None
     current_non_striker_name = non_striker_stat.player.user.full_name if non_striker_stat and non_striker_stat.player and non_striker_stat.player.user else None
     
-    # Get current bowler (most recent bowler from bowling team)
-    # First try to get from BallByBall (if balls have been bowled)
+   
     current_bowler = db.query(BallByBall).filter(
         BallByBall.match_id == match_id,
         BallByBall.bowler_id.in_(
@@ -678,7 +667,7 @@ def get_live_scoreboard(
     current_bowler_id = current_bowler.bowler_id if current_bowler else None
     current_bowler_name = None
     
-    # If no bowler from BallByBall, check for bowler with is_bowling=True (initial bowler)
+    
     if not current_bowler_id:
         current_bowler_stat = db.query(PlayerMatchStats).options(
             joinedload(PlayerMatchStats.player).joinedload(PlayerProfile.user)
@@ -693,7 +682,7 @@ def get_live_scoreboard(
             if current_bowler_stat.player and current_bowler_stat.player.user:
                 current_bowler_name = current_bowler_stat.player.user.full_name
     
-    # If still no name, get it from PlayerProfile
+   
     if current_bowler_id and not current_bowler_name:
         bowler_player = db.query(PlayerProfile).filter(PlayerProfile.id == current_bowler_id).first()
         if bowler_player and bowler_player.user:
@@ -708,7 +697,7 @@ def get_live_scoreboard(
         PlayerMatchStats.match_id == match_id
     ).all()
     
-    # Build response
+
     batting_score_response = None
     if batting_score:
         batting_score_response = MatchScoreResponse(
@@ -771,7 +760,7 @@ def get_live_scoreboard(
     last_6_balls_response = [build_ball_response(ball) for ball in last_balls]
     all_balls_response = [build_ball_response(ball) for ball in all_balls]
     
-    # Determine current over and ball
+    
     current_over = None
     current_ball = None
     needs_bowler_selection = False
@@ -869,15 +858,13 @@ def end_innings(
     match_id: int,
     organizer_id: int
 ) -> Match:
-    """End the current innings"""
-    
-    # Verify match exists and belongs to organizer's tournament
+   
     match = db.query(Match).filter(Match.id == match_id).first()
     
     if not match:
         raise ValueError("Match not found")
     
-    # Verify tournament belongs to organizer
+   
     tournament = db.query(Tournament).filter(
         Tournament.id == match.tournament_id,
         Tournament.organizer_id == organizer_id
@@ -899,8 +886,7 @@ def get_available_batsmen(
     match_id: int,
     team_id: int
 ) -> List[PlayerMatchStats]:
-    """Get available batsmen (not out players) for a team"""
-    # First try to get from PlayerMatchStats (if match has started)
+    
     player_stats = db.query(PlayerMatchStats).options(
         joinedload(PlayerMatchStats.player).joinedload(PlayerProfile.user)
     ).filter(
@@ -913,9 +899,7 @@ def get_available_batsmen(
     if player_stats:
         return player_stats
     
-    # If no stats exist yet, get from Playing XI (match might not have started yet)
-    # But we need to create PlayerMatchStats-like objects for consistency
-    # Actually, let's get from Playing XI and return the player info
+  
     from app.models.organizer.fixture import PlayingXI
     playing_xi = db.query(PlayingXI).options(
         joinedload(PlayingXI.player).joinedload(PlayerProfile.user)
@@ -924,8 +908,7 @@ def get_available_batsmen(
         PlayingXI.club_id == team_id
     ).all()
     
-    # We can't return PlayingXI as PlayerMatchStats, so return empty
-    # The API endpoint should handle this case
+  
     return []
 
 def set_opening_batsmen(
@@ -935,8 +918,7 @@ def set_opening_batsmen(
     striker_id: int,
     non_striker_id: int
 ) -> dict:
-    """Set the opening batsmen for a match"""
-    # Verify match exists and belongs to organizer's tournament
+   
     match = db.query(Match).filter(Match.id == match_id).first()
     
     if not match:
@@ -1065,9 +1047,7 @@ def get_available_bowlers(
     team_id: int,
     exclude_bowler_id: Optional[int] = None
 ) -> List[PlayerMatchStats]:
-    """Get available bowlers for a team, excluding the previous over's bowler if specified"""
-    
-    # If exclude_bowler_id not provided, find the last completed over's bowler
+   
     if exclude_bowler_id is None:
         all_balls = db.query(BallByBall).filter(
             BallByBall.match_id == match_id
@@ -1122,8 +1102,7 @@ def validate_bowler_selection(
     match_id: int,
     bowler_id: int
 ) -> dict:
-    """Check if bowler can be selected (not same as previous over)"""
-    # Get all balls to find the last COMPLETED over
+  
     all_balls = db.query(BallByBall).filter(
         BallByBall.match_id == match_id
     ).order_by(
@@ -1157,7 +1136,7 @@ def validate_bowler_selection(
             last_completed_over = over_number
             break
     
-    # If there's a completed over, check its bowler
+  
     if last_completed_over:
         # Get the first ball of that over to get the bowler
         first_ball_of_over = db.query(BallByBall).filter(
@@ -1179,8 +1158,7 @@ def set_initial_bowler(
     organizer_id: int,
     bowler_id: int
 ) -> dict:
-    """Set the initial bowler for a match (before any balls are bowled)"""
-    # Verify match exists and belongs to organizer's tournament
+   
     match = db.query(Match).filter(Match.id == match_id).first()
     
     if not match:
@@ -1195,7 +1173,7 @@ def set_initial_bowler(
     if not tournament:
         raise ValueError("Tournament not found or access denied")
     
-    # Verify match is live
+    
     if match.match_status != 'live':
         raise ValueError("Match must be live to set bowler")
     
@@ -1210,7 +1188,7 @@ def set_initial_bowler(
     if not bowler_playing_xi:
         raise ValueError("Bowler is not in the bowling team's Playing XI")
     
-    # Get or create PlayerMatchStats for bowler
+   
     bowler_stat = db.query(PlayerMatchStats).filter(
         PlayerMatchStats.match_id == match_id,
         PlayerMatchStats.player_id == bowler_id,
@@ -1234,8 +1212,7 @@ def set_initial_bowler(
             is_bowling=False
         )
         db.add(bowler_stat)
-    
-    # Set is_bowling flag
+
     bowler_stat.is_bowling = True
     
     db.commit()

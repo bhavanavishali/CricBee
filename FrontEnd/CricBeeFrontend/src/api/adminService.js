@@ -1,8 +1,15 @@
 import api from '@/api';
 
-export const getUsers = async () => {
+export const getUsers = async (skip = 0, limit = 50, role = null, status = null, search = null) => {
   try {
-    const response = await api.get('/admin/users');
+    const params = new URLSearchParams();
+    params.append('skip', skip.toString());
+    params.append('limit', limit.toString());
+    if (role && role !== 'all') params.append('role', role);
+    if (status && status !== 'all') params.append('status', status);
+    if (search) params.append('search', search);
+    
+    const response = await api.get(`/admin/users?${params.toString()}`);
     return { success: true, data: response.data };
   } catch (error) {
     return {
@@ -28,9 +35,31 @@ export const updateUserStatus = async (userId, isActive) => {
 
 export const getUserDetails = async (userId) => {
   try {
+    // Fetch all pages to find the user (or we could create a separate endpoint)
+    // For now, we'll search through paginated results
+    let skip = 0;
+    const limit = 100;
+    let found = false;
+    let user = null;
     
-    const response = await api.get('/admin/users');
-    const user = response.data.find(u => u.id === userId);
+    while (!found) {
+      const response = await api.get(`/admin/users?skip=${skip}&limit=${limit}`);
+      const users = response.data.users || [];
+      user = users.find(u => u.id === userId);
+      
+      if (user) {
+        found = true;
+        break;
+      }
+      
+      if (users.length < limit) {
+        // Reached the end
+        break;
+      }
+      
+      skip += limit;
+    }
+    
     if (user) {
       return { success: true, data: user };
     }
@@ -118,6 +147,46 @@ export const getWalletBalance = async () => {
     return {
       success: false,
       message: error.response?.data?.detail || 'Failed to fetch wallet balance',
+    };
+  }
+};
+
+
+
+export const getTournaments = async (skip = 0, limit = 50) => {
+  try {
+    const response = await api.get(`/admin/tournaments?skip=${skip}&limit=${limit}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch tournaments',
+    };
+  }
+};
+
+export const getTournamentDetails = async (tournamentId) => {
+  try {
+    const response = await api.get(`/admin/tournaments/${tournamentId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch tournament details',
+    };
+  }
+};
+
+export const updateTournamentBlockStatus = async (tournamentId, isBlocked) => {
+  try {
+    const response = await api.patch(`/admin/tournaments/${tournamentId}/block`, {
+      is_blocked: isBlocked,
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to update tournament status',
     };
   }
 };

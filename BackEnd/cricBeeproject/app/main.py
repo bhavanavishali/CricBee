@@ -24,6 +24,7 @@ from app.api.v1.player import router as player_router
 from app.api.v1.organizer.tournament import router as tournament_router
 from app.api.v1.organizer.fixture import router as fixture_router
 from app.api.v1.organizer.match_score import router as match_score_router
+from app.api.v1.public import router as public_router
 from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
@@ -53,6 +54,7 @@ app.include_router(player_router)
 app.include_router(tournament_router)
 app.include_router(fixture_router)
 app.include_router(match_score_router)
+app.include_router(public_router)
 
 
 @app.get("/health")

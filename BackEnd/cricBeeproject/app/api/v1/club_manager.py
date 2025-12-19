@@ -233,7 +233,7 @@ def invite_player_to_club_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Send an invitation to a player to join the club"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -308,7 +308,7 @@ def get_pending_invitations_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all pending invitations for a club"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -408,7 +408,7 @@ def get_club_players_for_match_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all players in the club for Playing XI selection"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -450,7 +450,7 @@ def set_playing_xi_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Set Playing XI for a match"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -494,7 +494,7 @@ def get_playing_xi_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get Playing XI for a match"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(

@@ -102,7 +102,7 @@ def get_my_enrollments_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all tournament enrollments for the current club manager"""
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(

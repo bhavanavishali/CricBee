@@ -28,8 +28,8 @@ class Tournament(Base):
     status = Column(String, nullable=False, default=TournamentStatus.PENDING_PAYMENT.value)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    is_blocked=Column(Boolean,default=False,nullable=False)
     
-
     organizer = relationship("User", back_populates="tournaments")
     plan = relationship("TournamentPricingPlan")
     details = relationship("TournamentDetails", back_populates="tournament", uselist=False, cascade="all, delete-orphan")

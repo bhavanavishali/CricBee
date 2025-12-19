@@ -12,7 +12,13 @@ import SignIn from "@/components/auth/Signin"
 import SignUp from "@/components/auth/Signup"
 import ForgotPassword from "@/components/auth/ForgotPassword"
 import ResetPassword from "@/components/auth/ResetPassword"
+import TournamentList from "@/pages/public/TournamentList"
+import TournamentDetail from "@/pages/public/TournamentDetail"
+import MatchScoreboard from "@/pages/public/MatchScoreboard"
+import LiveMatches from "@/pages/public/LiveMatches"
+import PublicHeader from "@/components/public/PublicHeader"
 import {useUserStatusCheck} from "@/api/useUserstatus";
+
 function App() {
   useUserStatusCheck();
 
@@ -20,8 +26,39 @@ function App() {
     <Router>
       <Routes>
 
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
+        {/* Public Routes with Header */}
+        <Route path="/" element={
+          <>
+            <PublicHeader />
+            <Home />
+          </>
+        } />
+        <Route path="/tournaments" element={
+          <>
+            <PublicHeader />
+            <TournamentList />
+          </>
+        } />
+        <Route path="/tournaments/:id" element={
+          <>
+            <PublicHeader />
+            <TournamentDetail />
+          </>
+        } />
+        <Route path="/matches/:id" element={
+          <>
+            <PublicHeader />
+            <MatchScoreboard />
+          </>
+        } />
+        <Route path="/live-matches" element={
+          <>
+            <PublicHeader />
+            <LiveMatches />
+          </>
+        } />
+        
+        {/* Auth Routes */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

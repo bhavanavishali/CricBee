@@ -27,7 +27,7 @@ from app.models.organizer.fixture import Match
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
 def build_match_response(match: Match) -> MatchResponse:
-    """Helper function to build MatchResponse from Match model"""
+  
     return MatchResponse(
         id=match.id,
         round_id=match.round_id,
@@ -59,7 +59,7 @@ def check_can_create_fixture(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Check if fixture can be created for a tournament"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -79,7 +79,7 @@ def create_round(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Create a fixture round"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -102,7 +102,7 @@ def get_rounds(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all rounds for a tournament"""
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -135,7 +135,7 @@ def create_match_endpoint(
     
     try:
         match = create_match(db, match_data, current_user.id)
-        # Reload with relationships
+        
         match = db.query(Match).options(
             joinedload(Match.team_a),
             joinedload(Match.team_b),
@@ -156,7 +156,7 @@ def get_matches_for_round(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all matches for a round"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -180,7 +180,7 @@ def get_matches_for_tournament(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all matches for a tournament"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -235,8 +235,7 @@ def get_published_matches_for_tournament(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all published matches for a tournament (public endpoint for clubs and others)"""
-    # This endpoint is accessible to any authenticated user
+   
     current_user = get_current_user(request, db)
     
     try:
@@ -255,8 +254,7 @@ def get_published_matches_for_round(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all published matches for a round (public endpoint for clubs and others)"""
-    # This endpoint is accessible to any authenticated user
+  
     current_user = get_current_user(request, db)
     
     try:

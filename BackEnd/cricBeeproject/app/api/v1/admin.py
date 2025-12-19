@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.admin import UserListItem, UserStatusUpdate
+from app.schemas.admin import UserListItem, UserStatusUpdate, UserListResponse
 from app.schemas.admin.plan_pricing import (
     TournamentPricingPlanCreate,
     TournamentPricingPlanUpdate,
@@ -20,20 +20,45 @@ from app.services.admin.plan_pricing import (
 )
 from app.services.admin.transaction_service import get_all_transactions, get_transactions_count, get_admin_wallet
 from app.utils.admin_dependencies import get_current_admin_user
-from typing import List
+from typing import List, Optional
+from app.services.admin.tournament_service import (
+    get_all_tournaments,
+    get_tournament_by_id,
+    update_tournament_block_status
+)
+from app.schemas.admin.tournament import TournamentListResponse,TournamentBlockUpdate
 
+from app.schemas.organizer.tournament import TournamentResponse
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 # User Management Endpoints
-@router.get("/users", response_model=List[UserListItem])
+@router.get("/users", response_model=UserListResponse)
 def list_all_users(
+    skip: int = 0,
+    limit: int = 50,
+    role: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-
-    users = get_all_users_except_admin(db)
-    return users
+    
+    users, total = get_all_users_except_admin(
+        db,
+        skip=skip,
+        limit=limit,
+        role_filter=role,
+        status_filter=status,
+        search=search
+    )
+    
+    return UserListResponse(
+        users=users,
+        total=total,
+        skip=skip,
+        limit=limit
+    )
 
 
 @router.patch("/users/{user_id}/status", response_model=UserListItem)
@@ -152,7 +177,7 @@ def get_wallet_balance(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """Get admin wallet balance"""
+   
     wallet = get_admin_wallet(db, current_admin.id)
     return AdminWalletResponse.model_validate(wallet)
 
@@ -164,7 +189,7 @@ def list_all_transactions(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """Get all transactions"""
+    
     transactions = get_all_transactions(db, skip=skip, limit=limit)
     total = get_transactions_count(db)
     
@@ -174,3 +199,55 @@ def list_all_transactions(
         skip=skip,
         limit=limit
     )
+
+
+
+# add this endpoins for tournamnet management
+
+@router.get("/tournaments", response_model=TournamentListResponse)
+def list_all_tournaments(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+
+    tournaments, total = get_all_tournaments(db, skip=skip, limit=limit)
+    
+    return TournamentListResponse(
+        tournaments=[TournamentResponse.model_validate(t) for t in tournaments],
+        total=total,
+        skip=skip,
+        limit=limit
+    )
+
+@router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
+def get_tournament_details(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+
+    tournament = get_tournament_by_id(db, tournament_id)
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tournament not found"
+        )
+    return TournamentResponse.model_validate(tournament)
+
+@router.patch("/tournaments/{tournament_id}/block", response_model=TournamentResponse)
+def block_unblock_tournament(
+    tournament_id: int,
+    payload: TournamentBlockUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+  
+    tournament = update_tournament_block_status(db, tournament_id, payload.is_blocked)
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tournament not found"
+        )
+    return TournamentResponse.model_validate(tournament)

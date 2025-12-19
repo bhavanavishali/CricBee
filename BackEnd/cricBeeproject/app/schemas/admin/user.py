@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from app.models.user import UserRole
 
@@ -20,4 +20,11 @@ class UserListItem(BaseModel):
 
 class UserStatusUpdate(BaseModel):
     is_active: bool
+
+
+class UserListResponse(BaseModel):
+    users: List[UserListItem]
+    total: int
+    skip: int
+    limit: int
 
