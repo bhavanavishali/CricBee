@@ -5,7 +5,7 @@ from sqlalchemy import func, or_
 from app.models.user import User, UserRole
 from app.models.organizer import OrganizationDetails
 from app.models.club import Club
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional
 from app.schemas.admin import UserListItem
 
 def get_all_users_except_admin(
@@ -15,30 +15,16 @@ def get_all_users_except_admin(
     role_filter: Optional[str] = None,
     status_filter: Optional[str] = None,
     search: Optional[str] = None
-) -> Tuple[List[UserListItem], int, Dict[str, int]]:
-    # Base query for stats (all non-admin users)
-    base_query = db.query(User).filter(User.role != UserRole.ADMIN)
-
-    total_users = base_query.count()
-    total_active = base_query.filter(User.is_active == True, User.is_verified == True).count()
-    total_inactive = base_query.filter(User.is_active == False).count()
-    total_organizers = base_query.filter(User.role == UserRole.ORGANIZER).count()
-    total_clubs = db.query(Club).count()
-
-    stats = {
-        "total_users": total_users,
-        "total_active": total_active,
-        "total_inactive": total_inactive,
-        "total_organizers": total_organizers,
-        "total_clubs": total_clubs,
-    }
-
-    # Query for paginated & filtered list
-    query = base_query.options(
+) -> Tuple[List[UserListItem], int]:
+   
+    query = db.query(User).options(
         joinedload(User.organization),
         joinedload(User.club)
+    ).filter(
+        User.role != UserRole.ADMIN
     )
-
+    
+   
     if search:
         search_term = f"%{search.lower()}%"
 
@@ -54,7 +40,8 @@ def get_all_users_except_admin(
                 func.lower(Club.club_name).like(search_term)
             )
         )
-
+    
+    # Apply role filter
     if role_filter:
         role_filter_lower = role_filter.lower()
         if role_filter_lower == "organizer":
@@ -65,7 +52,8 @@ def get_all_users_except_admin(
             query = query.filter(User.role == UserRole.PLAYER)
         elif role_filter_lower == "fan":
             query = query.filter(User.role == UserRole.FAN)
-
+    
+    # Apply status filter
     if status_filter:
         status_filter_lower = status_filter.lower()
         if status_filter_lower == "active":
@@ -74,11 +62,13 @@ def get_all_users_except_admin(
             query = query.filter(User.is_active == False)
         elif status_filter_lower == "pending":
             query = query.filter(User.is_verified == False)
-
+    
+    # Get total count before pagination
     total = query.count()
-
+    
+    # Apply pagination and ordering
     users = query.order_by(User.id.desc()).offset(skip).limit(limit).all()
-
+    
     result = []
     for user in users:
         user_dict = {
@@ -92,17 +82,17 @@ def get_all_users_except_admin(
             "organization_name": None,
             "club_name": None
         }
-
+        
         if (user.role == UserRole.ORGANIZER or str(user.role) == "Organizer") and user.organization:
             user_dict["organization_name"] = user.organization.organization_name
-
+        
         if (user.role == UserRole.CLUB_MANAGER or str(user.role) == "Club Manager") and user.club:
             user_dict["club_name"] = user.club.club_name
-
+        
         result.append(UserListItem(**user_dict))
+    
+    return result, total
 
-    return result, total, stats
-88
 
 def update_user_status(db: Session, user_id: int, is_active: bool) -> UserListItem | None:
    

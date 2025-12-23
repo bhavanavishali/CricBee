@@ -67,7 +67,8 @@ def get_all_tournaments(
             "status": tournament.status,
             "status_badge": status_badge,
             "is_verified": tournament.organizer.is_verified if tournament.organizer else False,
-            "is_premium": tournament.plan_id is not None
+            "is_premium": tournament.plan_id is not None,
+            "is_blocked": tournament.is_blocked
         })
     
     return result
@@ -143,6 +144,7 @@ def get_tournament_details(
         "organizer_name": organizer_name,
         "is_verified": is_verified,
         "is_premium": tournament.plan_id is not None,
+        "is_blocked": tournament.is_blocked,
         "location": tournament.details.location if tournament.details else None,
         "start_date": tournament.details.start_date.isoformat() if tournament.details and tournament.details.start_date else None,
         "end_date": tournament.details.end_date.isoformat() if tournament.details and tournament.details.end_date else None,

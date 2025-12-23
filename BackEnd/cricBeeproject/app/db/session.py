@@ -6,7 +6,15 @@ import os
 
 load_dotenv() 
 
-DATABASE_URL =  os.getenv("DATABASE_URL")
+# Use environment variable first, then fall back to settings
+DATABASE_URL = os.getenv("DATABASE_URL") or settings.DATABASE_URL
+if not DATABASE_URL or DATABASE_URL == "sqlite:///./app.db":
+    raise ValueError(
+        "DATABASE_URL is not properly configured. "
+        "Please set DATABASE_URL in your .env file with format: "
+        "postgresql://username:password@localhost:5432/database_name"
+    )
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

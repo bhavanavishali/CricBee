@@ -102,7 +102,7 @@ def get_all_users_except_admin(
         result.append(UserListItem(**user_dict))
 
     return result, total, stats
-88
+8
 
 def update_user_status(db: Session, user_id: int, is_active: bool) -> UserListItem | None:
    

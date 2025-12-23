@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
 import { getMyEnrollments } from '@/api/clubService';
-import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle, XCircle, Loader, Ban } from 'lucide-react';
 
 export default function MyEnrollments() {
   const navigate = useNavigate();
@@ -159,6 +159,11 @@ export default function MyEnrollments() {
                             </p>
                           </div>
                           <div className="flex flex-col items-end space-y-2">
+                            {enrollment.tournament?.is_blocked && (
+                              <span className="bg-red-100 text-red-800 border border-red-200 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                                <Ban size={12} /> Blocked
+                              </span>
+                            )}
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${tournamentStatus.color}`}>
                               {tournamentStatus.label}
                             </span>

@@ -73,6 +73,9 @@ def initiate_enrollment(
     if not tournament:
         raise ValueError("Tournament not found")
     
+    if tournament.is_blocked:
+        raise ValueError("This tournament has been blocked by the admin and is not available for enrollment")
+    
     if not tournament.details:
         raise ValueError("Tournament details not found")
     

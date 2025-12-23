@@ -40,8 +40,9 @@ export const getEnrolledClubs = async (tournamentId) => {
   return response.data;
 };
 
-export const getClubDetails = async (clubId) => {
-  const response = await api.get(`/tournaments/clubs/${clubId}/details`);
+export const getClubDetails = async (clubId, tournamentId = null) => {
+  const params = tournamentId ? { tournament_id: tournamentId } : {};
+  const response = await api.get(`/tournaments/clubs/${clubId}/details`, { params });
   return response.data;
 };
 

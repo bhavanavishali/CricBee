@@ -11,6 +11,10 @@ class TransactionResponse(BaseModel):
     amount: Decimal
     status: str
     tournament_id: Optional[int] = None
+    tournament_name: Optional[str] = None
+    tournament_status: Optional[str] = None
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
     razorpay_payment_id: Optional[str] = None
     razorpay_order_id: Optional[str] = None
     description: Optional[str] = None
@@ -34,3 +38,10 @@ class AdminWalletResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class FinancialStatsResponse(BaseModel):
+    total_revenue: float
+    total_debits: float
+    total_refunds: float
+    net_balance: float
+    total_transactions: int

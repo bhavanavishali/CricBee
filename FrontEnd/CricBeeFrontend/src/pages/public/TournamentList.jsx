@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Trophy, CheckCircle, Star } from 'lucide-react';
+import { Calendar, MapPin, Trophy, CheckCircle, Star, Ban } from 'lucide-react';
 import { getPublicTournaments } from '@/api/public';
 
 const TournamentList = () => {
@@ -120,7 +120,13 @@ const TournamentList = () => {
                   <h3 className="text-xl font-bold text-gray-900 flex-1">
                     {tournament.tournament_name}
                   </h3>
-                  <div className="flex gap-2 ml-2">
+                  <div className="flex gap-2 ml-2 items-center">
+                    {tournament.is_blocked && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                        <Ban className="w-3 h-3" />
+                        Blocked
+                      </span>
+                    )}
                     {tournament.is_verified && (
                       <CheckCircle className="h-5 w-5 text-blue-600" title="Verified" />
                     )}

@@ -190,3 +190,44 @@ export const updateTournamentBlockStatus = async (tournamentId, isBlocked) => {
     };
   }
 };
+
+export const getFinancialStats = async () => {
+  try {
+    const response = await api.get('/admin/financial/stats');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch financial statistics',
+    };
+  }
+};
+
+export const downloadFinancialReport = async (reportType, startDate = null, endDate = null) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('report_type', reportType);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const response = await api.get(`/admin/financial/report?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `financial_report_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to download financial report',
+    };
+  }
+};

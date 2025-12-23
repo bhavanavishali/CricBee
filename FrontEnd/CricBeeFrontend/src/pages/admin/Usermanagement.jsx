@@ -672,6 +672,7 @@ const UserManagement = () => {
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
+  const [stats, setStats] = useState(null);
   const limit = 20;
 
   // Debounce search to avoid too many API calls
@@ -705,6 +706,7 @@ const UserManagement = () => {
       if (result.success) {
         setUsers(result.data.users);
         setTotal(result.data.total);
+        setStats(result.data.stats || null);
       } else {
         setError(result.message);
       }
@@ -796,19 +798,6 @@ const UserManagement = () => {
         confirmButtonColor: "#ef4444",
       });
     }
-  };
-
-  // Calculate statistics from current page (for display only)
-  const stats = {
-    total: total,
-    pending: users.filter((u) => !u.is_verified).length,
-    active: users.filter((u) => u.is_active && u.is_verified).length,
-    suspended: users.filter((u) => !u.is_active).length,
-    organizers: users.filter((u) => u.role?.toLowerCase() === "organizer").length,
-    managers: users.filter(
-      (u) => u.role?.toLowerCase() === "club_manager" || u.role?.toLowerCase() === "manager"
-    ).length,
-    players: users.filter((u) => u.role?.toLowerCase() === "player").length,
   };
 
   // Format date
@@ -924,29 +913,31 @@ const UserManagement = () => {
 
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Statistics Cards - All in One Line (Responsive) */}
-          <div className="flex flex-wrap md:flex-nowrap gap-4 mb-8">
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Total Users</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+          {stats && (
+            <div className="flex flex-wrap md:flex-nowrap gap-4 mb-8">
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Users</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.total_users}</p>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Active Users</p>
+                <p className="text-2xl font-bold text-green-600">{stats.total_active}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Inactive Users</p>
+                <p className="text-2xl font-bold text-red-600">{stats.total_inactive}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Organizers</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.total_organizers}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Clubs</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.total_clubs}</p>
+              </div>
             </div>
-            
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Active</p>
-              <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Inactive</p>
-              <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Organizers</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.organizers}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Managers</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.clubmanager}</p>
-            </div>
-          </div>
+          )}
 
           {/* Search and Filters */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">

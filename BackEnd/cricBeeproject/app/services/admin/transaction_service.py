@@ -1,9 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.admin.transaction import AdminWallet, Transaction, TransactionType, TransactionStatus, TransactionDirection
 from app.models.user import User, UserRole
 from decimal import Decimal
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 import uuid
 
 def generate_transaction_id() -> str:
@@ -103,7 +103,11 @@ def add_to_admin_wallet(
 def get_all_transactions(db: Session, skip: int = 0, limit: int = 100):
    
     transactions = db.query(Transaction).filter(
-        Transaction.wallet_id.isnot(None)  # Only admin wallet transactions
+        Transaction.wallet_id.isnot(None)
+    ).options(
+        joinedload(Transaction.tournament),
+        joinedload(Transaction.organizer),
+        joinedload(Transaction.club_manager)
     ).order_by(
         Transaction.created_at.desc()
     ).offset(skip).limit(limit).all()
@@ -199,3 +203,53 @@ def refund_tournament_transactions(
     
     db.flush()
     return organizer_transaction, admin_transaction
+
+def get_financial_statistics(db: Session) -> Dict:
+    
+    transactions = db.query(Transaction).filter(
+        Transaction.wallet_id.isnot(None)
+    ).all()
+    
+    total_revenue = Decimal('0.00')
+    total_debits = Decimal('0.00')
+    total_refunds = Decimal('0.00')
+    
+    for transaction in transactions:
+        if transaction.status == TransactionStatus.REFUNDED.value:
+            total_refunds += transaction.amount
+        elif transaction.status == TransactionStatus.SUCCESS.value:
+            if transaction.transaction_direction == TransactionDirection.CREDIT.value:
+                total_revenue += transaction.amount
+            elif transaction.transaction_direction == TransactionDirection.DEBIT.value:
+                total_debits += transaction.amount
+    
+    net_balance = total_revenue - total_debits - total_refunds
+    
+    return {
+        "total_revenue": float(total_revenue),
+        "total_debits": float(total_debits),
+        "total_refunds": float(total_refunds),
+        "net_balance": float(net_balance),
+        "total_transactions": len(transactions)
+    }
+
+def get_transactions_by_date_range(
+    db: Session,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None
+) -> List[Transaction]:
+    
+    query = db.query(Transaction).filter(
+        Transaction.wallet_id.isnot(None)
+    ).options(
+        joinedload(Transaction.tournament),
+        joinedload(Transaction.organizer),
+        joinedload(Transaction.club_manager)
+    )
+    
+    if start_date:
+        query = query.filter(Transaction.created_at >= start_date)
+    if end_date:
+        query = query.filter(Transaction.created_at <= end_date)
+    
+    return query.order_by(Transaction.created_at.desc()).all()

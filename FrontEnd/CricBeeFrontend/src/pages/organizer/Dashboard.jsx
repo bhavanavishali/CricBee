@@ -124,21 +124,8 @@ export default function OrganizerDashboard() {
   };
 
   // Calculate stats
+  const totalTournaments = tournaments.length;
   const activeTournaments = tournaments.filter(t => t.status === 'tournament_start' || t.status === 'registration_open').length;
-  const enrolledClubsCount = tournaments.reduce((sum, t) => {
-    // This would need to be calculated from actual enrollment data
-    return sum;
-  }, 0);
-  const totalMatches = tournaments.reduce((sum, t) => {
-    // This would need to be calculated from actual match data
-    return sum;
-  }, 0);
-  const totalRevenue = tournaments.reduce((sum, t) => {
-    if (t.payment?.payment_status === 'success' && t.payment?.amount) {
-      return sum + parseFloat(t.payment.amount);
-    }
-    return sum;
-  }, 0);
 
   // Get recent tournaments (limit to 3)
   const recentTournaments = tournaments.slice(0, 3);
@@ -162,59 +149,31 @@ export default function OrganizerDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            {/* Total Tournaments */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Total Tournaments</p>
+                  <p className="text-4xl font-bold text-gray-900">{totalTournaments}</p>
+                  <p className="text-xs text-gray-600 mt-2">All time tournaments</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Trophy className="text-blue-600" size={24} />
+                </div>
+              </div>
+            </div>
+
             {/* Active Tournaments */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-600 text-sm mb-2">Active Tournaments</p>
                   <p className="text-4xl font-bold text-gray-900">{activeTournaments}</p>
-                  <p className="text-xs text-green-600 mt-2">↑ + 2 this month</p>
+                  <p className="text-xs text-green-600 mt-2">Currently running</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Trophy className="text-green-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Enrolled Clubs */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Enrolled Clubs</p>
-                  <p className="text-4xl font-bold text-gray-900">{enrolledClubsCount || 0}</p>
-                  <p className="text-xs text-gray-600 mt-2">👥 Across all tournaments</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="text-blue-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Total Matches */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Total Matches</p>
-                  <p className="text-4xl font-bold text-gray-900">{totalMatches || 0}</p>
-                  <p className="text-xs text-red-600 mt-2">↓ 24 this week</p>
-                </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Target className="text-orange-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Total Revenue */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Total Revenue</p>
-                  <p className="text-4xl font-bold text-gray-900">₹{totalRevenue.toLocaleString('en-IN')}</p>
-                  <p className="text-xs text-green-600 mt-2">↑ + 12.5% this month</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="text-green-600" size={24} />
+                  <Target className="text-green-600" size={24} />
                 </div>
               </div>
             </div>
@@ -281,7 +240,7 @@ export default function OrganizerDashboard() {
 
               {/* Match Management */}
               <div 
-                onClick={() => navigate('/organizer/manage-fixtures')}
+                onClick={() => navigate('/organizer/manage-matches')}
                 className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
               >
                 <div className="flex items-start gap-3">
@@ -289,8 +248,8 @@ export default function OrganizerDashboard() {
                     <BarChart3 className="text-gray-600" size={20} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Match Management</h3>
-                    <p className="text-xs text-gray-600">Monitor ongoing matches</p>
+                    <h3 className="font-semibold text-gray-900 text-sm">Manage Matches</h3>
+                    <p className="text-xs text-gray-600">View tournaments & matches</p>
                   </div>
                 </div>
               </div>

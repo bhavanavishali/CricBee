@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
-import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X } from 'lucide-react';
+import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X, Ban } from 'lucide-react';
 
 const TournamentList = () => {
   const navigate = useNavigate();
@@ -170,6 +170,11 @@ const TournamentList = () => {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
+                            {tournament.is_blocked && (
+                              <span className="bg-red-100 text-red-800 border border-red-200 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                                <Ban size={12} /> Blocked
+                              </span>
+                            )}
                             <span
                               className={`${statusInfo.color} text-white text-xs font-semibold px-3 py-1 rounded`}
                             >

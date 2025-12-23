@@ -84,3 +84,4 @@ wcwidth==0.2.14
 websockets==15.0.1
 whitenoise==6.11.0
 razorpay==1.4.1
+reportlab==4.0.7

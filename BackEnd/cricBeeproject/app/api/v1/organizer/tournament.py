@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import UserRole
@@ -208,7 +208,8 @@ def get_enrolled_clubs(
 def get_club_details(
     club_id: int,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    tournament_id: int = Query(None, description="Tournament ID to get Playing XI data")
 ):
     #Get club details (for organizers viewing enrolled clubs)
     current_user = get_current_user(request, db)
@@ -225,9 +226,71 @@ def get_club_details(
             detail="Club not found"
         )
     
+    # Get club players
+    from app.models.club_player import ClubPlayer
+    from app.models.player import PlayerProfile
+    from app.models.organizer.fixture import PlayingXI, Match
+    from sqlalchemy.orm import joinedload
+    
+    club_players = db.query(ClubPlayer).options(
+        joinedload(ClubPlayer.player).joinedload(PlayerProfile.user)
+    ).filter(
+        ClubPlayer.club_id == club_id
+    ).all()
+    
+    # Get Playing XI data for tournament matches if tournament_id is provided
+    playing_xi_data = {}
+    if tournament_id:
+        # Get all matches for this club in this tournament
+        playing_xis = db.query(PlayingXI).options(
+            joinedload(PlayingXI.match).joinedload(Match.team_a),
+            joinedload(PlayingXI.match).joinedload(Match.team_b)
+        ).join(
+            Match, PlayingXI.match_id == Match.id
+        ).filter(
+            PlayingXI.club_id == club_id,
+            Match.tournament_id == tournament_id
+        ).all()
+        
+        # Organize by player_id
+        for pxi in playing_xis:
+            if pxi.player_id not in playing_xi_data:
+                playing_xi_data[pxi.player_id] = []
+            
+            match_info = {
+                "match_id": pxi.match_id,
+                "match_number": pxi.match.match_number,
+                "team_a": pxi.match.team_a.club_name if pxi.match.team_a else "TBD",
+                "team_b": pxi.match.team_b.club_name if pxi.match.team_b else "TBD",
+                "match_date": pxi.match.match_date.isoformat() if pxi.match.match_date else None,
+                "match_status": pxi.match.match_status,
+                "is_captain": pxi.is_captain,
+                "is_vice_captain": pxi.is_vice_captain
+            }
+            playing_xi_data[pxi.player_id].append(match_info)
+    
+    # Format players data
+    players_data = []
+    for cp in club_players:
+        if cp.player and cp.player.user:
+            player_info = {
+                "id": cp.player.id,
+                "full_name": cp.player.user.full_name,
+                "email": cp.player.user.email,
+                "cricb_id": cp.player.cricb_id,
+                "role": "All-rounder",  # PlayerProfile doesn't have batting_style field
+                "jersey_number": cp.player.id,  # Use player ID as jersey number for now
+                "joined_at": cp.joined_at.isoformat() if cp.joined_at else None,
+                "playing_xi_matches": playing_xi_data.get(cp.player.id, []),
+                "total_matches_selected": len(playing_xi_data.get(cp.player.id, []))
+            }
+            players_data.append(player_info)
+    
     return {
         "club": ClubRead.model_validate(club),
-        "manager": UserRead.model_validate(club.manager)
+        "manager": UserRead.model_validate(club.manager),
+        "players": players_data,
+        "total_players": len(players_data)
     }
 
 @router.delete("/{tournament_id}/enrolled-clubs/{club_id}", response_model=dict)
