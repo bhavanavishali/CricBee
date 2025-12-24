@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
 import { getMyTransactions, getWalletBalance } from '@/api/organizer/tournament';
-import { DollarSign, Calendar, CheckCircle, XCircle, Clock, Wallet, ArrowLeft, RefreshCw } from 'lucide-react';
+import { DollarSign, Calendar, CheckCircle, XCircle, Clock, Wallet, ArrowLeft, RefreshCw, FileText } from 'lucide-react';
 
 export default function OrganizerTransactions() {
   const navigate = useNavigate();
@@ -127,13 +127,22 @@ export default function OrganizerTransactions() {
               <h1 className="text-2xl font-bold text-gray-900">All Transactions</h1>
               <p className="text-sm text-gray-600 mt-1">Track all your tournament payment transactions</p>
             </div>
-            <button
-              onClick={loadData}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <RefreshCw size={18} />
-              Refresh
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate('/organizer/finance-report')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FileText size={18} />
+                Finance Report
+              </button>
+              <button
+                onClick={loadData}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <RefreshCw size={18} />
+                Refresh
+              </button>
+            </div>
           </div>
 
           {loading ? (

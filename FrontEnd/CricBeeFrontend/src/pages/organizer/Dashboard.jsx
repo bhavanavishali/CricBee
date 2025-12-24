@@ -14,6 +14,7 @@ import {
   Bell,
   Settings,
   X,
+  FileText,
 } from "lucide-react"
 import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
@@ -282,6 +283,22 @@ export default function OrganizerDashboard() {
                   <div>
                     <h3 className="font-semibold text-gray-900 text-sm">View Payments</h3>
                     <p className="text-xs text-gray-600">Track financial transactions</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Finance Report */}
+              <div 
+                onClick={() => navigate('/organizer/finance-report')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">Finance Report</h3>
+                    <p className="text-xs text-gray-600">Download detailed reports</p>
                   </div>
                 </div>
               </div>

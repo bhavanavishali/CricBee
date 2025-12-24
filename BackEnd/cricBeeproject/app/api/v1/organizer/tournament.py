@@ -8,7 +8,9 @@ from app.schemas.organizer.tournament import (
     TournamentResponse,
     PaymentVerification,
     OrganizerTransactionResponse,
-    OrganizerWalletBalanceResponse
+    OrganizerWalletBalanceResponse,
+    FinanceReportRequest,
+    FinanceReportSummaryResponse
 )
 from app.schemas.clubmanager.enrollment import EnrolledClubResponse
 from app.services.clubmanager.enrollment import get_enrolled_clubs_for_tournament, remove_club_from_tournament_with_refund
@@ -21,7 +23,8 @@ from app.services.organizer.tournament_service import (
     get_organizer_tournaments,
     get_organizer_transactions,
     cancel_tournament,
-    get_organizer_wallet_balance
+    get_organizer_wallet_balance,
+    get_finance_report
 )
 from app.models.admin.transaction import Transaction
 from app.models.admin.plan_pricing import TournamentPricingPlan
@@ -313,6 +316,35 @@ def remove_club_from_tournament(
             db, tournament_id, club_id, current_user.id
         )
         return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/finance-report", response_model=FinanceReportSummaryResponse)
+def get_finance_report_endpoint(
+    report_request: FinanceReportRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get finance report with date filtering for organizer"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view finance reports"
+        )
+    
+    try:
+        report = get_finance_report(
+            db=db,
+            organizer_id=current_user.id,
+            filter_type=report_request.filter_type,
+            start_date=report_request.start_date,
+            end_date=report_request.end_date
+        )
+        return FinanceReportSummaryResponse(**report)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

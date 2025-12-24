@@ -14,6 +14,7 @@ import TournamentDetails from "@/pages/organizer/TournamentDetails"
 import TournamentFixtures from "@/pages/organizer/TournamentFixtures"
 import Toss from "@/pages/organizer/Toss"
 import LiveScoring from "@/pages/organizer/LiveScoring"
+import FinanceReport from "@/pages/organizer/FinanceReport"
 
 const OrganizerRoutes = () => {
   return (
@@ -23,6 +24,7 @@ const OrganizerRoutes = () => {
         <Route path="create-tournament" element={<OrganizerProtectedRoute><CreateTournament /></OrganizerProtectedRoute>} />
         <Route path="tournaments" element={<OrganizerProtectedRoute><TournamentList /></OrganizerProtectedRoute>} />
         <Route path="transactions" element={<OrganizerProtectedRoute><OrganizerTransactions /></OrganizerProtectedRoute>} />
+        <Route path="finance-report" element={<OrganizerProtectedRoute><FinanceReport /></OrganizerProtectedRoute>} />
         <Route path="tournament-enrollments" element={<OrganizerProtectedRoute><TournamentEnrollments /></OrganizerProtectedRoute>} />
         <Route path="tournaments/:tournamentId/enrolled-clubs" element={<OrganizerProtectedRoute><EnrolledClubs /></OrganizerProtectedRoute>} />
         <Route path="manage-fixtures" element={<OrganizerProtectedRoute><ManageFixtures /></OrganizerProtectedRoute>} />

@@ -50,3 +50,12 @@ export const removeClubFromTournament = async (tournamentId, clubId) => {
   const response = await api.delete(`/tournaments/${tournamentId}/enrolled-clubs/${clubId}`);
   return response.data;
 };
+
+export const getFinanceReport = async (filterType, startDate = null, endDate = null) => {
+  const response = await api.post('/tournaments/finance-report', {
+    filter_type: filterType,
+    start_date: startDate,
+    end_date: endDate
+  });
+  return response.data;
+};

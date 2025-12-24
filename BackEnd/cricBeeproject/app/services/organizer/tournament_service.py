@@ -367,3 +367,97 @@ def cancel_tournament(
     db.refresh(tournament)
     
     return TournamentResponse.model_validate(tournament)
+
+def get_finance_report(
+    db: Session,
+    organizer_id: int,
+    filter_type: str,
+    start_date: datetime = None,
+    end_date: datetime = None
+) -> dict:
+    """
+    Get finance report for organizer with date filtering
+    filter_type: 'weekly', 'monthly', 'yearly', 'custom'
+    """
+    from datetime import timedelta
+    from sqlalchemy import func, case
+    
+    # Calculate date range based on filter_type
+    now = datetime.now()
+    
+    if filter_type == 'weekly':
+        start_date = now - timedelta(days=7)
+        end_date = now
+    elif filter_type == 'monthly':
+        start_date = now - timedelta(days=30)
+        end_date = now
+    elif filter_type == 'yearly':
+        start_date = now - timedelta(days=365)
+        end_date = now
+    elif filter_type == 'custom':
+        if not start_date or not end_date:
+            raise ValueError("Start date and end date are required for custom filter")
+    else:
+        raise ValueError("Invalid filter type. Must be 'weekly', 'monthly', 'yearly', or 'custom'")
+    
+    # Query transactions with tournament details
+    transactions = (
+        db.query(
+            Transaction.transaction_id,
+            Transaction.tournament_id,
+            Tournament.tournament_name,
+            Transaction.amount,
+            Transaction.status,
+            Transaction.description,
+            Transaction.transaction_direction,
+            Transaction.transaction_type,
+            Transaction.created_at
+        )
+        .outerjoin(Tournament, Tournament.id == Transaction.tournament_id)
+        .filter(
+            Transaction.organizer_id == organizer_id,
+            Transaction.created_at >= start_date,
+            Transaction.created_at <= end_date
+        )
+        .order_by(Transaction.created_at.desc())
+        .all()
+    )
+    
+    # Calculate totals
+    total_revenue = Decimal('0.00')
+    total_debits = Decimal('0.00')
+    
+    for trans in transactions:
+        if trans.status == TransactionStatus.SUCCESS.value:
+            if trans.transaction_direction == TransactionDirection.CREDIT.value:
+                total_revenue += trans.amount
+            elif trans.transaction_direction == TransactionDirection.DEBIT.value:
+                total_debits += trans.amount
+    
+    net_balance = total_revenue - total_debits
+    
+    # Format transactions
+    from app.schemas.organizer.tournament import FinanceReportTransactionResponse
+    transaction_list = [
+        FinanceReportTransactionResponse(
+            transaction_id=trans.transaction_id,
+            tournament_id=trans.tournament_id,
+            tournament_name=trans.tournament_name or "N/A",
+            tournament_type=None,  # Not used - we display transaction_type instead
+            amount=trans.amount,
+            status=trans.status,
+            description=trans.description or "",
+            transaction_direction=trans.transaction_direction,
+            transaction_type=trans.transaction_type,
+            created_at=trans.created_at
+        )
+        for trans in transactions
+    ]
+    
+    return {
+        "total_revenue": total_revenue,
+        "total_debits": total_debits,
+        "net_balance": net_balance,
+        "total_transactions": len(transaction_list),
+        "transactions": transaction_list
+    }

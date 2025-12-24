@@ -18,6 +18,13 @@ class PaymentStatus(str, enum.Enum):
     FAILED = "failed"
     REFUNDED = "refunded"
 
+class TournamentType(str, enum.Enum):
+    T10 = "T10"
+    T20 = "T20"
+    ODI = "ODI"
+    TEST = "Test"
+    OTHER = "Other"
+
 class Tournament(Base):
     __tablename__ = "tournaments"
     
@@ -26,6 +33,7 @@ class Tournament(Base):
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan_id = Column(Integer, ForeignKey("tournament_pricing_plans.id"), nullable=False)
     status = Column(String, nullable=False, default=TournamentStatus.PENDING_PAYMENT.value)
+    tournament_type = Column(String, nullable=True)  # T10, T20, ODI, Test, Other
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     is_blocked=Column(Boolean,default=False,nullable=False)
