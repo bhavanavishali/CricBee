@@ -2,14 +2,16 @@ import { Route, Routes } from "react-router-dom";
 
 import { FanProtectedRoute } from "../components/ProtectedRoute";
 
-import PlayerDashboard from "@/pages/player/Dashboard"
+import FansDashboard from "@/pages/fans/Dashboard"
+import ExploreMatches from "@/pages/fans/ExploreMatches"
 
-const PlayerRoutes= () => {
+const FansRoutes = () => {
   return (
     <Routes>
-        <Route path="dashboard" element={<FanProtectedRoute><PlayerDashboard /></FanProtectedRoute>} />
+        <Route path="dashboard" element={<FanProtectedRoute><FansDashboard /></FanProtectedRoute>} />
+        <Route path="matches" element={<FanProtectedRoute><ExploreMatches /></FanProtectedRoute>} />
     </Routes>
   );
 };
 
-export default PlayerRoutes;
+export default FansRoutes;

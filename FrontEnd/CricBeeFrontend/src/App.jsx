@@ -16,6 +16,7 @@ import TournamentList from "@/pages/public/TournamentList"
 import TournamentDetail from "@/pages/public/TournamentDetail"
 import MatchScoreboard from "@/pages/public/MatchScoreboard"
 import LiveMatches from "@/pages/public/LiveMatches"
+import LiveWatch from "@/pages/public/LiveWatch"
 import PublicHeader from "@/components/public/PublicHeader"
 import {useUserStatusCheck} from "@/api/useUserstatus";
 
@@ -55,6 +56,18 @@ function App() {
           <>
             <PublicHeader />
             <LiveMatches />
+          </>
+        } />
+        <Route path="/watch-live/tournament/:id" element={
+          <>
+            <PublicHeader />
+            <LiveWatch />
+          </>
+        } />
+        <Route path="/watch-live/:id" element={
+          <>
+            <PublicHeader />
+            <LiveWatch />
           </>
         } />
         

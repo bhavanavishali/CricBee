@@ -33,7 +33,7 @@ class Tournament(Base):
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan_id = Column(Integer, ForeignKey("tournament_pricing_plans.id"), nullable=False)
     status = Column(String, nullable=False, default=TournamentStatus.PENDING_PAYMENT.value)
-    tournament_type = Column(String, nullable=True)  # T10, T20, ODI, Test, Other
+    # tournament_type = Column(String, nullable=True)  # T10, T20, ODI, Test, Other - TEMPORARILY COMMENTED: Column doesn't exist in DB yet. Run migration: alembic upgrade head
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     is_blocked=Column(Boolean,default=False,nullable=False)

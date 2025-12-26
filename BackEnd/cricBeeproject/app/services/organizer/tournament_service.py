@@ -82,77 +82,169 @@ def create_tournament_with_payment(
     tournament_data: TournamentCreate,
     organizer_id: int
 ) -> dict:
-
-    
-    # Verify plan exists and is active
-    plan = db.query(TournamentPricingPlan).filter(
-        TournamentPricingPlan.id == tournament_data.plan_id,
-        TournamentPricingPlan.status == "active"
-    ).first()
-    
-    if not plan:
-        raise ValueError("Invalid or inactive pricing plan")
-    
-    # Create tournament
-    tournament = Tournament(
-        tournament_name=tournament_data.tournament_name,
-        organizer_id=organizer_id,
-        plan_id=tournament_data.plan_id,
-        status=TournamentStatus.PENDING_PAYMENT.value
-    )
-    db.add(tournament)
-    db.flush()  
-    
-    # Create tournament details
-    details = TournamentDetails(
-        tournament_id=tournament.id,
-        overs=tournament_data.details.overs,
-        start_date=tournament_data.details.start_date,
-        end_date=tournament_data.details.end_date,
-        registration_start_date=tournament_data.details.registration_start_date,
-        registration_end_date=tournament_data.details.registration_end_date,
-        location=tournament_data.details.location,
-        venue_details=tournament_data.details.venue_details,
-        team_range=tournament_data.details.team_range,
-        is_public=tournament_data.details.is_public,
-        enrollment_fee=tournament_data.details.enrollment_fee
-    )
-    db.add(details)
-    
-    # Create payment record
-    payment = TournamentPayment(
-        tournament_id=tournament.id,
-        amount=plan.amount,
-        payment_status=PaymentStatus.PENDING.value
-    )
-    payment.transaction_id = generate_transaction_id()
-    db.add(payment)
-    db.flush()
-    
-    # Create Razorpay order
-    razorpay_order = create_razorpay_order(
-        amount=plan.amount,
-        receipt=f"tournament_{tournament.id}"
-    )
-    
-    # Update payment with order ID
-    payment.razorpay_order_id = razorpay_order["id"]
-    db.commit()
-    
-    # Refresh tournament with relationships
-    db.refresh(tournament)
-    db.refresh(details)
-    db.refresh(payment)
-    
-    return {
-        "tournament": TournamentResponse.model_validate(tournament),
-        "razorpay_order": {
-            "order_id": razorpay_order["id"],
-            "amount": float(plan.amount),
-            "currency": "INR",
-            "key": settings.razorpay_key_id
+    try:
+        # Verify organizer exists
+        organizer = db.query(User).filter(User.id == organizer_id).first()
+        if not organizer:
+            raise ValueError("Organizer not found. Please log in again.")
+        
+        # Verify plan exists and is active
+        plan = db.query(TournamentPricingPlan).filter(
+            TournamentPricingPlan.id == tournament_data.plan_id,
+            TournamentPricingPlan.status == "active"
+        ).first()
+        
+        if not plan:
+            raise ValueError("Invalid or inactive pricing plan. Please select a valid plan.")
+        
+        # Validate required fields
+        if not tournament_data.tournament_name or not tournament_data.tournament_name.strip():
+            raise ValueError("Tournament name is required")
+        
+        if not tournament_data.details:
+            raise ValueError("Tournament details are required")
+        
+        # Create tournament
+        tournament = Tournament(
+            tournament_name=tournament_data.tournament_name,
+            organizer_id=organizer_id,
+            plan_id=tournament_data.plan_id,
+            status=TournamentStatus.PENDING_PAYMENT.value
+        )
+        db.add(tournament)
+        db.flush()  
+        
+        # Create tournament details
+        details = TournamentDetails(
+            tournament_id=tournament.id,
+            overs=tournament_data.details.overs,
+            start_date=tournament_data.details.start_date,
+            end_date=tournament_data.details.end_date,
+            registration_start_date=tournament_data.details.registration_start_date,
+            registration_end_date=tournament_data.details.registration_end_date,
+            location=tournament_data.details.location,
+            venue_details=tournament_data.details.venue_details,
+            team_range=tournament_data.details.team_range,
+            is_public=tournament_data.details.is_public,
+            enrollment_fee=tournament_data.details.enrollment_fee
+        )
+        db.add(details)
+        
+        # Create payment record with unique transaction ID
+        max_attempts = 5
+        transaction_id = None
+        for attempt in range(max_attempts):
+            transaction_id = generate_transaction_id()
+            # Check if transaction_id already exists
+            existing = db.query(TournamentPayment).filter(
+                TournamentPayment.transaction_id == transaction_id
+            ).first()
+            if not existing:
+                break
+            if attempt == max_attempts - 1:
+                raise ValueError("Failed to generate unique transaction ID. Please try again.")
+        
+        payment = TournamentPayment(
+            tournament_id=tournament.id,
+            amount=plan.amount,
+            payment_status=PaymentStatus.PENDING.value,
+            transaction_id=transaction_id
+        )
+        db.add(payment)
+        db.flush()
+        
+        # Create Razorpay order
+        try:
+            razorpay_order = create_razorpay_order(
+                amount=plan.amount,
+                receipt=f"tournament_{tournament.id}"
+            )
+        except ValueError as e:
+            # Rollback database changes if Razorpay fails
+            db.rollback()
+            raise ValueError(f"Payment gateway error: {str(e)}")
+        
+        # Update payment with order ID (check for uniqueness)
+        razorpay_order_id = razorpay_order["id"]
+        existing_order = db.query(TournamentPayment).filter(
+            TournamentPayment.razorpay_order_id == razorpay_order_id
+        ).first()
+        if existing_order:
+            db.rollback()
+            raise ValueError("Payment order ID already exists. Please try again.")
+        
+        payment.razorpay_order_id = razorpay_order_id
+        db.commit()
+        
+        # Load tournament with all relationships for response
+        tournament_with_relations = db.query(Tournament).options(
+            joinedload(Tournament.details),
+            joinedload(Tournament.payment),
+            joinedload(Tournament.plan)
+        ).filter(Tournament.id == tournament.id).first()
+        
+        if not tournament_with_relations:
+            raise ValueError("Failed to load tournament after creation")
+        
+        # Validate and create response
+        try:
+            tournament_response = TournamentResponse.model_validate(tournament_with_relations)
+        except Exception as validation_error:
+            import logging
+            logging.error(f"TournamentResponse validation error: {str(validation_error)}")
+            logging.error(f"Tournament data: id={tournament_with_relations.id}, name={tournament_with_relations.tournament_name}")
+            logging.error(f"Has details: {tournament_with_relations.details is not None}")
+            logging.error(f"Has payment: {tournament_with_relations.payment is not None}")
+            raise ValueError(f"Failed to format tournament response: {str(validation_error)}")
+        
+        return {
+            "tournament": tournament_response,
+            "razorpay_order": {
+                "order_id": razorpay_order["id"],
+                "amount": float(plan.amount),
+                "currency": "INR",
+                "key": settings.razorpay_key_id or ""
+            }
         }
-    }
+    except ValueError:
+        # Re-raise ValueError as-is
+        raise
+    except Exception as e:
+        # Rollback on any unexpected error
+        db.rollback()
+        import logging
+        import traceback
+        error_str = str(e)
+        error_type = type(e).__name__
+        
+        logging.error(f"Unexpected error creating tournament - Type: {error_type}, Message: {error_str}")
+        logging.error(traceback.format_exc())
+        
+        # Handle PostgreSQL constraint violations specifically
+        if "psycopg2" in error_type.lower() or "IntegrityError" in error_type or "unique constraint" in error_str.lower():
+            if "transaction_id" in error_str.lower():
+                error_msg = "Transaction ID conflict. Please try again."
+            elif "tournament_id" in error_str.lower() and "tournament_payments" in error_str.lower():
+                error_msg = "A payment record already exists for this tournament."
+            elif "tournament_id" in error_str.lower() and "tournament_details" in error_str.lower():
+                error_msg = "Tournament details already exist. Please try again."
+            elif "razorpay_order_id" in error_str.lower():
+                error_msg = "Payment order ID conflict. Please try again."
+            elif "foreign key" in error_str.lower() or "violates foreign key constraint" in error_str.lower():
+                if "users.id" in error_str.lower():
+                    error_msg = "Invalid organizer ID. Please log in again."
+                elif "tournament_pricing_plans.id" in error_str.lower():
+                    error_msg = "Invalid pricing plan selected. Please choose a valid plan."
+                else:
+                    error_msg = "Database constraint violation. Please check your input data."
+            else:
+                error_msg = f"Database constraint error: {error_str[:200]}"
+        elif "not null constraint" in error_str.lower() or "null value" in error_str.lower():
+            error_msg = "Required field is missing. Please fill all required fields."
+        else:
+            error_msg = f"Failed to create tournament: {error_str[:200]}"
+        
+        raise ValueError(error_msg)
 def verify_and_complete_payment(
     db: Session,
     tournament_id: int,

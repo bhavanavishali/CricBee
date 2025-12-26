@@ -86,9 +86,36 @@ def create_tournament(
         result = create_tournament_with_payment(db, tournament_data, current_user.id)
         return result
     except ValueError as e:
+        # ValueError means a business logic error (validation, missing data, etc.)
+        error_msg = str(e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=error_msg
+        )
+    except Exception as e:
+        # Log the full error for debugging
+        import logging
+        import traceback
+        error_trace = traceback.format_exc()
+        error_type = type(e).__name__
+        error_message = str(e)
+        
+        logging.error(f"Error creating tournament - Type: {error_type}, Message: {error_message}")
+        logging.error(f"Full traceback:\n{error_trace}")
+        
+        # Provide more helpful error message based on error type
+        if "Razorpay" in error_message or "razorpay" in error_message.lower() or "payment gateway" in error_message.lower():
+            error_detail = "Payment gateway error. Please ensure Razorpay credentials are configured correctly."
+        elif "database" in error_message.lower() or "sql" in error_message.lower() or "sqlalchemy" in error_type.lower():
+            error_detail = "Database error occurred. Please try again or contact support."
+        elif "validation" in error_message.lower() or "pydantic" in error_type.lower():
+            error_detail = f"Validation error: {error_message}"
+        else:
+            error_detail = f"Failed to create tournament: {error_message}"
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_detail
         )
 
 @router.post("/verify-payment", response_model=TournamentResponse)

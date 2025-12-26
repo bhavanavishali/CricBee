@@ -27,8 +27,8 @@ class Settings(BaseSettings):
         cors_origins: str = ""
         frontend_url: str = "http://localhost:5173"
 
-        razorpay_key_id: str
-        razorpay_key_secret: str
+        razorpay_key_id: str | None = None
+        razorpay_key_secret: str | None = None
         
         model_config = {
             "env_file": ".env" }

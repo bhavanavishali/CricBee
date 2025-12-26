@@ -14,6 +14,7 @@ from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
 from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatchStats
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
+from app.models.chat import ChatMessage
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
@@ -26,6 +27,7 @@ from app.api.v1.organizer.fixture import router as fixture_router
 from app.api.v1.organizer.match_score import router as match_score_router
 from app.api.v1.public import router as public_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.chat import router as chat_router
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -34,7 +36,18 @@ import os
 
 load_dotenv()
 
-origins = os.getenv("CORS_ORIGINS", "").split(",")
+# Get CORS origins from environment variable, default to localhost:5173 for development
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if cors_origins_env:
+    origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # Default to common development origins
+    origins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000"
+    ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,6 +68,7 @@ app.include_router(tournament_router)
 app.include_router(fixture_router)
 app.include_router(match_score_router)
 app.include_router(public_router)
+app.include_router(chat_router)
 
 
 @app.get("/health")
