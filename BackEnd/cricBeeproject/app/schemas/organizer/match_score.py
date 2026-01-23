@@ -134,6 +134,9 @@ class LiveScoreboardResponse(BaseModel):
     current_ball: Optional[int] = None
     max_overs: Optional[int] = None
     needs_bowler_selection: Optional[bool] = False  # True if over just completed
+    innings_number: Optional[int] = 1  # 1 for first innings, 2 for second innings
+    target: Optional[int] = None  # Target score for second innings
+    total_overs: Optional[Decimal] = None  # Total overs in match format
 
 # Update Score Request
 class UpdateScoreRequest(BaseModel):

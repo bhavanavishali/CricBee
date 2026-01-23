@@ -19,6 +19,10 @@ const ManageFixtures = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6);
 
+  // Fixture type selection modal
+  const [showFixtureTypeModal, setShowFixtureTypeModal] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState(null);
+
   useEffect(() => {
     loadTournaments();
   }, []);
@@ -74,10 +78,23 @@ const ManageFixtures = () => {
   const handleManageFixture = (tournament) => {
     const status = fixtureStatus[tournament.id];
     if (status?.can_create) {
-      navigate(`/organizer/tournaments/${tournament.id}/fixtures`);
+      setSelectedTournament(tournament);
+      setShowFixtureTypeModal(true);
     } else {
       alert(status?.message || 'Fixture creation is not available for this tournament');
     }
+  };
+
+  const handleFixtureTypeSelection = (fixtureType) => {
+    if (!selectedTournament) return;
+    
+    if (fixtureType === 'manual') {
+      navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures`);
+    } else if (fixtureType === 'league') {
+      navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures?type=league`);
+    }
+    setShowFixtureTypeModal(false);
+    setSelectedTournament(null);
   };
 
   // Filter tournaments based on search query and status
@@ -370,6 +387,46 @@ const ManageFixtures = () => {
           </>
           )}
         </div>
+
+        {/* Fixture Type Selection Modal */}
+        {showFixtureTypeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Fixture Type</h2>
+              <p className="text-gray-600 mb-6">
+                Choose how you want to generate fixtures for <strong>{selectedTournament?.tournament_name}</strong>
+              </p>
+              
+              <div className="space-y-4">
+                <button
+                  onClick={() => handleFixtureTypeSelection('manual')}
+                  className="w-full bg-blue-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-left"
+                >
+                  <div className="font-bold text-lg mb-1">Manual Fixture Generation</div>
+                  <div className="text-sm opacity-90">Create rounds and matches manually with full control</div>
+                </button>
+                
+                <button
+                  onClick={() => handleFixtureTypeSelection('league')}
+                  className="w-full bg-green-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-left"
+                >
+                  <div className="font-bold text-lg mb-1">League Fixture Generation</div>
+                  <div className="text-sm opacity-90">Automated 3-round structure: League → Playoffs → Final</div>
+                </button>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setShowFixtureTypeModal(false);
+                  setSelectedTournament(null);
+                }}
+                className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

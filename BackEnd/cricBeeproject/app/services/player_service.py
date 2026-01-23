@@ -1,9 +1,11 @@
 # app/services/player_service.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.player import PlayerProfile
 from app.models.user import User
+from app.models.club_player import ClubPlayer
 from app.schemas.player import PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse
 from app.schemas.user import UserRead
+from app.schemas.club_manager import ClubRead
 from fastapi import UploadFile
 from app.services.s3_service import upload_file_to_s3
 from app.core.config import settings
@@ -71,3 +73,43 @@ def update_player_profile_photo(
     db.commit()
     db.refresh(user)
     return user
+
+def get_player_current_club(db: Session, user_id: int):
+    """Get the current club of a player"""
+    player_profile = db.query(PlayerProfile).filter(PlayerProfile.user_id == user_id).first()
+    if not player_profile:
+        raise ValueError("Player profile not found")
+    
+    club_player = db.query(ClubPlayer).options(
+        joinedload(ClubPlayer.club)
+    ).filter(ClubPlayer.player_id == player_profile.id).first()
+    
+    if not club_player:
+        return None
+    
+    return {
+        "club": club_player.club,
+        "joined_at": club_player.joined_at
+    }
+
+def leave_club(db: Session, user_id: int):
+    """Remove player from their current club"""
+    player_profile = db.query(PlayerProfile).filter(PlayerProfile.user_id == user_id).first()
+    if not player_profile:
+        raise ValueError("Player profile not found")
+    
+    club_player = db.query(ClubPlayer).filter(ClubPlayer.player_id == player_profile.id).first()
+    if not club_player:
+        raise ValueError("Player is not a member of any club")
+    
+    # Get club before deletion to update player count
+    club = club_player.club
+    
+    # Remove player from club
+    db.delete(club_player)
+    
+    # Update club player count
+    club.no_of_players = max(0, db.query(ClubPlayer).filter(ClubPlayer.club_id == club.id).count())
+    
+    db.commit()
+    return True

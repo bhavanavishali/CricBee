@@ -22,7 +22,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { getPlayerProfile, createPlayerProfile, updatePlayerProfile, uploadProfilePhoto, changePassword } from '@/api/playerService';
+import { getPlayerProfile, createPlayerProfile, updatePlayerProfile, uploadProfilePhoto, changePassword, getCurrentClub, leaveClub } from '@/api/playerService';
 import Swal from 'sweetalert2'; 
 
 const PlayerProfile = () => {
@@ -31,6 +31,8 @@ const PlayerProfile = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [currentClub, setCurrentClub] = useState(null);
+  const [leavingClub, setLeavingClub] = useState(false);
   const [formData, setFormData] = useState({
     age: '',
     address: ''
@@ -54,7 +56,15 @@ const PlayerProfile = () => {
 
   useEffect(() => {
     fetchProfile();
+    fetchCurrentClub();
   }, []);
+
+  const fetchCurrentClub = async () => {
+    const result = await getCurrentClub();
+    if (result.success) {
+      setCurrentClub(result.data.club);
+    }
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -266,6 +276,52 @@ const PlayerProfile = () => {
       });
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const handleLeaveClub = async () => {
+    const result = await Swal.fire({
+      title: 'Leave Club?',
+      text: `Are you sure you want to leave "${currentClub?.club_name}"? You will need an invitation to join again.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, leave club',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    setLeavingClub(true);
+    try {
+      const leaveResult = await leaveClub();
+      if (leaveResult.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Club Left',
+          text: leaveResult.message,
+          confirmButtonColor: '#10b981',
+          timer: 2000,
+        });
+        setCurrentClub(null);
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed to Leave Club',
+          text: leaveResult.message,
+          confirmButtonColor: '#10b981',
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to leave club. Please try again.',
+        confirmButtonColor: '#10b981',
+      });
+    } finally {
+      setLeavingClub(false);
     }
   };
 
@@ -564,6 +620,56 @@ const PlayerProfile = () => {
             </div>
           )}
         </div>
+
+        {/* Club Information Section */}
+        {hasProfile && (
+          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Shield size={20} />
+              Club Information
+            </h3>
+            {currentClub ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold">
+                      {currentClub.club_name?.charAt(0)?.toUpperCase() || 'C'}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{currentClub.club_name}</h4>
+                      <p className="text-sm text-gray-600">Member since {new Date().toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLeaveClub}
+                    disabled={leavingClub}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    {leavingClub ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Leaving...
+                      </>
+                    ) : (
+                      <>
+                        <X size={16} />
+                        Leave Club
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield size={32} className="text-gray-400" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Not in a Club</h4>
+                <p className="text-gray-600">You are not currently a member of any club. Wait for club invitations to join.</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Change Password Section */}
         <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">

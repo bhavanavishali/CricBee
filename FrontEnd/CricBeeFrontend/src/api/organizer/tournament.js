@@ -25,8 +25,8 @@ export const getMyTransactions = async () => {
   return response.data;
 };
 
-export const cancelTournament = async (tournamentId) => {
-  const response = await api.post(`/tournaments/${tournamentId}/cancel`);
+export const cancelTournament = async (tournamentId, notificationData) => {
+  const response = await api.post(`/tournaments/${tournamentId}/cancel`, notificationData);
   return response.data;
 };
 

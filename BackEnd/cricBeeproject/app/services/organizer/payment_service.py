@@ -6,7 +6,7 @@ from app.core.config import settings
 
 # Initialize Razorpay client lazily to handle missing credentials gracefully
 def get_razorpay_client():
-    """Get Razorpay client, raising error if credentials are missing"""
+    #Get Razorpay client, raising error if credentials are missing
     if not settings.razorpay_key_id or not settings.razorpay_key_secret:
         raise ValueError("Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.")
     return razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret))

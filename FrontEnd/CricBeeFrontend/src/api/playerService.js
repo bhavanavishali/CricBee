@@ -151,3 +151,35 @@ export const rejectInvitation = async (invitationId) => {
     };
   }
 };
+
+export const getCurrentClub = async () => {
+  try {
+    const response = await api.get(`/player-profile/current-club`);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Get current club error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to fetch current club",
+    };
+  }
+};
+
+export const leaveClub = async () => {
+  try {
+    const response = await api.post(`/player-profile/leave-club`);
+    return {
+      success: true,
+      message: response.data.message || "Successfully left club",
+    };
+  } catch (error) {
+    console.error("Leave club error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to leave club",
+    };
+  }
+};

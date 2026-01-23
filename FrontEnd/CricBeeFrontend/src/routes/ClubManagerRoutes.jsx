@@ -9,6 +9,8 @@ import EnrollTournament from "@/pages/clubmanager/EnrollTournament"
 import MyFixtures from "@/pages/clubmanager/MyFixtures"
 import PlayingXISelection from "@/pages/clubmanager/PlayingXISelection"
 import MyEnrollments from "@/pages/clubmanager/MyEnrollments"
+import PlayersPage from "@/pages/clubmanager/Players"
+import PaymentsPage from "@/pages/clubmanager/Payments"
 
 const ClubManagerRoutes = () => {
   return (
@@ -20,6 +22,8 @@ const ClubManagerRoutes = () => {
             <Route path="enrollments" element={<ClubManagerProtectedRoute><MyEnrollments /></ClubManagerProtectedRoute>} />
             <Route path="fixtures" element={<ClubManagerProtectedRoute><MyFixtures /></ClubManagerProtectedRoute>} />
             <Route path="fixtures/:matchId/playing-xi" element={<ClubManagerProtectedRoute><PlayingXISelection /></ClubManagerProtectedRoute>} />
+            <Route path="players" element={<ClubManagerProtectedRoute><PlayersPage /></ClubManagerProtectedRoute>} />
+            <Route path="payments" element={<ClubManagerProtectedRoute><PaymentsPage /></ClubManagerProtectedRoute>} />
     </Routes>
   );
 };

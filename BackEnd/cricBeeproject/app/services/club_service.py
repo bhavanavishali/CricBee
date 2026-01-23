@@ -1,6 +1,7 @@
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from fastapi import UploadFile
 from datetime import datetime
 from app.models.club import Club
@@ -8,16 +9,18 @@ from app.models.user import User, UserRole
 from app.models.player import PlayerProfile
 from app.models.club_player import ClubPlayer
 from app.models.club_player_invitation import ClubPlayerInvitation, InvitationStatus
+from app.models.admin.transaction import Transaction
 from app.schemas.club_manager import ClubCreate, ClubUpdate, ClubRead, ClubProfileResponse
 from app.schemas.user import UserRead
 from app.services.s3_service import upload_file_to_s3
 from app.core.config import settings
+from app.utils.hashing import hash_password
 
 def get_club(db: Session, user_id: int) -> Club | None:
     return db.query(Club).filter(Club.manager_id == user_id).first()
 
 def get_club_by_id(db: Session, club_id: int) -> Club | None:
-    """Get club by ID (for organizers/admins to view club details)"""
+    #Get club by ID (for organizers/admins to view club details)"""
     return db.query(Club).options(
         joinedload(Club.manager)
     ).filter(Club.id == club_id).first()
@@ -159,9 +162,21 @@ def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -
     if not player_profile:
         raise ValueError("Player not found with this CricB ID")
    
+    # Check if player is already in ANY club
+    existing_club_player = db.query(ClubPlayer).options(
+        joinedload(ClubPlayer.club)
+    ).filter(ClubPlayer.player_id == player_profile.id).first()
+    
+    current_club = None
+    is_already_in_any_club = existing_club_player is not None
+    
+    if is_already_in_any_club:
+        current_club = existing_club_player.club
+    
     is_already_in_club = False
     has_pending_invitation = False
     if club_id:
+        # Check if player is already in this specific club
         existing = db.query(ClubPlayer).filter(
             ClubPlayer.club_id == club_id,
             ClubPlayer.player_id == player_profile.id
@@ -180,11 +195,13 @@ def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -
         "player_profile": player_profile,
         "user": player_profile.user,
         "is_already_in_club": is_already_in_club,
+        "is_already_in_any_club": is_already_in_any_club,
+        "current_club": current_club,
         "has_pending_invitation": has_pending_invitation
     }
 
 def invite_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayerInvitation:
-    """Create a pending invitation for a player to join a club"""
+    #Create a pending invitation for a player to join a club
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -226,7 +243,7 @@ def invite_player_to_club(db: Session, club_id: int, player_id: int, manager_id:
     return invitation
 
 def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayer:
-    """Add player to club (used after invitation acceptance)"""
+    #Add player to club (used after invitation acceptance)
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -288,7 +305,7 @@ def accept_club_invitation(db: Session, invitation_id: int, player_user_id: int)
     return club_player
 
 def reject_club_invitation(db: Session, invitation_id: int, player_user_id: int) -> ClubPlayerInvitation:
-    """Reject a club invitation"""
+    #Reject a club invitation
     invitation = db.query(ClubPlayerInvitation).options(
         joinedload(ClubPlayerInvitation.player).joinedload(PlayerProfile.user)
     ).filter(ClubPlayerInvitation.id == invitation_id).first()
@@ -386,3 +403,152 @@ def remove_player_from_club(db: Session, club_id: int, player_id: int, manager_i
     
     db.commit()
     return True
+
+
+def get_dashboard_stats(db: Session, user_id: int) -> dict:
+    """Get dashboard statistics for club manager"""
+    club = get_club(db, user_id)
+    if not club:
+        raise ValueError("Club not found")
+    
+    # Get player count
+    player_count = db.query(ClubPlayer).filter(ClubPlayer.club_id == club.id).count()
+    
+    # Get enrolled tournaments count
+    from app.models.organizer.tournament import TournamentEnrollment
+    tournament_count = db.query(TournamentEnrollment).filter(TournamentEnrollment.club_id == club.id).count()
+    
+    return {
+        "player_count": player_count,
+        "tournament_count": tournament_count,
+        "club_id": club.id
+    }
+
+def get_club_manager_transactions(db: Session, club_manager_id: int) -> list:
+    """Get all transactions for a club manager"""
+    transactions = db.query(Transaction).filter(
+        Transaction.club_manager_id == club_manager_id
+    ).order_by(Transaction.created_at.desc()).all()
+    return transactions
+
+def get_club_manager_wallet_balance(db: Session, club_manager_id: int) -> float:
+    """Calculate wallet balance for a club manager from transactions"""
+    from app.models.admin.transaction import TransactionDirection, TransactionStatus
+    
+    # All credit transactions (refunds, payments to club manager) add to wallet balance
+    # Include both SUCCESS and REFUNDED status for credit transactions
+    credit_total = db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
+        Transaction.club_manager_id == club_manager_id,
+        Transaction.transaction_direction == TransactionDirection.CREDIT.value,
+        Transaction.status.in_([TransactionStatus.SUCCESS.value, TransactionStatus.REFUNDED.value])
+    ).scalar() or 0
+    
+    return float(credit_total)
+
+def generate_cricb_id(db: Session) -> str:
+    """Generate a unique CricB ID"""
+    # Get the highest existing numeric ID
+    from app.models.player import PlayerProfile
+    
+    last_player = db.query(PlayerProfile).filter(
+        PlayerProfile.cricb_id.like('CRICB%')
+    ).order_by(PlayerProfile.cricb_id.desc()).first()
+    
+    if last_player and last_player.cricb_id:
+        # Extract numeric part and increment
+        try:
+            numeric_part = int(last_player.cricb_id[5:])  # Remove 'CRICB' prefix
+            new_number = numeric_part + 1
+        except ValueError:
+            new_number = 1
+    else:
+        new_number = 1
+    
+    return f"CRICB{new_number:06d}"
+
+def create_new_player(db: Session, club_id: int, player_data: dict, manager_id: int) -> dict:
+    """Create a new player and automatically link them to the club"""
+    
+    # Verify club ownership
+    club = get_club(db, manager_id)
+    if not club or club.id != club_id:
+        raise ValueError("Club not found or access denied")
+    
+    # Check if email already exists
+    existing_user_email = db.query(User).filter(User.email == player_data['email']).first()
+    if existing_user_email:
+        raise ValueError("A user with this email already exists")
+    
+    # Check if phone already exists
+    existing_user_phone = db.query(User).filter(User.phone == player_data['phone']).first()
+    if existing_user_phone:
+        raise ValueError("A user with this phone number already exists")
+    
+    # Generate dummy password and hash it
+    dummy_password = "TempPassword123!"
+    hashed_password = hash_password(dummy_password)
+    
+    try:
+        # Create User
+        user = User(
+            full_name=player_data['full_name'],
+            email=player_data['email'],
+            phone=player_data['phone'],
+            hashed_password=hashed_password,  # Using the hashed password
+            role=UserRole.PLAYER,
+            is_active=True,
+            is_superuser=False,
+            is_verified=True
+        )
+        db.add(user)
+        db.flush()  # Get the user ID without committing
+        
+        # Generate CricB ID
+        cricb_id = generate_cricb_id(db)
+        
+        # Create Player Profile
+        player_profile = PlayerProfile(
+            user_id=user.id,
+            age=player_data['age'],
+            address=player_data['address'],
+            cricb_id=cricb_id
+        )
+        db.add(player_profile)
+        db.flush()  # Get the player profile ID
+        
+        # Create Club Player relationship (automatically link to club)
+        club_player = ClubPlayer(
+            club_id=club_id,
+            player_id=player_profile.id
+        )
+        db.add(club_player)
+        
+        # Update club's player count
+        club.no_of_players = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count()
+        
+        db.commit()
+        
+        # Refresh objects to get updated data
+        db.refresh(user)
+        db.refresh(player_profile)
+        db.refresh(club_player)
+        
+        return {
+            "user": user,
+            "player_profile": player_profile,
+            "club_player": club_player,
+            "message": f"Player {player_data['full_name']} created successfully with CricB ID: {cricb_id}"
+        }
+        
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+        if 'email' in error_msg.lower():
+            raise ValueError("A user with this email already exists")
+        elif 'phone' in error_msg.lower():
+            raise ValueError("A user with this phone number already exists")
+        else:
+            raise ValueError("Failed to create player due to a database constraint violation")
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Failed to create player: {str(e)}")

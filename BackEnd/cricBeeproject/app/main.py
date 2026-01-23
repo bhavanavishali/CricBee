@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from app.db.base import Base
 from app.db.session import engine
+from app.core.celery_app import celery_app
 
 from app.models.player import PlayerProfile  
 from app.models.club import Club  
@@ -15,6 +16,7 @@ from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatch
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import AdminWallet, Transaction
 from app.models.chat import ChatMessage
+from app.models.notification import Notification
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
@@ -26,6 +28,7 @@ from app.api.v1.organizer.tournament import router as tournament_router
 from app.api.v1.organizer.fixture import router as fixture_router
 from app.api.v1.organizer.match_score import router as match_score_router
 from app.api.v1.public import router as public_router
+from app.api.v1.notifications import router as notification_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.chat import router as chat_router
 
@@ -69,6 +72,7 @@ app.include_router(fixture_router)
 app.include_router(match_score_router)
 app.include_router(public_router)
 app.include_router(chat_router)
+app.include_router(notification_router, prefix="/api/v1")
 
 
 @app.get("/health")

@@ -25,6 +25,8 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
       setPlayerData(result.data);
       if (result.data.is_already_in_club) {
         setError('This player is already in your club');
+      } else if (result.data.is_already_in_any_club) {
+        setError(`Player is already a member of "${result.data.current_club?.club_name}". Players cannot be members of multiple clubs.`);
       } else if (result.data.has_pending_invitation) {
         setError('A pending invitation already exists for this player');
       }
@@ -36,7 +38,7 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
   };
 
   const handleInvitePlayer = async () => {
-    if (!playerData || playerData.is_already_in_club || playerData.has_pending_invitation) return;
+    if (!playerData || playerData.is_already_in_club || playerData.is_already_in_any_club || playerData.has_pending_invitation) return;
 
     setAdding(true);
     setError(null);
@@ -120,7 +122,12 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
             <div className="bg-gray-50 rounded-lg p-6 space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-gray-800">Player Details</h3>
-                {playerData.is_already_in_club ? (
+                {playerData.is_already_in_any_club ? (
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
+                    <AlertCircle size={16} />
+                    Player Already in a Club
+                  </span>
+                ) : playerData.is_already_in_club ? (
                   <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
                     <AlertCircle size={16} />
                     Already in Club
@@ -133,7 +140,7 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
                 ) : (
                   <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
                     <CheckCircle size={16} />
-                    Available
+                    Player is Available
                   </span>
                 )}
               </div>
@@ -186,6 +193,16 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
                     <p className="font-medium text-gray-800">{playerData.player_profile.address}</p>
                   </div>
                 </div>
+
+                {playerData.is_already_in_any_club && playerData.current_club && (
+                  <div className="flex items-center gap-3">
+                    <div className="text-gray-400 font-bold">C</div>
+                    <div>
+                      <p className="text-sm text-gray-500">Current Club</p>
+                      <p className="font-medium text-gray-800">{playerData.current_club.club_name}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && playerData && (
@@ -204,7 +221,7 @@ const AddPlayerModal = ({ isOpen, onClose, clubId, onPlayerAdded }) => {
                 </button>
                 <button
                   onClick={handleInvitePlayer}
-                  disabled={adding || playerData.is_already_in_club || playerData.has_pending_invitation}
+                  disabled={adding || playerData.is_already_in_club || playerData.is_already_in_any_club || playerData.has_pending_invitation}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {adding ? (

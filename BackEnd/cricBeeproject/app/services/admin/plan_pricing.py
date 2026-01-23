@@ -33,12 +33,12 @@ def get_all_tournament_pricing_plans(db: Session) -> List[TournamentPricingPlanR
     
     results = []
     for plan in plans:
-        # Count tournaments associated with this plan
+        
         tournament_count = db.query(func.count(Tournament.id)).filter(
             Tournament.plan_id == plan.id
         ).scalar()
         
-        # Calculate revenue (sum of successful payments for tournaments using this plan)
+        
         revenue = db.query(func.sum(TournamentPayment.amount)).join(
             Tournament, TournamentPayment.tournament_id == Tournament.id
         ).filter(
@@ -46,9 +46,7 @@ def get_all_tournament_pricing_plans(db: Session) -> List[TournamentPricingPlanR
             TournamentPayment.payment_status == PaymentStatus.SUCCESS
         ).scalar() or 0
         
-        # Attach calculated stats to the plan object
-        # We can set these attributes on the ORM instance, Pydantic will pick them up
-        # because of from_attributes=True
+       
         setattr(plan, 'tournaments', tournament_count)
         setattr(plan, 'revenue', revenue)
         

@@ -26,7 +26,8 @@ from app.services.organizer.match_score_service import (
     get_available_bowlers,
     validate_bowler_selection,
     set_opening_batsmen,
-    set_initial_bowler
+    set_initial_bowler,
+    get_match_winner
 )
 from app.models.organizer.fixture import Match
 from app.models.organizer.tournament import Tournament
@@ -40,7 +41,7 @@ def update_toss_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Update toss result for a match (organizer only)"""
+    #Update toss result for a match (organizer only)
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -73,7 +74,7 @@ def start_match_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Start a match - initialize scoreboard (organizer only)"""
+    #Start a match - initialize scoreboard (organizer only)
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -101,7 +102,7 @@ def update_score_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Update score for a ball (organizer only)"""
+    #Update score for a ball (organizer only)
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -138,7 +139,7 @@ def get_scoreboard_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get live scoreboard for a match (public endpoint)"""
+    #Get live scoreboard for a match (public endpoint)
     # Verify user is authenticated
     current_user = get_current_user(request, db)
     
@@ -151,13 +152,29 @@ def get_scoreboard_endpoint(
             detail=str(e)
         )
 
+@router.get("/{match_id}/winner", status_code=status.HTTP_200_OK)
+def get_match_winner_endpoint(
+    match_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get match winner (public endpoint)"""
+    try:
+        result = get_match_winner(db, match_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
 @router.post("/{match_id}/end-innings", status_code=status.HTTP_200_OK)
 def end_innings_endpoint(
     match_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """End the current innings (organizer only)"""
+    #End the current innings (organizer only)
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -185,7 +202,7 @@ def get_available_batsmen_endpoint(
     team_id: int = Query(..., description="Team ID"),
     db: Session = Depends(get_db)
 ):
-    """Get available batsmen for a team (organizer/scorer only)"""
+    #Get available batsmen for a team (organizer/scorer only)"""
     current_user = get_current_user(request, db)
     if current_user.role not in [UserRole.ORGANIZER]:
         raise HTTPException(

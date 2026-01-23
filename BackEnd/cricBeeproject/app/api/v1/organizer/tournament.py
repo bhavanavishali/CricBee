@@ -10,10 +10,16 @@ from app.schemas.organizer.tournament import (
     OrganizerTransactionResponse,
     OrganizerWalletBalanceResponse,
     FinanceReportRequest,
-    FinanceReportSummaryResponse
+    FinanceReportSummaryResponse,
+    TournamentCancellationRequest
 )
 from app.schemas.clubmanager.enrollment import EnrolledClubResponse
-from app.services.clubmanager.enrollment import get_enrolled_clubs_for_tournament, remove_club_from_tournament_with_refund
+from app.services.clubmanager.enrollment import (
+    get_enrolled_clubs_for_tournament, 
+    remove_club_from_tournament_with_refund,
+    get_all_club_manager_ids_for_tournament,
+    clear_removed_club_managers_cache
+)
 from app.services.club_service import get_club_by_id
 from app.schemas.club_manager import ClubRead
 from app.schemas.user import UserRead
@@ -28,8 +34,11 @@ from app.services.organizer.tournament_service import (
 )
 from app.models.admin.transaction import Transaction
 from app.models.admin.plan_pricing import TournamentPricingPlan
+from app.models.organizer.tournament import TournamentEnrollment
 from app.schemas.admin.plan_pricing import TournamentPricingPlanResponse
 from typing import List
+from app.tasks.notification_tasks import send_tournament_cancellation_notification
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/tournaments", tags=["tournaments"])
 
@@ -191,10 +200,10 @@ def get_wallet_balance(
 @router.post("/{tournament_id}/cancel", response_model=TournamentResponse)
 def cancel_tournament_endpoint(
     tournament_id: int,
+    cancellation_data: TournamentCancellationRequest,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Cancel a tournament and refund the payment. Only allowed before registration end date.
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -203,14 +212,39 @@ def cancel_tournament_endpoint(
         )
     
     try:
+        # Get ALL club manager IDs (currently enrolled + previously removed)
+        enrolled_club_manager_ids = get_all_club_manager_ids_for_tournament(db, tournament_id)
+        
+        # Now cancel the tournament (this will remove enrollments)
         tournament = cancel_tournament(db, tournament_id, current_user.id)
+        
+        # Send notifications using Celery with fallback
+        try:
+            send_tournament_cancellation_notification.delay(
+                tournament_id=tournament_id,
+                title=cancellation_data.notification_title,
+                description=cancellation_data.notification_description,
+                enrolled_club_manager_ids=enrolled_club_manager_ids
+            )
+        except Exception as celery_error:
+            # Fallback: Send notifications synchronously if Celery fails
+            from app.tasks.notification_tasks import send_tournament_cancellation_notification
+            send_tournament_cancellation_notification(
+                tournament_id=tournament_id,
+                title=cancellation_data.notification_title,
+                description=cancellation_data.notification_description,
+                enrolled_club_manager_ids=enrolled_club_manager_ids
+            )
+        
+        # Clear the cache for this tournament after notifications are sent
+        clear_removed_club_managers_cache(tournament_id)
+        
         return tournament
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
 @router.get("/{tournament_id}/enrolled-clubs", response_model=List[EnrolledClubResponse])
 def get_enrolled_clubs(
     tournament_id: int,
@@ -355,7 +389,7 @@ def get_finance_report_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get finance report with date filtering for organizer"""
+   #Get finance report with date filtering for organizer
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(

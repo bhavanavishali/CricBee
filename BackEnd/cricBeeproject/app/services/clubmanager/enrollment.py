@@ -15,6 +15,41 @@ from decimal import Decimal
 from datetime import date, datetime
 from typing import List, Optional, Dict, Any
 
+# In-memory cache to store removed club manager IDs per tournament
+# Format: {tournament_id: [club_manager_id1, club_manager_id2, ...]}
+removed_club_managers_cache: Dict[int, List[int]] = {}
+
+def get_all_club_manager_ids_for_tournament(db: Session, tournament_id: int) -> List[int]:
+    """
+    Get all club manager IDs for a tournament, including:
+    - Currently enrolled club managers
+    - Previously removed club managers (from cache)
+    """
+    # Get currently enrolled club managers
+    enrolled_clubs = db.query(TournamentEnrollment).filter(
+        TournamentEnrollment.tournament_id == tournament_id
+    ).all()
+    current_club_manager_ids = [enrollment.enrolled_by for enrollment in enrolled_clubs]
+    
+    # Get previously removed club managers from cache
+    removed_club_manager_ids = removed_club_managers_cache.get(tournament_id, [])
+    
+    # Combine and remove duplicates
+    all_club_manager_ids = list(set(current_club_manager_ids + removed_club_manager_ids))
+    
+    # Debug logging
+    print(f"=== Get All Club Manager IDs for Tournament {tournament_id} ===")
+    print(f"Currently enrolled club managers: {current_club_manager_ids}")
+    print(f"Previously removed club managers (from cache): {removed_club_manager_ids}")
+    print(f"Combined club manager IDs (unique): {all_club_manager_ids}")
+    
+    return all_club_manager_ids
+
+def clear_removed_club_managers_cache(tournament_id: int):
+    """Clear the cache for a specific tournament (called after cancellation)"""
+    if tournament_id in removed_club_managers_cache:
+        del removed_club_managers_cache[tournament_id]
+
 def get_eligible_tournaments_for_club_manager(db: Session) -> List[TournamentResponse]:
 
     today = date.today()
@@ -383,7 +418,21 @@ def remove_club_from_tournament_with_refund(
     enrollment.payment_status = PaymentStatus.REFUNDED.value
     enrollment.updated_at = datetime.now()
     
-
+    # Save club manager ID before deleting enrollment (for future notifications)
+    club_manager_id = enrollment.enrolled_by
+    if tournament_id not in removed_club_managers_cache:
+        removed_club_managers_cache[tournament_id] = []
+    if club_manager_id not in removed_club_managers_cache[tournament_id]:
+        removed_club_managers_cache[tournament_id].append(club_manager_id)
+    
+    # Debug logging
+    print(f"=== Club Removed from Tournament ===")
+    print(f"Tournament ID: {tournament_id}")
+    print(f"Club ID: {club_id}")
+    print(f"Club Manager ID saved to cache: {club_manager_id}")
+    print(f"Current cache for tournament {tournament_id}: {removed_club_managers_cache[tournament_id]}")
+    
+    # Delete the enrollment record
     db.delete(enrollment)
     
     db.commit()

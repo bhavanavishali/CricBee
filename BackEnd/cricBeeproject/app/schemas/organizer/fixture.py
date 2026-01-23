@@ -28,6 +28,11 @@ class MatchCreate(BaseModel):
     match_time: time
     venue: str = Field(..., min_length=1, max_length=200)
 
+class MatchUpdate(BaseModel):
+    match_date: date
+    match_time: time
+    venue: str = Field(..., min_length=1, max_length=200)
+
 class MatchResponse(BaseModel):
     id: int
     round_id: int

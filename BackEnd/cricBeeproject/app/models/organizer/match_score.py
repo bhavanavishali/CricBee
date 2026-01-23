@@ -4,7 +4,7 @@ from app.db.base import Base
 from decimal import Decimal
 
 class MatchScore(Base):
-    """Tracks the score for each team in a match"""
+    #Tracks the score for each team in a match
     __tablename__ = "match_scores"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -30,7 +30,7 @@ class MatchScore(Base):
     )
 
 class BallByBall(Base):
-    """Tracks each ball bowled in a match"""
+    #Tracks each ball bowled in a match
     __tablename__ = "ball_by_ball"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -62,7 +62,7 @@ class BallByBall(Base):
     )
 
 class PlayerMatchStats(Base):
-    """Tracks individual player statistics for a match"""
+    #Tracks individual player statistics for a match
     __tablename__ = "player_match_stats"
     
     id = Column(Integer, primary_key=True, index=True)

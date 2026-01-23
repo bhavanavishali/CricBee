@@ -62,7 +62,9 @@ export const setBowler = async (matchId, bowlerId) => {
   return response.data;
 };
 
-
-
+export const getMatchWinner = async (matchId) => {
+  const response = await api.get(`/matches/${matchId}/winner`);
+  return response.data;
+};
 
 
