@@ -609,7 +609,7 @@ export default function Home() {
                 <div 
                   key={match.id}
                   className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 cursor-pointer hover:bg-white/15 transition-colors"
-                  onClick={() => navigate(`/matches/${match.id}`)}
+                  onClick={() => navigate(`/watch-live/${match.id}`)}
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <span className="px-4 py-1 bg-red-600 rounded-full text-sm font-bold flex items-center gap-2">
@@ -652,12 +652,12 @@ export default function Home() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/matches/${match.id}`)
+                      navigate(`/watch-live/${match.id}`)
                     }}
                     className="px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg flex items-center gap-2"
                   >
                     <Play className="w-5 h-5" />
-                    Watch Now
+                    Watch Live
                   </button>
                 </div>
               ))}

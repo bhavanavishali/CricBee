@@ -34,6 +34,7 @@ class MatchScoreResponse(BaseModel):
     fours: int
     sixes: int
     run_rate: Optional[Decimal] = None
+    winning_status: Optional[str] = None  # 'Win' or 'Loss' - set after match completion
     
     class Config:
         from_attributes = True
@@ -137,6 +138,7 @@ class LiveScoreboardResponse(BaseModel):
     innings_number: Optional[int] = 1  # 1 for first innings, 2 for second innings
     target: Optional[int] = None  # Target score for second innings
     total_overs: Optional[Decimal] = None  # Total overs in match format
+    streaming_url: Optional[str] = None  # YouTube or streaming platform URL
 
 # Update Score Request
 class UpdateScoreRequest(BaseModel):

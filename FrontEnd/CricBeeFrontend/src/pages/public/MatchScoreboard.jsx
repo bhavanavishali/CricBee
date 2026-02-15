@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import { getPublicScoreboard } from '@/api/public';
+import Swal from 'sweetalert2';
 
 const MatchScoreboard = () => {
   const { id } = useParams();
@@ -316,21 +317,62 @@ const MatchScoreboard = () => {
             <h3 className="text-xl font-semibold mb-4">Ball-by-Ball</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {scoreboard.all_balls.map((ball, index) => (
-                <div key={index} className="flex items-center gap-4 p-2 border-b border-gray-100">
-                  <span className="font-mono text-sm text-gray-600 w-16">
-                    {ball.over_number}.{ball.ball_number}
-                  </span>
-                  <span className="flex-1">
-                    {ball.is_wide && 'Wide'}
-                    {ball.is_no_ball && 'No Ball'}
-                    {ball.is_wicket && `Wicket - ${ball.wicket_type} (${ball.dismissed_batsman_name})`}
-                    {!ball.is_wide && !ball.is_no_ball && !ball.is_wicket && `${ball.runs} run${ball.runs !== 1 ? 's' : ''}`}
-                    {ball.is_four && ' (4)'}
-                    {ball.is_six && ' (6)'}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {ball.batsman_name} b {ball.bowler_name}
-                  </span>
+                <div 
+                  key={index} 
+                  className={`border-b border-gray-100 ${
+                    ball.commentary ? 'cursor-pointer hover:bg-blue-50 transition-colors' : ''
+                  }`}
+                  onClick={() => {
+                    if (ball.commentary) {
+                      Swal.fire({
+                        title: `Over ${ball.over_number}.${ball.ball_number}`,
+                        html: `
+                          <div class="text-left">
+                            <p class="text-gray-700 mb-2">
+                              <strong>${ball.batsman_name}</strong> b <strong>${ball.bowler_name}</strong>
+                            </p>
+                            <p class="text-gray-600 mb-3">
+                              ${ball.is_wide ? 'Wide' : ''}
+                              ${ball.is_no_ball ? 'No Ball' : ''}
+                              ${ball.is_wicket ? `Wicket - ${ball.wicket_type} (${ball.dismissed_batsman_name})` : ''}
+                              ${!ball.is_wide && !ball.is_no_ball && !ball.is_wicket ? `${ball.runs} run${ball.runs !== 1 ? 's' : ''}` : ''}
+                              ${ball.is_four ? ' (4)' : ''}
+                              ${ball.is_six ? ' (6)' : ''}
+                            </p>
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                              <p class="text-sm text-gray-700 italic">
+                                💬 ${ball.commentary}
+                              </p>
+                            </div>
+                          </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'Close',
+                        confirmButtonColor: '#3b82f6',
+                        width: '500px'
+                      });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-4 p-2">
+                    <span className="font-mono text-sm text-gray-600 w-16">
+                      {ball.over_number}.{ball.ball_number}
+                    </span>
+                    <span className="flex-1">
+                      {ball.is_wide && 'Wide'}
+                      {ball.is_no_ball && 'No Ball'}
+                      {ball.is_wicket && `Wicket - ${ball.wicket_type} (${ball.dismissed_batsman_name})`}
+                      {!ball.is_wide && !ball.is_no_ball && !ball.is_wicket && `${ball.runs} run${ball.runs !== 1 ? 's' : ''}`}
+                      {ball.is_four && ' (4)'}
+                      {ball.is_six && ' (6)'}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {ball.batsman_name} b {ball.bowler_name}
+                    </span>
+                    {ball.commentary && (
+                      <span className="text-blue-600 text-xs font-semibold">💬 Click for commentary</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

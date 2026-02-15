@@ -11,11 +11,15 @@ import {
   generateLeagueMatches,
   getLeagueStandings,
   getQualifiedTeams,
-  updateMatchDetails
+  updateMatchDetails,
+  setTournamentFixtureMode
 } from '@/api/organizer/fixture';
+import { getPointTable } from '@/api/organizer/pointTable';
+import { checkRoundStatus, addClubToRoundTwo, removeClubFromRoundTwo, getRoundTwoClubs } from '@/api/organizer/roundCompletion';
+import { saveQualifiedTeams, getQualifiedTeams as getQualifiedTeamsForRound, completeTournamentWithWinner } from '@/api/organizer/roundProgression';
 import Layout from '@/components/layouts/Layout';
 import TossModal from '@/components/organizer/TossModal';
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff, RotateCcw, Play, Lock, Edit2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff, RotateCcw, Play, Lock, Edit2, CheckCircle } from 'lucide-react';
 
 const TournamentFixtures = () => {
   const navigate = useNavigate();
@@ -34,6 +38,20 @@ const TournamentFixtures = () => {
   const [leagueStandings, setLeagueStandings] = useState([]);
   const [initializingLeague, setInitializingLeague] = useState(false);
   const [generatingMatches, setGeneratingMatches] = useState(false);
+  
+  // Points table state
+  const [pointTable, setPointTable] = useState([]);
+  const [pointTableLoading, setPointTableLoading] = useState(false);
+  
+  // Round completion state
+  const [roundStatus, setRoundStatus] = useState(null);
+  const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
+  const [selectedQualifiedTeams, setSelectedQualifiedTeams] = useState([]);
+  const [submittingQualifiedTeams, setSubmittingQualifiedTeams] = useState(false);
+  
+  // Winner celebration modal state
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [tournamentWinner, setTournamentWinner] = useState(null);
   
   // Edit match state
   const [editingMatch, setEditingMatch] = useState(null);
@@ -76,6 +94,12 @@ const TournamentFixtures = () => {
     }
   }, [selectedRound]);
 
+  useEffect(() => {
+    if (selectedRound && roundMatches.length > 0) {
+      checkRoundCompletion(selectedRound.id);
+    }
+  }, [selectedRound, roundMatches]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -83,6 +107,37 @@ const TournamentFixtures = () => {
       const tournaments = await getMyTournaments();
       const foundTournament = tournaments.find(t => t.id === parseInt(tournamentId));
       setTournament(foundTournament);
+      
+      // Check if fixture_mode_id is set, if not and we have a mode from URL, set it
+      if (foundTournament && !foundTournament.fixture_mode_id) {
+        if (isLeagueMode) {
+          // Set fixture mode to League (ID: 2)
+          try {
+            await setTournamentFixtureMode(tournamentId, 2);
+            // Reload tournament to get updated fixture_mode_id
+            const updatedTournaments = await getMyTournaments();
+            const updatedTournament = updatedTournaments.find(t => t.id === parseInt(tournamentId));
+            setTournament(updatedTournament);
+          } catch (error) {
+            console.error('Failed to set fixture mode:', error);
+            alert('Failed to set fixture mode. Please try again.');
+            return;
+          }
+        } else {
+          // Set fixture mode to Manual (ID: 1)
+          try {
+            await setTournamentFixtureMode(tournamentId, 1);
+            // Reload tournament to get updated fixture_mode_id
+            const updatedTournaments = await getMyTournaments();
+            const updatedTournament = updatedTournaments.find(t => t.id === parseInt(tournamentId));
+            setTournament(updatedTournament);
+          } catch (error) {
+            console.error('Failed to set fixture mode:', error);
+            alert('Failed to set fixture mode. Please try again.');
+            return;
+          }
+        }
+      }
       
       // Load enrolled clubs (only clubs with successful payment are considered enrolled)
       const clubs = await getEnrolledClubs(tournamentId);
@@ -99,11 +154,66 @@ const TournamentFixtures = () => {
       
       // If league mode and no rounds exist, initialize league structure
       if (isLeagueMode && roundsData.length === 0) {
-        await handleInitializeLeagueFixtures();
+        const newRounds = await handleInitializeLeagueFixtures();
+        roundsData = newRounds || roundsData;
+        setRounds(roundsData);
+        
+        // After initializing rounds, auto-generate matches for Round 1 (League)
+        if (roundsData.length > 0) {
+          const leagueRound = roundsData.find(r => r.round_no === 1 || r.round_name === 'League');
+          if (leagueRound) {
+            // First check if matches already exist
+            const existingMatches = await loadRoundMatches(leagueRound.id);
+            if (existingMatches.length === 0) {
+              try {
+                setGeneratingMatches(true);
+                await generateLeagueMatches(leagueRound.id, tournamentId);
+                await loadRoundMatches(leagueRound.id);
+                // Auto-select Round 1 after generating matches
+                setSelectedRound(leagueRound);
+                setStep('matches');
+              } catch (error) {
+                console.error('Failed to auto-generate league matches:', error);
+                // Don't show alert if matches already exist (backend returns existing matches)
+                if (!error.response?.data?.detail?.includes('already exist')) {
+                  alert(error.response?.data?.detail || 'Failed to auto-generate league matches');
+                }
+              } finally {
+                setGeneratingMatches(false);
+              }
+            } else {
+              // Matches already exist, just select the round
+              setSelectedRound(leagueRound);
+              setStep('matches');
+            }
+          }
+        }
       }
       
-      // If league mode and rounds exist, load qualified teams for playoff round
+      // If league mode and rounds exist, check if Round 1 matches need to be generated
       if (isLeagueMode && roundsData.length > 0) {
+        const leagueRound = roundsData.find(r => r.round_no === 1 || r.round_name === 'League');
+        if (leagueRound) {
+          const existingMatches = await loadRoundMatches(leagueRound.id);
+          if (existingMatches.length === 0) {
+            // Auto-generate matches for Round 1 if they don't exist
+            try {
+              setGeneratingMatches(true);
+              await generateLeagueMatches(leagueRound.id, tournamentId);
+              await loadRoundMatches(leagueRound.id);
+            } catch (error) {
+              console.error('Failed to auto-generate league matches:', error);
+              // Don't show alert if matches already exist (backend returns existing matches)
+              if (!error.response?.data?.detail?.includes('already exist')) {
+                alert(error.response?.data?.detail || 'Failed to auto-generate league matches');
+              }
+            } finally {
+              setGeneratingMatches(false);
+            }
+          }
+        }
+        
+        // Load qualified teams for playoff round
         try {
           const playoffRound = roundsData.find(r => r.round_name === 'Playoff');
           if (playoffRound) {
@@ -113,6 +223,15 @@ const TournamentFixtures = () => {
         } catch (error) {
           console.error('Failed to load qualified teams:', error);
         }
+      }
+      
+      // Load points table
+      try {
+        const pointTableData = await getPointTable(tournamentId);
+        setPointTable(pointTableData);
+      } catch (error) {
+        console.error('Failed to load points table:', error);
+        // Don't show alert for points table error as it's not critical
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -126,11 +245,11 @@ const TournamentFixtures = () => {
     try {
       setInitializingLeague(true);
       const newRounds = await initializeLeagueFixtures(tournamentId);
-      setRounds(newRounds);
-      alert('League fixture structure initialized! Three rounds created: League, Playoff, and Final.');
+      return newRounds; // Return rounds so they can be used immediately
     } catch (error) {
       console.error('Failed to initialize league fixtures:', error);
       alert(error.response?.data?.detail || 'Failed to initialize league fixtures');
+      return null;
     } finally {
       setInitializingLeague(false);
     }
@@ -138,7 +257,7 @@ const TournamentFixtures = () => {
 
   const loadRoundMatches = async (roundId) => {
     try {
-      const matches = await getRoundMatches(roundId);
+      const matches = await getRoundMatches(roundId, tournamentId);
       setRoundMatches(matches);
       return matches;
     } catch (error) {
@@ -246,7 +365,7 @@ const TournamentFixtures = () => {
       if (matches.length === 0) {
         try {
           setGeneratingMatches(true);
-          await generateLeagueMatches(round.id);
+          await generateLeagueMatches(round.id, tournamentId);
           await loadRoundMatches(round.id);
           alert('League matches generated successfully! Please assign date and venue for each match.');
         } catch (error) {
@@ -368,6 +487,122 @@ const TournamentFixtures = () => {
     }
   };
 
+  // Check if round is complete
+  const checkRoundCompletion = async (roundId) => {
+    try {
+      console.log('Frontend: Checking round completion for roundId:', roundId);
+      console.log('Frontend: tournamentId:', tournamentId);
+      console.log('Frontend: selectedRound:', selectedRound);
+      const status = await checkRoundStatus(roundId, parseInt(tournamentId));
+      console.log('Round completion status for round', roundId, ':', status);
+      setRoundStatus(status);
+      return status;
+    } catch (error) {
+      console.error('Failed to check round status:', error);
+      return null;
+    }
+  };
+
+  // Get next round name based on current round
+  // Tournament structure: Round 1 → Round 2 (Semi Final) → Round 3 (Final)
+  const getNextRoundName = (currentRound) => {
+    if (currentRound === 'League' || currentRound === 'Round 1') return 'Round 2';
+    if (currentRound === 'Round 2') return 'Round 3';
+    return 'Next Round';
+  };
+
+  // Load qualified teams for current round
+  const loadQualifiedTeams = async () => {
+    if (!selectedRound) return;
+    
+    try {
+      const fromRound = selectedRound.round_name;
+      const toRound = getNextRoundName(fromRound);
+      const data = await getQualifiedTeamsForRound(parseInt(tournamentId), fromRound, toRound);
+      setSelectedQualifiedTeams(data.club_ids || []);
+    } catch (error) {
+      console.error('Failed to load qualified teams:', error);
+      setSelectedQualifiedTeams([]);
+    }
+  };
+
+  // Show round complete modal
+  const handleShowRoundComplete = async () => {
+    await loadQualifiedTeams();
+    setShowRoundCompleteModal(true);
+  };
+
+  // Toggle team selection
+  const handleToggleTeamSelection = (clubId) => {
+    setSelectedQualifiedTeams(prev => {
+      if (prev.includes(clubId)) {
+        return prev.filter(id => id !== clubId);
+      } else {
+        return [...prev, clubId];
+      }
+    });
+  };
+
+  // Submit qualified teams
+  const handleSubmitQualifiedTeams = async () => {
+    if (selectedQualifiedTeams.length === 0) {
+      alert('Please select at least one team to qualify for the next round');
+      return;
+    }
+
+    try {
+      setSubmittingQualifiedTeams(true);
+      const fromRound = selectedRound.round_name;
+      
+      // Check if this is Round 3 (Final round)
+      if (fromRound === 'Round 3') {
+        // For Round 3, only one team should be selected as the winner
+        if (selectedQualifiedTeams.length !== 1) {
+          alert('Please select exactly one team as the tournament winner');
+          setSubmittingQualifiedTeams(false);
+          return;
+        }
+        
+        const winnerTeamId = selectedQualifiedTeams[0];
+        console.log('Frontend: Declaring tournament winner - tournamentId:', tournamentId, 'winnerTeamId:', winnerTeamId);
+        const result = await completeTournamentWithWinner(parseInt(tournamentId), winnerTeamId);
+        
+        // Get winner team name from point table
+        const winnerTeam = pointTable.find(team => team.team_id === winnerTeamId);
+        
+        // Show winner celebration modal
+        setTournamentWinner({
+          team_id: winnerTeamId,
+          team_name: result.winner_team_name || winnerTeam?.team_name || 'Winner',
+          tournament_name: result.tournament_name || tournament?.tournament_name || 'Tournament'
+        });
+        setShowRoundCompleteModal(false);
+        setShowWinnerModal(true);
+        
+        // Reload tournament data
+        loadData();
+      } else {
+        // For Round 1 and Round 2, save qualified teams for next round
+        const toRound = getNextRoundName(fromRound);
+        
+        await saveQualifiedTeams(
+          parseInt(tournamentId),
+          fromRound,
+          toRound,
+          selectedQualifiedTeams
+        );
+        
+        alert(`Successfully saved ${selectedQualifiedTeams.length} qualified teams for ${toRound}`);
+        setShowRoundCompleteModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to save qualified teams:', error);
+      alert(error.response?.data?.detail || 'Failed to save qualified teams');
+    } finally {
+      setSubmittingQualifiedTeams(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -418,11 +653,89 @@ const TournamentFixtures = () => {
             <ArrowLeft size={20} className="mr-2" />
             <span>{step === 'matches' ? 'Back to Rounds' : 'Back to Manage Fixtures'}</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {step === 'rounds' ? 'Create Fixture Rounds' : `Matches - ${selectedRound?.round_name}`}
-          </h1>
-          <p className="text-gray-600">{tournament.tournament_name}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {step === 'rounds' ? 'Create Fixture Rounds' : `Matches - ${selectedRound?.round_name}`}
+              </h1>
+              <p className="text-gray-600">{tournament.tournament_name}</p>
+            </div>
+            <button
+              onClick={() => navigate(`/organizer/tournaments/${tournamentId}/points-table`)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 flex items-center space-x-2"
+            >
+              <Trophy size={20} />
+              <span>Points Table</span>
+            </button>
+          </div>
         </div>
+
+        {/* Points Table */}
+        {pointTable.length > 0 && (
+          <div className="mb-6 bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <Trophy size={24} className="mr-2 text-yellow-500" />
+                Points Table
+              </h2>
+              <button
+                onClick={() => navigate(`/organizer/tournaments/${tournamentId}/points-table`)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View Full Details →
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-200 px-4 py-2 text-left text-sm font-semibold text-gray-900">Pos</th>
+                    <th className="border border-gray-200 px-4 py-2 text-left text-sm font-semibold text-gray-900">Team</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">M</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">W</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">L</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">T</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">Pts</th>
+                    <th className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-900">NRR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pointTable.map((team, index) => (
+                    <tr key={team.team_id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="border border-gray-200 px-4 py-2 text-center font-semibold">
+                        {team.position}
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2 font-medium">
+                        {team.team_name}
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2 text-center">{team.matches_played}</td>
+                      <td className="border border-gray-200 px-4 py-2 text-center">{team.matches_won}</td>
+                      <td className="border border-gray-200 px-4 py-2 text-center">{team.matches_lost}</td>
+                      <td className="border border-gray-200 px-4 py-2 text-center">{team.matches_tied}</td>
+                      <td className="border border-gray-200 px-4 py-2 text-center font-bold text-green-600">
+                        {team.points}
+                      </td>
+                      <td className={`border border-gray-200 px-4 py-2 text-center font-medium ${
+                        team.net_run_rate > 0 ? 'text-green-600' : 
+                        team.net_run_rate < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {team.net_run_rate.toFixed(3)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {pointTable.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <Trophy size={48} className="mx-auto mb-2 text-gray-300" />
+                <p>No points table data available yet</p>
+                <p className="text-sm">Points table will be available when matches are completed</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {step === 'rounds' ? (
           /* Round Step */
@@ -948,6 +1261,176 @@ const TournamentFixtures = () => {
                   ))}
                 </div>
               )}
+              
+              {/* Confirm Round Completion Button */}
+              {selectedRound && (() => {
+                console.log('Button render - roundStatus:', roundStatus);
+                console.log('Button render - is_complete:', roundStatus?.is_complete);
+                console.log('Button render - completed/total:', roundStatus?.completed_matches, '/', roundStatus?.total_matches);
+                return true;
+              })() && (
+                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-blue-900 flex items-center">
+                        <CheckCircle size={24} className="mr-2" />
+                        Confirm {selectedRound.round_name} Completion
+                      </h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        {roundStatus?.is_complete ? (
+                          <>All {roundStatus.total_matches} matches completed. Click to confirm this round.</>
+                        ) : (
+                          <>Complete all matches to enable this button. ({roundStatus?.completed_matches || 0}/{roundStatus?.total_matches || 0} completed)</>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleShowRoundComplete}
+                      disabled={!roundStatus?.is_complete}
+                      className={`px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-all ${
+                        roundStatus?.is_complete
+                          ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                      }`}
+                    >
+                      <Trophy size={20} />
+                      <span>Confirm Round Completion</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Round Complete Modal - Points Table with Add to Round 2 */}
+        {showRoundCompleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <Trophy size={28} className="mr-2 text-yellow-500" />
+                    {selectedRound?.round_name} Complete - Points Table
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {selectedRound?.round_name === 'Round 3' ? (
+                      <>Select the tournament winner ({selectedQualifiedTeams.length} selected - must select exactly 1)</>
+                    ) : (
+                      <>Select teams to qualify for {getNextRoundName(selectedRound?.round_name)} ({selectedQualifiedTeams.length} selected)</>
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRoundCompleteModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                {pointTable.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">Select</th>
+                          <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Pos</th>
+                          <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Team</th>
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">M</th>
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">W</th>
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">L</th>
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">Pts</th>
+                          <th className="border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-900">NRR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pointTable.map((team, index) => {
+                          const isSelected = selectedQualifiedTeams.includes(team.team_id);
+                          return (
+                            <tr key={team.team_id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-200 px-4 py-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleTeamSelection(team.team_id)}
+                                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                />
+                              </td>
+                              <td className="border border-gray-200 px-4 py-3 text-center font-semibold">
+                                {team.position}
+                              </td>
+                              <td className="border border-gray-200 px-4 py-3 font-medium">
+                                {team.team_name}
+                              </td>
+                              <td className="border border-gray-200 px-4 py-3 text-center">{team.matches_played}</td>
+                              <td className="border border-gray-200 px-4 py-3 text-center">{team.matches_won}</td>
+                              <td className="border border-gray-200 px-4 py-3 text-center">{team.matches_lost}</td>
+                              <td className="border border-gray-200 px-4 py-3 text-center font-bold text-green-600">
+                                {team.points}
+                              </td>
+                              <td className={`border border-gray-200 px-4 py-3 text-center font-medium ${
+                                team.net_run_rate > 0 ? 'text-green-600' : 
+                                team.net_run_rate < 0 ? 'text-red-600' : 
+                                'text-gray-600'
+                              }`}>
+                                {team.net_run_rate.toFixed(3)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">No points table data available</p>
+                  </div>
+                )}
+                
+                <div className="mt-6 flex justify-between items-center">
+                  <p className="text-sm text-gray-600">
+                    {selectedQualifiedTeams.length > 0 ? (
+                      <span className="text-green-600 font-semibold">
+                        {selectedQualifiedTeams.length} team{selectedQualifiedTeams.length !== 1 ? 's' : ''} selected
+                      </span>
+                    ) : (
+                      <span className="text-orange-600">Please select at least one team</span>
+                    )}
+                  </p>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setShowRoundCompleteModal(false)}
+                      className="bg-gray-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmitQualifiedTeams}
+                      disabled={submittingQualifiedTeams || selectedQualifiedTeams.length === 0}
+                      className={`px-6 py-2 rounded-lg font-semibold flex items-center space-x-2 ${
+                        submittingQualifiedTeams || selectedQualifiedTeams.length === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {submittingQualifiedTeams ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={20} />
+                          <span>{selectedRound?.round_name === 'Round 3' ? 'Declare Tournament Winner' : 'Submit Qualified Teams'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1053,6 +1536,71 @@ const TournamentFixtures = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Winner Celebration Modal */}
+        {showWinnerModal && tournamentWinner && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center animate-fadeIn">
+              {/* Trophy Animation */}
+              <div className="mb-6 flex justify-center">
+                <div className="relative">
+                  <Trophy size={100} className="text-yellow-500 animate-bounce" />
+                  <div className="absolute -top-2 -right-2 text-4xl animate-pulse">🎉</div>
+                  <div className="absolute -top-2 -left-2 text-4xl animate-pulse">🎊</div>
+                  <div className="absolute -bottom-2 -right-2 text-4xl animate-pulse">⭐</div>
+                  <div className="absolute -bottom-2 -left-2 text-4xl animate-pulse">✨</div>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                🏆 Tournament Champion! 🏆
+              </h2>
+
+              {/* Winner Team Name */}
+              <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border-4 border-yellow-400">
+                <p className="text-lg text-gray-600 mb-2">Tournament Winner</p>
+                <p className="text-5xl font-bold text-yellow-600 mb-2">
+                  {tournamentWinner.team_name}
+                </p>
+                <p className="text-xl text-gray-700 italic">
+                  {tournamentWinner.tournament_name}
+                </p>
+              </div>
+
+              {/* Celebration Message */}
+              <div className="mb-6 text-lg text-gray-700">
+                <p className="mb-2">🎊 Congratulations to the champions! 🎊</p>
+                <p className="text-sm text-gray-600">
+                  The tournament has been marked as <span className="font-semibold text-green-600">Completed</span>
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => {
+                    setShowWinnerModal(false);
+                    setTournamentWinner(null);
+                  }}
+                  className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWinnerModal(false);
+                    setTournamentWinner(null);
+                    navigate(`/organizer/tournaments/${tournamentId}/details`);
+                  }}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg"
+                >
+                  View Tournament Details
+                </button>
+              </div>
             </div>
           </div>
         )}

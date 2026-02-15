@@ -86,6 +86,12 @@ export default function MyFixtures() {
                             {getOpponentName(match)}
                           </h3>
                           <p className="text-sm text-gray-600">{match.match_number}</p>
+                          {match.tournament_name && (
+                            <p className="text-sm font-medium text-blue-600">{match.tournament_name}</p>
+                          )}
+                          {match.round_name && (
+                            <p className="text-xs text-gray-500">{match.round_name}</p>
+                          )}
                         </div>
                       </div>
 

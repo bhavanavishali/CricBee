@@ -67,4 +67,9 @@ export const getMatchWinner = async (matchId) => {
   return response.data;
 };
 
+export const completeMatch = async (matchId) => {
+  const response = await api.post(`/matches/${matchId}/complete`);
+  return response.data;
+};
+
 

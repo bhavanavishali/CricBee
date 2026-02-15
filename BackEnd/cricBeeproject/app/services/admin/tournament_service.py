@@ -12,7 +12,8 @@ def get_all_tournaments(db: Session,
             joinedload(Tournament.details),
             joinedload(Tournament.payment),
             joinedload(Tournament.plan),
-            joinedload(Tournament.organizer)
+            joinedload(Tournament.organizer),
+            joinedload(Tournament.winner_team)
         )
         .order_by(Tournament.created_at.desc())
         .offset(skip)
@@ -30,7 +31,8 @@ def get_tournament_by_id(db: Session,
             joinedload(Tournament.details),
             joinedload(Tournament.payment),
             joinedload(Tournament.plan),
-            joinedload(Tournament.organizer)
+            joinedload(Tournament.organizer),
+            joinedload(Tournament.winner_team)
         )
         .filter(Tournament.id == tournament_id)
         .first()

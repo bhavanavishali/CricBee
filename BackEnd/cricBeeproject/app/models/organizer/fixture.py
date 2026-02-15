@@ -6,13 +6,12 @@ class FixtureRound(Base):
     __tablename__ = "fixture_rounds"
     
     id = Column(Integer, primary_key=True, index=True)
-    tournament_id = Column(Integer, ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False, index=True)
+    round_no = Column(Integer, nullable=False, unique=True)  # 1, 2, 3 - unique across all tournaments
     round_name = Column(String, nullable=False)
-    number_of_matches = Column(Integer, nullable=False)
+    number_of_matches = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
-    tournament = relationship("Tournament", back_populates="fixture_rounds")
     matches = relationship("Match", back_populates="round", cascade="all, delete-orphan")
 
 class Match(Base):
@@ -34,7 +33,9 @@ class Match(Base):
     toss_decision = Column(String, nullable=True)  # 'bat' or 'bowl'
     batting_team_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=True)
     bowling_team_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=True)
+    winner_id = Column(Integer, ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True)
     match_status = Column(String, nullable=True, default='upcoming')  # upcoming, live, completed, cancelled
+    streaming_url = Column(String, nullable=True)  # YouTube or other streaming platform URL
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
@@ -46,6 +47,7 @@ class Match(Base):
     toss_winner = relationship("Club", foreign_keys=[toss_winner_id])
     batting_team = relationship("Club", foreign_keys=[batting_team_id])
     bowling_team = relationship("Club", foreign_keys=[bowling_team_id])
+    winner = relationship("Club", foreign_keys=[winner_id])
     playing_xis = relationship("PlayingXI", back_populates="match", cascade="all, delete-orphan")
     scores = relationship("MatchScore", back_populates="match", cascade="all, delete-orphan")
     ball_by_ball = relationship("BallByBall", back_populates="match", cascade="all, delete-orphan", order_by="BallByBall.over_number, BallByBall.ball_number")

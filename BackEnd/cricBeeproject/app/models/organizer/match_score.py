@@ -10,6 +10,7 @@ class MatchScore(Base):
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True)
     team_id = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True)
+    inning_no = Column(Integer, nullable=False)  # 1 for first innings, 2 for second innings
     runs = Column(Integer, nullable=False, default=0)
     wickets = Column(Integer, nullable=False, default=0)
     overs = Column(Numeric(5, 1), nullable=False, default=Decimal('0.0'))
@@ -18,6 +19,7 @@ class MatchScore(Base):
     fours = Column(Integer, nullable=False, default=0)
     sixes = Column(Integer, nullable=False, default=0)
     run_rate = Column(Numeric(5, 2), nullable=True)
+    winning_status = Column(String(10), nullable=True)  # 'Win' or 'Loss' - set after match completion
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
@@ -25,7 +27,7 @@ class MatchScore(Base):
     team = relationship("Club")
     
     __table_args__ = (
-        UniqueConstraint('match_id', 'team_id', name='uq_match_team_score'),
+        UniqueConstraint('match_id', 'team_id', 'inning_no', name='uq_match_team_inning_score'),
         {'extend_existing': True},
     )
 

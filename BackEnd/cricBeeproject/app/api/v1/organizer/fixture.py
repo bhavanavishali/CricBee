@@ -9,8 +9,10 @@ from app.schemas.organizer.fixture import (
     MatchCreate,
     MatchUpdate,
     MatchResponse,
-    FixtureRoundWithMatchesResponse
+    FixtureRoundWithMatchesResponse,
+    UpdateRoundName
 )
+from app.schemas.organizer.fixture_mode import FixtureModeResponse, SetFixtureModeRequest
 from app.services.organizer.fixture_service import (
     can_create_fixture,
     create_fixture_round,
@@ -25,7 +27,13 @@ from app.services.organizer.fixture_service import (
     initialize_league_fixture_structure,
     generate_league_matches,
     calculate_league_standings,
-    get_qualified_teams_for_playoff
+    get_qualified_teams_for_playoff,
+    get_all_fixture_modes,
+    set_tournament_fixture_mode,
+    initialize_default_rounds,
+    update_round_name,
+    generate_semi_finals,
+    generate_final
 )
 from typing import List
 from app.models.organizer.fixture import Match
@@ -55,6 +63,7 @@ def build_match_response(match: Match) -> MatchResponse:
         bowling_team_id=match.bowling_team_id,
         bowling_team_name=match.bowling_team.club_name if match.bowling_team else None,
         match_status=match.match_status,
+        streaming_url=match.streaming_url,
         created_at=match.created_at,
         updated_at=match.updated_at
     )
@@ -160,6 +169,7 @@ def create_match_endpoint(
 def get_matches_for_round(
     round_id: int,
     request: Request,
+    tournament_id: int = Query(..., description="Tournament ID"),
     db: Session = Depends(get_db)
 ):
     
@@ -171,7 +181,7 @@ def get_matches_for_round(
         )
     
     try:
-        matches = get_round_matches(db, round_id, current_user.id)
+        matches = get_round_matches(db, round_id, current_user.id, tournament_id)
         match_responses = [build_match_response(match) for match in matches]
         return match_responses
     except ValueError as e:
@@ -300,6 +310,7 @@ def initialize_league_fixtures(
 def generate_league_matches_endpoint(
     round_id: int,
     request: Request,
+    tournament_id: int = Query(..., description="Tournament ID"),
     db: Session = Depends(get_db)
 ):
     #Generate league matches using Single Round-Robin algorithm
@@ -311,7 +322,7 @@ def generate_league_matches_endpoint(
         )
     
     try:
-        matches = generate_league_matches(db, round_id, current_user.id)
+        matches = generate_league_matches(db, round_id, current_user.id, tournament_id)
         match_responses = [build_match_response(match) for match in matches]
         return match_responses
     except ValueError as e:
@@ -393,6 +404,140 @@ def update_match_details_endpoint(
             joinedload(Match.batting_team),
             joinedload(Match.bowling_team)
         ).filter(Match.id == match.id).first()
+        return build_match_response(match)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.get("/fixture-modes", response_model=List[FixtureModeResponse])
+def get_fixture_modes(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view fixture modes"
+        )
+    
+    try:
+        modes = get_all_fixture_modes(db)
+        return modes
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/tournaments/{tournament_id}/set-fixture-mode")
+def set_fixture_mode(
+    tournament_id: int,
+    mode_request: SetFixtureModeRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can set fixture mode"
+        )
+    
+    try:
+        tournament = set_tournament_fixture_mode(db, tournament_id, mode_request.fixture_mode_id, current_user.id)
+        return {"message": "Fixture mode set successfully", "fixture_mode_id": tournament.fixture_mode_id}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/tournaments/{tournament_id}/initialize-rounds", response_model=List[FixtureRoundResponse])
+def initialize_rounds(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can initialize rounds"
+        )
+    
+    try:
+        rounds = initialize_default_rounds(db, tournament_id, current_user.id)
+        return rounds
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.patch("/rounds/{round_id}/name", response_model=FixtureRoundResponse)
+def update_round_name_endpoint(
+    round_id: int,
+    update_data: UpdateRoundName,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can update round names"
+        )
+    
+    try:
+        round = update_round_name(db, round_id, update_data, current_user.id)
+        return round
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/tournaments/{tournament_id}/generate-semi-finals", response_model=List[MatchResponse])
+def generate_semi_finals_endpoint(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can generate semi-finals"
+        )
+    
+    try:
+        matches = generate_semi_finals(db, tournament_id, current_user.id)
+        match_responses = [build_match_response(match) for match in matches]
+        return match_responses
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/tournaments/{tournament_id}/generate-final", response_model=MatchResponse)
+def generate_final_endpoint(
+    tournament_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can generate final"
+        )
+    
+    try:
+        match = generate_final(db, tournament_id, current_user.id)
         return build_match_response(match)
     except ValueError as e:
         raise HTTPException(

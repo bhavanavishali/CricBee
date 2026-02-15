@@ -4,12 +4,13 @@ from datetime import date, time, datetime
 
 class FixtureRoundCreate(BaseModel):
     tournament_id: int
+    round_no: int = Field(..., gt=0)
     round_name: str = Field(..., min_length=1, max_length=100)
     number_of_matches: int = Field(..., gt=0)
 
 class FixtureRoundResponse(BaseModel):
     id: int
-    tournament_id: int
+    round_no: int
     round_name: str
     number_of_matches: int
     created_at: datetime
@@ -17,6 +18,9 @@ class FixtureRoundResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UpdateRoundName(BaseModel):
+    round_name: str = Field(..., min_length=1, max_length=100)
 
 class MatchCreate(BaseModel):
     round_id: int
@@ -27,11 +31,13 @@ class MatchCreate(BaseModel):
     match_date: date
     match_time: time
     venue: str = Field(..., min_length=1, max_length=200)
+    streaming_url: Optional[str] = None
 
 class MatchUpdate(BaseModel):
     match_date: date
     match_time: time
     venue: str = Field(..., min_length=1, max_length=200)
+    streaming_url: Optional[str] = None
 
 class MatchResponse(BaseModel):
     id: int
@@ -46,6 +52,8 @@ class MatchResponse(BaseModel):
     match_time: time
     venue: str
     is_fixture_published: bool = False
+    tournament_name: Optional[str] = None
+    round_name: Optional[str] = None
     toss_winner_id: Optional[int] = None
     toss_winner_name: Optional[str] = None
     toss_decision: Optional[str] = None
@@ -54,6 +62,7 @@ class MatchResponse(BaseModel):
     bowling_team_id: Optional[int] = None
     bowling_team_name: Optional[str] = None
     match_status: Optional[str] = None
+    streaming_url: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -62,7 +71,7 @@ class MatchResponse(BaseModel):
 
 class FixtureRoundWithMatchesResponse(BaseModel):
     id: int
-    tournament_id: int
+    round_no: int
     round_name: str
     number_of_matches: int
     created_at: datetime

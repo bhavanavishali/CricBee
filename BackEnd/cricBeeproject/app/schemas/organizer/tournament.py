@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
+from app.schemas.club_manager import ClubRead
 
 class TournamentDetailsCreate(BaseModel):
     overs: int = Field(..., gt=0, le=50)
@@ -27,10 +28,13 @@ class TournamentResponse(BaseModel):
     plan_id: int
     status: str
     is_blocked: bool = False
+    fixture_mode_id: Optional[int] = None
+    winner_team_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     details: Optional['TournamentDetailsResponse'] = None
     payment: Optional['TournamentPaymentResponse'] = None
+    winner_team: Optional[ClubRead] = None
     
     class Config:
         from_attributes = True

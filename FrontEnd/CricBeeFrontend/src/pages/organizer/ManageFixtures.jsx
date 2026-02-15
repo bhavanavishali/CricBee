@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getMyTournaments } from '@/api/organizer/tournament';
-import { checkCanCreateFixture } from '@/api/organizer/fixture';
+import { checkCanCreateFixture, setTournamentFixtureMode } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
 import { Trophy, Calendar, MapPin, Users, ArrowLeft, Settings, AlertCircle, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ManageFixtures = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fixtureStatus, setFixtureStatus] = useState({});
@@ -26,6 +27,13 @@ const ManageFixtures = () => {
   useEffect(() => {
     loadTournaments();
   }, []);
+
+  // Reload tournaments when location changes (user navigates back to this page)
+  useEffect(() => {
+    if (location.pathname === '/organizer/manage-fixtures') {
+      loadTournaments();
+    }
+  }, [location.pathname]);
 
   const loadTournaments = async () => {
     try {
@@ -78,21 +86,54 @@ const ManageFixtures = () => {
   const handleManageFixture = (tournament) => {
     const status = fixtureStatus[tournament.id];
     if (status?.can_create) {
-      setSelectedTournament(tournament);
-      setShowFixtureTypeModal(true);
+      // Check if fixture_mode_id is already set
+      if (tournament.fixture_mode_id) {
+        // Fixture mode already set, navigate directly to fixtures page
+        const fixtureModeId = tournament.fixture_mode_id;
+        if (fixtureModeId === 2) {
+          navigate(`/organizer/tournaments/${tournament.id}/fixtures?type=league`);
+        } else {
+          navigate(`/organizer/tournaments/${tournament.id}/fixtures`);
+        }
+      } else {
+        // Fixture mode not set, show selection modal
+        setSelectedTournament(tournament);
+        setShowFixtureTypeModal(true);
+      }
     } else {
       alert(status?.message || 'Fixture creation is not available for this tournament');
     }
   };
 
-  const handleFixtureTypeSelection = (fixtureType) => {
+  const handleFixtureTypeSelection = async (fixtureType) => {
     if (!selectedTournament) return;
     
-    if (fixtureType === 'manual') {
-      navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures`);
-    } else if (fixtureType === 'league') {
-      navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures?type=league`);
+    try {
+      // Set fixture mode in database before navigating
+      const fixtureModeId = fixtureType === 'manual' ? 1 : 2;
+      await setTournamentFixtureMode(selectedTournament.id, fixtureModeId);
+      
+      // Update the tournament in local state to reflect the change
+      setTournaments(prevTournaments => 
+        prevTournaments.map(t => 
+          t.id === selectedTournament.id 
+            ? { ...t, fixture_mode_id: fixtureModeId }
+            : t
+        )
+      );
+      
+      // Navigate to fixtures page
+      if (fixtureType === 'manual') {
+        navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures`);
+      } else if (fixtureType === 'league') {
+        navigate(`/organizer/tournaments/${selectedTournament.id}/fixtures?type=league`);
+      }
+    } catch (error) {
+      console.error('Failed to set fixture mode:', error);
+      alert(error.response?.data?.detail || 'Failed to set fixture mode. Please try again.');
+      return;
     }
+    
     setShowFixtureTypeModal(false);
     setSelectedTournament(null);
   };

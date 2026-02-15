@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Send } from 'lucide-react';
+import { ArrowLeft, Users, Send, Wifi, WifiOff } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import Layout from '@/components/layouts/Layout';
 import { getPublicScoreboard } from '@/api/public';
 import { getPublicTournamentDetails } from '@/api/public';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { getChatMessages, sendChatMessage } from '@/api/chat';
+import websocketService from '@/services/websocketService';
 
 const LiveWatch = () => {
   const params = useParams();
@@ -19,6 +20,10 @@ const LiveWatch = () => {
   const [watchingCount, setWatchingCount] = useState(1197);
   const chatEndRef = useRef(null);
   const pollingIntervalRef = useRef(null);
+  
+  // WebSocket state for real-time score updates
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [lastScoreUpdate, setLastScoreUpdate] = useState(null);
   
   // Get user from Redux store
   const user = useSelector((state) => state.auth.user);
@@ -59,6 +64,60 @@ const LiveWatch = () => {
   const { messages: wsMessages, isConnected, sendMessage } = useChatWebSocket(matchId);
   const [chatMessages, setChatMessages] = useState([]);
 
+  // WebSocket connection for real-time score updates
+  useEffect(() => {
+    if (matchId && scoreboard?.match_status === 'live') {
+      // Connect to WebSocket for real-time score updates
+      websocketService.connect(
+        matchId,
+        // onMessage
+        (data) => {
+          console.log('Received score update via WebSocket:', data);
+          setLastScoreUpdate(new Date());
+          
+          switch (data.type) {
+            case 'score_update':
+              if (data.scoreboard) {
+                setScoreboard(data.scoreboard);
+              }
+              break;
+            case 'match_started':
+              loadScoreboard();
+              break;
+            case 'innings_ended':
+              if (data.scoreboard) {
+                setScoreboard(data.scoreboard);
+              }
+              loadScoreboard();
+              break;
+            case 'match_completed':
+              if (data.scoreboard) {
+                setScoreboard(data.scoreboard);
+              }
+              break;
+            default:
+              console.log('Unknown WebSocket message type:', data.type);
+          }
+        },
+        // onError
+        (error) => {
+          console.error('WebSocket error:', error);
+          setIsWebSocketConnected(false);
+        },
+        // onConnect
+        () => {
+          console.log('WebSocket connected successfully');
+          setIsWebSocketConnected(true);
+        }
+      );
+    }
+
+    return () => {
+      websocketService.disconnect();
+      setIsWebSocketConnected(false);
+    };
+  }, [matchId, scoreboard?.match_status]);
+
   useEffect(() => {
     // Check if route is /watch-live/tournament/:id or /watch-live/:id
     const isTournamentRoute = window.location.pathname.includes('/watch-live/tournament/');
@@ -80,14 +139,14 @@ const LiveWatch = () => {
     
     loadData();
     
-    // Poll for live updates
+    // Poll for live updates (fallback when WebSocket is not available)
     pollingIntervalRef.current = setInterval(() => {
       if (isTournamentRoute) {
         loadTournamentData();
       } else {
         loadScoreboard();
       }
-    }, 3000); // Poll every 3 seconds
+    }, isWebSocketConnected ? 10000 : 3000); // Poll less frequently when WebSocket is active
 
     // Simulate watching count updates
     const watchingInterval = setInterval(() => {
@@ -100,7 +159,7 @@ const LiveWatch = () => {
       }
       clearInterval(watchingInterval);
     };
-  }, [id]);
+  }, [id, isWebSocketConnected]);
 
   // Load initial chat messages when matchId is available
   useEffect(() => {
@@ -221,6 +280,17 @@ const LiveWatch = () => {
     return `${overParts[0]}.${overParts[1] || 0}`;
   };
 
+  const formatLastUpdate = (date) => {
+    if (!date) return '';
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 1000) return 'just now';
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    return date.toLocaleTimeString();
+  };
+
   const calculateRunRate = (runs, overs) => {
     if (!runs || !overs || overs === 0) return '0.00';
     return (runs / overs).toFixed(2);
@@ -282,9 +352,24 @@ const LiveWatch = () => {
                       LIVE
                     </span>
                   )}
-                  <span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    T20 Match
+                  <span className={`${scoreboard?.streaming_url ? 'bg-green-500' : 'bg-orange-500'} text-white text-xs font-semibold px-3 py-1 rounded-full`}>
+                    {scoreboard?.streaming_url ? 'Streaming' : 'Score Only'}
                   </span>
+                  {isLive && (
+                    <div className="flex items-center gap-1">
+                      {isWebSocketConnected ? (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                          <Wifi size={12} />
+                          Real-time
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">
+                          <WifiOff size={12} />
+                          Polling
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold mb-2">
                   {scoreboard ? `${scoreboard.batting_team_name} vs ${scoreboard.bowling_team_name}` : 
@@ -295,6 +380,11 @@ const LiveWatch = () => {
                     {scoreboard.innings_number === 2 
                       ? `2nd Innings - ${scoreboard.batting_team_name} need ${(scoreboard.target || 0) - (scoreboard.batting_score?.runs || 0)} runs in ${Math.ceil((scoreboard.total_overs - (scoreboard.batting_score?.overs || 0)) * 6)} balls`
                       : `1st Innings - ${scoreboard.batting_team_name} batting`}
+                    {isWebSocketConnected && lastScoreUpdate && (
+                      <span className="ml-2 text-green-300 text-sm">
+                        • Updated {formatLastUpdate(lastScoreUpdate)}
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
@@ -321,21 +411,80 @@ const LiveWatch = () => {
                     </span>
                   )}
                   <span className="bg-gray-800 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    HD Stream
+                    {scoreboard?.streaming_url ? 'HD Stream' : 'No Stream Available'}
                   </span>
                 </div>
                 
-                {/* YouTube iframe */}
-                <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/AFEZzf9_EHk?autoplay=1&mute=1"
-                  title="Live Cricket Stream"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
+                {/* YouTube iframe or placeholder */}
+                {scoreboard?.streaming_url ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={scoreboard.streaming_url}
+                    title="Live Cricket Stream"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    frameBorder="0"
+                  ></iframe>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+                    <div className="text-center text-white p-8">
+                      <div className="mb-6">
+                        <div className="w-20 h-20 mx-auto bg-red-600 rounded-full flex items-center justify-center mb-4">
+                          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2">Live Stream Not Available</h3>
+                        <p className="text-gray-400 mb-4">This match doesn't have a live stream configured</p>
+                      </div>
+                      
+                      {/* Match Info as fallback */}
+                      {scoreboard && (
+                        <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                          <h4 className="font-semibold text-lg mb-2">
+                            {scoreboard.batting_team_name} vs {scoreboard.bowling_team_name}
+                          </h4>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <p>Match Status: {scoreboard.match_status || 'Scheduled'}</p>
+                            <p>Venue: {scoreboard.venue || 'TBD'}</p>
+                            {isLive && (
+                              <p className="text-green-400 font-semibold">
+                                Match is LIVE - Follow the live score below!
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Call to action */}
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => navigate(`/matches/${matchId}`)}
+                          className="w-full bg-teal-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-teal-700 transition flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          View Detailed Scorecard
+                        </button>
+                        
+                        <p className="text-xs text-gray-500">
+                          Contact the tournament organizer to enable live streaming
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
-                <div className="absolute bottom-4 left-4 text-white text-sm">
-                  Now Playing {scoreboard ? `${scoreboard.batting_team_name} vs ${scoreboard.bowling_team_name}` : 'Live Cricket Match'}
+                {/* Stream info overlay */}
+                <div className="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
+                  {scoreboard ? 
+                    (scoreboard.streaming_url ? 
+                      `Now Playing: ${scoreboard.batting_team_name} vs ${scoreboard.bowling_team_name}` :
+                      `Match: ${scoreboard.batting_team_name} vs ${scoreboard.bowling_team_name}`
+                    ) : 
+                    'Live Cricket Match'
+                  }
                 </div>
               </div>
 
@@ -361,7 +510,7 @@ const LiveWatch = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">Overs</span>
-                        <p className="font-semibold text-gray-900">{formatOvers(scoreboard.batting_score?.overs || 0)}</p>
+                        <p className="font-semibold text-gray-900">{formatOvers(scoreboard.batting_score?.overs || 0)} / {scoreboard.max_overs || scoreboard.total_overs || 20}</p>
                       </div>
                       <div>
                         <span className="text-gray-600">Score</span>
