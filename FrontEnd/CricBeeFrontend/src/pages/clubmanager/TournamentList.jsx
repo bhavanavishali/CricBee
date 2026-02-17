@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
 import { getEligibleTournaments, initiateTournamentEnrollment } from '@/api/clubService';
 import { getClubProfile } from '@/api/clubService';
-import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle, Ban } from 'lucide-react';
 
 export default function ClubManagerTournamentList() {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ export default function ClubManagerTournamentList() {
   const [clubId, setClubId] = useState(null);
   const [enrollingId, setEnrollingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [loadingClub, setLoadingClub] = useState(true);
 
   useEffect(() => {
     loadClubProfile();
@@ -29,12 +30,18 @@ export default function ClubManagerTournamentList() {
 
   const loadClubProfile = async () => {
     try {
+      setLoadingClub(true);
       const result = await getClubProfile();
       if (result.success && result.profile?.club?.id) {
         setClubId(result.profile.club.id);
+      } else {
+        setClubId(null);
       }
     } catch (error) {
       console.error('Failed to load club profile:', error);
+      setClubId(null);
+    } finally {
+      setLoadingClub(false);
     }
   };
 
@@ -82,6 +89,11 @@ export default function ClubManagerTournamentList() {
   };
 
   const handleEnroll = async (tournament) => {
+    if (tournament.is_blocked) {
+      alert('This tournament has been blocked by the admin and is not available for enrollment.');
+      return;
+    }
+
     if (!clubId) {
       alert('Club profile not found. Please create a club first.');
       return;
@@ -150,6 +162,23 @@ export default function ClubManagerTournamentList() {
             </div>
           )}
 
+          {/* Club Not Found Warning */}
+          {!loadingClub && !clubId && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-yellow-800 font-medium">
+                  ⚠️ You need to create a club profile before enrolling in tournaments.
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/clubmanager/profile')}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-semibold hover:bg-yellow-700 transition-colors"
+              >
+                Create Club
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -190,9 +219,16 @@ export default function ClubManagerTournamentList() {
                               {tournament.details?.venue_details && ` • ${tournament.details.venue_details}`}
                             </p>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.color}`}>
-                            {statusInfo.label}
-                          </span>
+                          <div className="flex flex-col items-end gap-2">
+                            {tournament.is_blocked && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1">
+                                <Ban size={12} /> Blocked
+                              </span>
+                            )}
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.color}`}>
+                              {statusInfo.label}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Tournament Details */}
@@ -253,21 +289,35 @@ export default function ClubManagerTournamentList() {
                       </div>
 
                       {/* Action Button */}
-                      <div className="flex items-center space-x-3 flex-shrink-0">
-                        {canEnroll ? (
-                          <button
-                            onClick={() => handleEnroll(tournament)}
-                            disabled={enrollingId === tournament.id || !clubId}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {enrollingId === tournament.id ? 'Processing...' : 'Enroll Now'}
-                          </button>
+                      <div className="flex flex-col items-end space-y-2 flex-shrink-0">
+                        {canEnroll && !tournament.is_blocked ? (
+                          <>
+                            {!clubId && !loadingClub && (
+                              <p className="text-xs text-red-600 text-right mb-1">
+                                Create a club first
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleEnroll(tournament)}
+                              disabled={enrollingId === tournament.id || !clubId || loadingClub}
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={!clubId ? 'Please create a club profile first' : ''}
+                            >
+                              {loadingClub ? 'Loading...' : enrollingId === tournament.id ? 'Processing...' : 'Enroll Now'}
+                            </button>
+                          </>
                         ) : (
                           <button
                             disabled
-                            className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                            className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed flex items-center gap-2"
                           >
-                            Registration Closed
+                            {tournament.is_blocked ? (
+                              <>
+                                <Ban size={16} /> Blocked
+                              </>
+                            ) : (
+                              'Registration Closed'
+                            )}
                           </button>
                         )}
                       </div>

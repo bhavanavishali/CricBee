@@ -69,7 +69,7 @@ def register_pending_user(db: Session, payload: UserSignUp) -> tuple[bool, str, 
         store_otp_in_redis(redis_client, payload.email, otp, expire_minutes=10)
         return True, "OTP resent. Please verify your email.", otp
     
-    # Convert role string to UserRole enum
+    
     role_map = {
         "Admin": UserRole.ADMIN,
         "Organizer": UserRole.ORGANIZER,
@@ -140,7 +140,7 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
         db.commit()
         db.refresh(user)
         
-        # Clean up Redis after successful user creation
+        
         redis_client.delete(user_key)
         redis_client.delete(f"otp:{email}")
         
@@ -154,7 +154,7 @@ def verify_and_create_user(db: Session, email: str, otp: str) -> tuple[bool, str
 
 def authenticate(db: Session, email_or_phone: str, password: str) -> User | None:
    
-    # Check if it's an email or phone number
+   
     is_email = "@" in email_or_phone
     
     if is_email:
@@ -185,7 +185,7 @@ def resend_otp_for_pending_user(email: str) -> tuple[bool, str, str | None]:
        
         otp = generate_otp(6)
         
-    
+        print("****",otp)
         if store_otp_in_redis(redis_client, email, otp, expire_minutes=10):
             return True, "OTP resent successfully", otp
         else:
@@ -232,10 +232,10 @@ def store_password_reset_token(email: str, token: str, expire_hours: int = 1) ->
             "created_at": datetime.now().isoformat()
         }
         
-        # Store the token data
+      
         result = redis_client.setex(
             token_key,
-            expire_hours * 3600,  # Convert hours to seconds
+            expire_hours * 3600, 
             json.dumps(token_data)
         )
         
@@ -270,7 +270,7 @@ def verify_password_reset_token(token: str) -> tuple[bool, str | None]:
         token_data = json.loads(token_data_json)
         email = token_data.get("email")
         
-        # Delete token after use (one-time use)
+       
         redis_client.delete(token_key)
         
         return True, email
@@ -286,7 +286,7 @@ def reset_user_password(db: Session, email: str, new_password: str) -> tuple[boo
         if not user:
             return False, "User not found"
         
-        # Hash the new password
+        
         user.hashed_password = hash_password(new_password)
         db.commit()
         

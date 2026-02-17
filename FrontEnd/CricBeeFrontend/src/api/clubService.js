@@ -195,3 +195,30 @@ export const verifyEnrollmentPayment = async (paymentData) => {
     throw error;
   }
 };
+
+export const getMyEnrollments = async () => {
+  try {
+    const response = await api.get('/clubmanager/enrollments');
+    return response.data;
+  } catch (error) {
+    console.error("Get my enrollments error:", error);
+    throw error;
+  }
+};
+
+export const createNewPlayer = async (clubId, playerData) => {
+  try {
+    const response = await api.post(`/club-profile/club/${clubId}/create-player`, playerData);
+    return {
+      success: true,
+      message: response.data.message,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Create new player error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to create player",
+    };
+  }
+};

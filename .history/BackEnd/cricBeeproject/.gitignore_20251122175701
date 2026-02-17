@@ -1,9 +1,0 @@
-.env
-__pycache__/
-<<<<<<< HEAD
-*.pyc
-=======
-*.pyc
-.env
-*.env
->>>>>>> feature/player

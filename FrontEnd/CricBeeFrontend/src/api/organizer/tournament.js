@@ -25,8 +25,8 @@ export const getMyTransactions = async () => {
   return response.data;
 };
 
-export const cancelTournament = async (tournamentId) => {
-  const response = await api.post(`/tournaments/${tournamentId}/cancel`);
+export const cancelTournament = async (tournamentId, notificationData) => {
+  const response = await api.post(`/tournaments/${tournamentId}/cancel`, notificationData);
   return response.data;
 };
 
@@ -40,12 +40,22 @@ export const getEnrolledClubs = async (tournamentId) => {
   return response.data;
 };
 
-export const getClubDetails = async (clubId) => {
-  const response = await api.get(`/tournaments/clubs/${clubId}/details`);
+export const getClubDetails = async (clubId, tournamentId = null) => {
+  const params = tournamentId ? { tournament_id: tournamentId } : {};
+  const response = await api.get(`/tournaments/clubs/${clubId}/details`, { params });
   return response.data;
 };
 
 export const removeClubFromTournament = async (tournamentId, clubId) => {
   const response = await api.delete(`/tournaments/${tournamentId}/enrolled-clubs/${clubId}`);
+  return response.data;
+};
+
+export const getFinanceReport = async (filterType, startDate = null, endDate = null) => {
+  const response = await api.post('/tournaments/finance-report', {
+    filter_type: filterType,
+    start_date: startDate,
+    end_date: endDate
+  });
   return response.data;
 };

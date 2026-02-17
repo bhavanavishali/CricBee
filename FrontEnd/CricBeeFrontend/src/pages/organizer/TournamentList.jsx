@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
-import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X } from 'lucide-react';
+import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X, Ban } from 'lucide-react';
 
 const TournamentList = () => {
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [notificationForm, setNotificationForm] = useState({
+    title: '',
+    description: ''
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTournaments();
@@ -33,8 +37,8 @@ const TournamentList = () => {
       'pending_payment': { label: 'Pending Payment', color: 'bg-yellow-500', icon: '⏳' },
       'registration_open': { label: 'Registration Open', color: 'bg-blue-500', icon: '📢' },
       'registration_end': { label: 'Registration Closed', color: 'bg-orange-500', icon: '✅' },
-      'tournament_start': { label: 'Tournament Live', color: 'bg-red-500', icon: '🔴' },
-      'tournament_end': { label: 'Tournament Completed', color: 'bg-gray-500', icon: '🏁' },
+      'tournament_start': { label: 'Tournament Start', color: 'bg-red-500', icon: '🔴' },
+      'tournament_end': { label: 'Tournament End', color: 'bg-gray-500', icon: '🏁' },
       'cancelled': { label: 'Cancelled', color: 'bg-red-600', icon: '✕' }
     };
 
@@ -46,10 +50,7 @@ const TournamentList = () => {
   };
 
   const canCancel = (tournament) => {
-    // Can cancel only if:
-    // 1. Tournament is not already cancelled
-    // 2. Payment was successful
-    // 3. Current date is before registration end date
+   
     if (tournament.status === 'cancelled') return false;
     if (!tournament.payment || tournament.payment.payment_status !== 'success') return false;
     if (!tournament.details?.registration_end_date) return false;
@@ -64,10 +65,16 @@ const TournamentList = () => {
 
   const handleCancelTournament = async (tournamentId) => {
     try {
+      // Validate notification form
+      if (!notificationForm.title.trim() || !notificationForm.description.trim()) {
+        alert('Please enter both notification title and description.');
+        return;
+      }
+
       // First check if there are enrolled clubs
       const enrolledClubs = await getEnrolledClubs(tournamentId);
-      const enrolledClubsWithPayment = enrolledClubs.filter(c => c.payment_status === 'success');
-      
+      const enrolledClubsWithPayment = enrolledClubs.filter(club => club.payment_status === 'success');
+
       if (enrolledClubsWithPayment.length > 0) {
         // Show error popup if clubs are still enrolled
         setShowCancelConfirm(null);
@@ -77,11 +84,15 @@ const TournamentList = () => {
       
       // If no enrolled clubs, proceed with cancellation
       setCancellingId(tournamentId);
-      await cancelTournament(tournamentId);
+      await cancelTournament(tournamentId, {
+        notification_title: notificationForm.title,
+        notification_description: notificationForm.description
+      });
       setShowCancelConfirm(null);
+      setNotificationForm({ title: '', description: '' });
       // Reload tournaments to reflect the cancellation
       await loadTournaments();
-      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+      alert('Tournament cancelled successfully. Notifications have been sent to all users.');
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
@@ -170,6 +181,11 @@ const TournamentList = () => {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
+                            {tournament.is_blocked && (
+                              <span className="bg-red-100 text-red-800 border border-red-200 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                                <Ban size={12} /> Blocked
+                              </span>
+                            )}
                             <span
                               className={`${statusInfo.color} text-white text-xs font-semibold px-3 py-1 rounded`}
                             >
@@ -215,9 +231,9 @@ const TournamentList = () => {
                       <div className="flex items-center space-x-3 flex-shrink-0">
                         <button
                           onClick={() => {
-                            // Navigate to tournament details page
+                            
                             console.log('View tournament:', tournament.id);
-                            // navigate(`/organizer/tournaments/${tournament.id}`);
+                            
                           }}
                           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View Tournament"
@@ -227,9 +243,9 @@ const TournamentList = () => {
                         {canEdit(tournament.status) && (
                           <button
                             onClick={() => {
-                              // Navigate to edit tournament page
+                           
                               console.log('Edit tournament:', tournament.id);
-                              // navigate(`/organizer/tournaments/${tournament.id}/edit`);
+                             
                             }}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Edit Tournament"
@@ -262,11 +278,44 @@ const TournamentList = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Tournament</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel this tournament? The tournament creation fee will be refunded to your account. This action cannot be undone.
+              Are you sure you want to cancel this tournament? Please enter notification details to inform all users about this cancellation.
             </p>
+            
+            {/* Notification Form */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notification Title *
+              </label>
+              <input
+                type="text"
+                value={notificationForm.title}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="e.g., Tournament Cancelled"
+                maxLength={100}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notification Description *
+              </label>
+              <textarea
+                value={notificationForm.description}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Please explain why the tournament is being cancelled..."
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+            
             <div className="flex space-x-4">
               <button
-                onClick={() => setShowCancelConfirm(null)}
+                onClick={() => {
+                  setShowCancelConfirm(null);
+                  setNotificationForm({ title: '', description: '' });
+                }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
                 disabled={cancellingId !== null}
               >

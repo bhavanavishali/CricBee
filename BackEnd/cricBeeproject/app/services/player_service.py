@@ -1,9 +1,11 @@
 # app/services/player_service.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.player import PlayerProfile
 from app.models.user import User
+from app.models.club_player import ClubPlayer
 from app.schemas.player import PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse
 from app.schemas.user import UserRead
+from app.schemas.club_manager import ClubRead
 from fastapi import UploadFile
 from app.services.s3_service import upload_file_to_s3
 from app.core.config import settings
@@ -22,7 +24,7 @@ def get_player_profile(db: Session, user_id: int) -> PlayerProfileResponse:
 def create_player_profile(db: Session, payload: PlayerCreate, user_id: int) -> PlayerProfile:
     existing_profile = db.query(PlayerProfile).filter(PlayerProfile.user_id == user_id).first()
     if existing_profile:
-        raise ValueError("Player profile already exists for this user")
+        raise ValueError("Player profile already exists ")
     
     player_profile = PlayerProfile(
         user_id=user_id,
@@ -62,12 +64,52 @@ def update_player_profile_photo(
     if not user:
         raise ValueError("User not found")
     
-    # Upload to S3
+    
     folder = f"players/{user_id}/profile"
     image_url = upload_file_to_s3(uploaded_file, folder=folder)
     
-    # Update user record
+    
     user.profile_photo = image_url
     db.commit()
     db.refresh(user)
     return user
+
+def get_player_current_club(db: Session, user_id: int):
+    """Get the current club of a player"""
+    player_profile = db.query(PlayerProfile).filter(PlayerProfile.user_id == user_id).first()
+    if not player_profile:
+        raise ValueError("Player profile not found")
+    
+    club_player = db.query(ClubPlayer).options(
+        joinedload(ClubPlayer.club)
+    ).filter(ClubPlayer.player_id == player_profile.id).first()
+    
+    if not club_player:
+        return None
+    
+    return {
+        "club": club_player.club,
+        "joined_at": club_player.joined_at
+    }
+
+def leave_club(db: Session, user_id: int):
+    # remove player from their current club
+    player_profile = db.query(PlayerProfile).filter(PlayerProfile.user_id == user_id).first()
+    if not player_profile:
+        raise ValueError("Player profile not found")
+    
+    club_player = db.query(ClubPlayer).filter(ClubPlayer.player_id == player_profile.id).first()
+    if not club_player:
+        raise ValueError("Player is not a member of any club")
+    
+    
+    club = club_player.club
+    
+    
+    db.delete(club_player)
+    
+    
+    club.no_of_players = max(0, db.query(ClubPlayer).filter(ClubPlayer.club_id == club.id).count())
+    
+    db.commit()
+    return True

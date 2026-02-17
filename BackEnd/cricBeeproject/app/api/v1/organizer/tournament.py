@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import UserRole
@@ -8,10 +8,18 @@ from app.schemas.organizer.tournament import (
     TournamentResponse,
     PaymentVerification,
     OrganizerTransactionResponse,
-    OrganizerWalletBalanceResponse
+    OrganizerWalletBalanceResponse,
+    FinanceReportRequest,
+    FinanceReportSummaryResponse,
+    TournamentCancellationRequest
 )
 from app.schemas.clubmanager.enrollment import EnrolledClubResponse
-from app.services.clubmanager.enrollment import get_enrolled_clubs_for_tournament, remove_club_from_tournament_with_refund
+from app.services.clubmanager.enrollment import (
+    get_enrolled_clubs_for_tournament, 
+    remove_club_from_tournament_with_refund,
+    get_all_club_manager_ids_for_tournament,
+    clear_removed_club_managers_cache
+)
 from app.services.club_service import get_club_by_id
 from app.schemas.club_manager import ClubRead
 from app.schemas.user import UserRead
@@ -21,12 +29,16 @@ from app.services.organizer.tournament_service import (
     get_organizer_tournaments,
     get_organizer_transactions,
     cancel_tournament,
-    get_organizer_wallet_balance
+    get_organizer_wallet_balance,
+    get_finance_report
 )
 from app.models.admin.transaction import Transaction
 from app.models.admin.plan_pricing import TournamentPricingPlan
+from app.models.organizer.tournament import TournamentEnrollment
 from app.schemas.admin.plan_pricing import TournamentPricingPlanResponse
 from typing import List
+from app.tasks.notification_tasks import send_tournament_cancellation_notification
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/tournaments", tags=["tournaments"])
 
@@ -83,9 +95,36 @@ def create_tournament(
         result = create_tournament_with_payment(db, tournament_data, current_user.id)
         return result
     except ValueError as e:
+        # ValueError means a business logic error (validation, missing data, etc.)
+        error_msg = str(e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=error_msg
+        )
+    except Exception as e:
+        # Log the full error for debugging
+        import logging
+        import traceback
+        error_trace = traceback.format_exc()
+        error_type = type(e).__name__
+        error_message = str(e)
+        
+        logging.error(f"Error creating tournament - Type: {error_type}, Message: {error_message}")
+        logging.error(f"Full traceback:\n{error_trace}")
+        
+        # Provide more helpful error message based on error type
+        if "Razorpay" in error_message or "razorpay" in error_message.lower() or "payment gateway" in error_message.lower():
+            error_detail = "Payment gateway error. Please ensure Razorpay credentials are configured correctly."
+        elif "database" in error_message.lower() or "sql" in error_message.lower() or "sqlalchemy" in error_type.lower():
+            error_detail = "Database error occurred. Please try again or contact support."
+        elif "validation" in error_message.lower() or "pydantic" in error_type.lower():
+            error_detail = f"Validation error: {error_message}"
+        else:
+            error_detail = f"Failed to create tournament: {error_message}"
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_detail
         )
 
 @router.post("/verify-payment", response_model=TournamentResponse)
@@ -161,10 +200,10 @@ def get_wallet_balance(
 @router.post("/{tournament_id}/cancel", response_model=TournamentResponse)
 def cancel_tournament_endpoint(
     tournament_id: int,
+    cancellation_data: TournamentCancellationRequest,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Cancel a tournament and refund the payment. Only allowed before registration end date.
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -173,21 +212,46 @@ def cancel_tournament_endpoint(
         )
     
     try:
+        
+        enrolled_club_manager_ids = get_all_club_manager_ids_for_tournament(db, tournament_id)
+        
+        
         tournament = cancel_tournament(db, tournament_id, current_user.id)
+        
+        
+        try:
+            send_tournament_cancellation_notification.delay(
+                tournament_id=tournament_id,
+                title=cancellation_data.notification_title,
+                description=cancellation_data.notification_description,
+                enrolled_club_manager_ids=enrolled_club_manager_ids
+            )
+        except Exception as celery_error:
+            
+            from app.tasks.notification_tasks import send_tournament_cancellation_notification
+            send_tournament_cancellation_notification(
+                tournament_id=tournament_id,
+                title=cancellation_data.notification_title,
+                description=cancellation_data.notification_description,
+                enrolled_club_manager_ids=enrolled_club_manager_ids
+            )
+        
+        
+        clear_removed_club_managers_cache(tournament_id)
+        
         return tournament
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
 @router.get("/{tournament_id}/enrolled-clubs", response_model=List[EnrolledClubResponse])
 def get_enrolled_clubs(
     tournament_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get all clubs enrolled in a tournament
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -208,9 +272,10 @@ def get_enrolled_clubs(
 def get_club_details(
     club_id: int,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    tournament_id: int = Query(None, description="Tournament ID to get Playing XI data")
 ):
-    #Get club details (for organizers viewing enrolled clubs)
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -225,9 +290,70 @@ def get_club_details(
             detail="Club not found"
         )
     
+    
+    from app.models.club_player import ClubPlayer
+    from app.models.player import PlayerProfile
+    from app.models.organizer.fixture import PlayingXI, Match
+    from sqlalchemy.orm import joinedload
+    
+    club_players = db.query(ClubPlayer).options(
+        joinedload(ClubPlayer.player).joinedload(PlayerProfile.user)
+    ).filter(
+        ClubPlayer.club_id == club_id
+    ).all()
+    
+    
+    playing_xi_data = {}
+    if tournament_id:
+        
+        playing_xis = db.query(PlayingXI).options(
+            joinedload(PlayingXI.match).joinedload(Match.team_a),
+            joinedload(PlayingXI.match).joinedload(Match.team_b)
+        ).join(
+            Match, PlayingXI.match_id == Match.id
+        ).filter(
+            PlayingXI.club_id == club_id,
+            Match.tournament_id == tournament_id
+        ).all()
+        
+        
+        for pxi in playing_xis:
+            if pxi.player_id not in playing_xi_data:
+                playing_xi_data[pxi.player_id] = []
+            
+            match_info = {
+                "match_id": pxi.match_id,
+                "match_number": pxi.match.match_number,
+                "team_a": pxi.match.team_a.club_name if pxi.match.team_a else "TBD",
+                "team_b": pxi.match.team_b.club_name if pxi.match.team_b else "TBD",
+                "match_date": pxi.match.match_date.isoformat() if pxi.match.match_date else None,
+                "match_status": pxi.match.match_status,
+                "is_captain": pxi.is_captain,
+                "is_vice_captain": pxi.is_vice_captain
+            }
+            playing_xi_data[pxi.player_id].append(match_info)
+    
+    
+    players_data = []
+    for cp in club_players:
+        if cp.player and cp.player.user:
+            player_info = {
+                "id": cp.player.id,
+                "full_name": cp.player.user.full_name,
+                "email": cp.player.user.email,
+                "cricb_id": cp.player.cricb_id,
+                "role": "All-rounder",  
+                "jersey_number": cp.player.id,                  "joined_at": cp.joined_at.isoformat() if cp.joined_at else None,
+                "playing_xi_matches": playing_xi_data.get(cp.player.id, []),
+                "total_matches_selected": len(playing_xi_data.get(cp.player.id, []))
+            }
+            players_data.append(player_info)
+    
     return {
         "club": ClubRead.model_validate(club),
-        "manager": UserRead.model_validate(club.manager)
+        "manager": UserRead.model_validate(club.manager),
+        "players": players_data,
+        "total_players": len(players_data)
     }
 
 @router.delete("/{tournament_id}/enrolled-clubs/{club_id}", response_model=dict)
@@ -250,6 +376,35 @@ def remove_club_from_tournament(
             db, tournament_id, club_id, current_user.id
         )
         return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/finance-report", response_model=FinanceReportSummaryResponse)
+def get_finance_report_endpoint(
+    report_request: FinanceReportRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+  
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can view finance reports"
+        )
+    
+    try:
+        report = get_finance_report(
+            db=db,
+            organizer_id=current_user.id,
+            filter_type=report_request.filter_type,
+            start_date=report_request.start_date,
+            end_date=report_request.end_date
+        )
+        return FinanceReportSummaryResponse(**report)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

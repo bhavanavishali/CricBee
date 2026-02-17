@@ -14,6 +14,7 @@ import {
   Bell,
   Settings,
   X,
+  FileText,
 } from "lucide-react"
 import { useSelector } from "react-redux"
 import { clearUser } from '@/store/slices/authSlice';
@@ -76,8 +77,7 @@ export default function OrganizerDashboard() {
   };
 
   const calculateProgress = (tournament) => {
-    // Calculate progress based on matches completed
-    // This is a placeholder - you may need to adjust based on your data structure
+  
     if (tournament.details?.total_matches && tournament.details?.completed_matches) {
       return (tournament.details.completed_matches / tournament.details.total_matches) * 100;
     }
@@ -124,21 +124,8 @@ export default function OrganizerDashboard() {
   };
 
   // Calculate stats
+  const totalTournaments = tournaments.length;
   const activeTournaments = tournaments.filter(t => t.status === 'tournament_start' || t.status === 'registration_open').length;
-  const enrolledClubsCount = tournaments.reduce((sum, t) => {
-    // This would need to be calculated from actual enrollment data
-    return sum;
-  }, 0);
-  const totalMatches = tournaments.reduce((sum, t) => {
-    // This would need to be calculated from actual match data
-    return sum;
-  }, 0);
-  const totalRevenue = tournaments.reduce((sum, t) => {
-    if (t.payment?.payment_status === 'success' && t.payment?.amount) {
-      return sum + parseFloat(t.payment.amount);
-    }
-    return sum;
-  }, 0);
 
   // Get recent tournaments (limit to 3)
   const recentTournaments = tournaments.slice(0, 3);
@@ -158,63 +145,35 @@ export default function OrganizerDashboard() {
               <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.full_name || 'Demo'}!</h1>
               <span className="text-3xl">👋</span>
             </div>
-            <p className="text-gray-600 mt-2">Here's what's happening with your tournaments today.</p>
+            {/* <p className="text-gray-600 mt-2">Here's what's happening with your tournaments today.</p> */}
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            {/* Total Tournaments */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Total Tournaments</p>
+                  <p className="text-4xl font-bold text-gray-900">{totalTournaments}</p>
+                  <p className="text-xs text-gray-600 mt-2">All time tournaments</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Trophy className="text-blue-600" size={24} />
+                </div>
+              </div>
+            </div>
+
             {/* Active Tournaments */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-600 text-sm mb-2">Active Tournaments</p>
                   <p className="text-4xl font-bold text-gray-900">{activeTournaments}</p>
-                  <p className="text-xs text-green-600 mt-2">↑ + 2 this month</p>
+                  <p className="text-xs text-green-600 mt-2">Currently running</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Trophy className="text-green-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Enrolled Clubs */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Enrolled Clubs</p>
-                  <p className="text-4xl font-bold text-gray-900">{enrolledClubsCount || 0}</p>
-                  <p className="text-xs text-gray-600 mt-2">👥 Across all tournaments</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="text-blue-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Total Matches */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Total Matches</p>
-                  <p className="text-4xl font-bold text-gray-900">{totalMatches || 0}</p>
-                  <p className="text-xs text-red-600 mt-2">↓ 24 this week</p>
-                </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Target className="text-orange-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            {/* Total Revenue */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm mb-2">Total Revenue</p>
-                  <p className="text-4xl font-bold text-gray-900">₹{totalRevenue.toLocaleString('en-IN')}</p>
-                  <p className="text-xs text-green-600 mt-2">↑ + 12.5% this month</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="text-green-600" size={24} />
+                  <Target className="text-green-600" size={24} />
                 </div>
               </div>
             </div>
@@ -281,7 +240,7 @@ export default function OrganizerDashboard() {
 
               {/* Match Management */}
               <div 
-                onClick={() => navigate('/organizer/manage-fixtures')}
+                onClick={() => navigate('/organizer/manage-matches')}
                 className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
               >
                 <div className="flex items-start gap-3">
@@ -289,8 +248,8 @@ export default function OrganizerDashboard() {
                     <BarChart3 className="text-gray-600" size={20} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Match Management</h3>
-                    <p className="text-xs text-gray-600">Monitor ongoing matches</p>
+                    <h3 className="font-semibold text-gray-900 text-sm">Manage Matches</h3>
+                    <p className="text-xs text-gray-600">View tournaments & matches</p>
                   </div>
                 </div>
               </div>
@@ -326,89 +285,26 @@ export default function OrganizerDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Recent Tournaments Section */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Recent Tournaments</h2>
-              <button 
-                onClick={() => navigate('/organizer/tournaments')}
-                className="text-sm font-semibold text-gray-900 flex items-center gap-1 hover:text-gray-600"
+              {/* Finance Report */}
+              <div 
+                onClick={() => navigate('/organizer/finance-report')}
+                className="bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:shadow-lg transition"
               >
-                View All <ChevronRight size={16} />
-              </button>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">Finance Report</h3>
+                    <p className="text-xs text-gray-600">Download detailed reports</p>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            {loading ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">Loading tournaments...</p>
-              </div>
-            ) : recentTournaments.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                <Trophy size={48} className="text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg mb-2">No tournaments yet</p>
-                <p className="text-gray-400 text-sm">Create your first tournament to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentTournaments.map((tournament) => {
-                  const statusBadge = getStatusBadge(tournament);
-                  const progress = calculateProgress(tournament);
-                  const completedMatches = tournament.details?.completed_matches || 0;
-                  const totalMatches = tournament.details?.total_matches || 0;
-                  
-                  return (
-                    <div
-                      key={tournament.id}
-                      className="bg-white rounded-lg p-6 border border-gray-200 flex items-center justify-between hover:shadow-lg transition"
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Trophy className="text-white" size={32} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{tournament.tournament_name}</h3>
-                          <p className="text-sm text-gray-600">
-                            {tournament.details?.team_range || 'N/A'} clubs • {completedMatches}/{totalMatches} matches • ₹{tournament.payment?.amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '0'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-xs text-gray-600 mb-2">Progress</p>
-                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${tournament.status === 'tournament_start' ? 'bg-green-500' : 'bg-blue-400'}`}
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className={`px-3 py-1 ${statusBadge.bg} ${statusBadge.textColor} rounded text-xs font-semibold whitespace-nowrap`}>
-                          {statusBadge.text}
-                        </div>
-                        {canCancel(tournament) ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowCancelConfirm(tournament.id);
-                            }}
-                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Cancel Tournament"
-                          >
-                            <X size={20} />
-                          </button>
-                        ) : (
-                          <ChevronRight className="text-gray-400" size={20} />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
+
+       
         </main>
 
         {/* Cancel Confirmation Modal */}

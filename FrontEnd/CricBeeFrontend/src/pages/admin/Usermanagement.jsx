@@ -664,31 +664,49 @@ const UserManagement = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [stats, setStats] = useState(null);
+  const limit = 20;
 
-  // Fetch users from API
+  // Debounce search to avoid too many API calls
+  const [searchDebounced, setSearchDebounced] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+      setSkip(0); // Reset to first page when search changes
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch users from API when filters or pagination changes
   useEffect(() => {
     fetchUsers();
-  }, []);
-
-  // Filter users when search, role, or status changes
-  useEffect(() => {
-    filterUsers();
-  }, [search, roleFilter, statusFilter, users]);
+  }, [skip, roleFilter, statusFilter, searchDebounced]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await getUsers();
+      const result = await getUsers(
+        skip,
+        limit,
+        roleFilter,
+        statusFilter,
+        searchDebounced || null
+      );
       if (result.success) {
-        setUsers(result.data);
+        setUsers(result.data.users);
+        setTotal(result.data.total);
+        setStats(result.data.stats || null);
       } else {
         setError(result.message);
       }
@@ -698,47 +716,6 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterUsers = () => {
-    let filtered = [...users];
-
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(
-        (u) =>
-          u.full_name?.toLowerCase().includes(searchLower) ||
-          u.email?.toLowerCase().includes(searchLower) ||
-          u.organization_name?.toLowerCase().includes(searchLower) ||
-          u.club_name?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Role filter
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((u) => {
-        const role = u.role?.toLowerCase();
-        if (roleFilter === "organizer") return role === "organizer";
-        if (roleFilter === "manager") return role === "club_manager" || role === "manager";
-        if (roleFilter === "player") return role === "player";
-        if (roleFilter === "fan") return role === "fan";
-        return true;
-      });
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      if (statusFilter === "pending") {
-        filtered = filtered.filter((u) => !u.is_verified);
-      } else if (statusFilter === "active") {
-        filtered = filtered.filter((u) => u.is_active && u.is_verified);
-      } else if (statusFilter === "suspended") {
-        filtered = filtered.filter((u) => !u.is_active);
-      }
-    }
-
-    setFilteredUsers(filtered);
   };
 
   // Block/Unblock user with SweetAlert confirmation
@@ -772,12 +749,8 @@ const UserManagement = () => {
         const updateResult = await updateUserStatus(userId, newStatus);
 
         if (updateResult.success) {
-          // Update local state
-          setUsers(
-            users.map((user) =>
-              user.id === userId ? { ...user, is_active: newStatus } : user
-            )
-          );
+          // Refresh the current page to get updated data
+          fetchUsers();
 
           await Swal.fire({
             title: "Success!",
@@ -825,19 +798,6 @@ const UserManagement = () => {
         confirmButtonColor: "#ef4444",
       });
     }
-  };
-
-  // Calculate statistics
-  const stats = {
-    total: users.length,
-    pending: users.filter((u) => !u.is_verified).length,
-    active: users.filter((u) => u.is_active && u.is_verified).length,
-    suspended: users.filter((u) => !u.is_active).length,
-    organizers: users.filter((u) => u.role?.toLowerCase() === "organizer").length,
-    managers: users.filter(
-      (u) => u.role?.toLowerCase() === "club_manager" || u.role?.toLowerCase() === "manager"
-    ).length,
-    players: users.filter((u) => u.role?.toLowerCase() === "player").length,
   };
 
   // Format date
@@ -953,29 +913,31 @@ const UserManagement = () => {
 
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Statistics Cards - All in One Line (Responsive) */}
-          <div className="flex flex-wrap md:flex-nowrap gap-4 mb-8">
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Total Users</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+          {stats && (
+            <div className="flex flex-wrap md:flex-nowrap gap-4 mb-8">
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Users</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.total_users}</p>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Active Users</p>
+                <p className="text-2xl font-bold text-green-600">{stats.total_active}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Inactive Users</p>
+                <p className="text-2xl font-bold text-red-600">{stats.total_inactive}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Organizers</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.total_organizers}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
+                <p className="text-sm text-gray-600 mb-1">Total Clubs</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.total_clubs}</p>
+              </div>
             </div>
-            
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Active</p>
-              <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Inactive</p>
-              <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Organizers</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.organizers}</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex-1 min-w-[140px]">
-              <p className="text-sm text-gray-600 mb-1">Managers</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.clubmanager}</p>
-            </div>
-          </div>
+          )}
 
           {/* Search and Filters */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
@@ -998,7 +960,10 @@ const UserManagement = () => {
               {/* Role Filter */}
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setSkip(0); // Reset to first page when filter changes
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Roles</option>
@@ -1011,13 +976,16 @@ const UserManagement = () => {
               {/* Status Filter */}
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setSkip(0); // Reset to first page when filter changes
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
@@ -1026,7 +994,7 @@ const UserManagement = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
-                All Users ({filteredUsers.length})
+                All Users ({total})
               </h2>
             </div>
 
@@ -1055,7 +1023,7 @@ const UserManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((user) => {
+                  {users.map((user) => {
                     const roleInfo = getRoleInfo(user.role);
                     const verificationInfo = getVerificationInfo(user);
                     const orgOrClubName = getOrganizationOrClubName(user);
@@ -1167,7 +1135,7 @@ const UserManagement = () => {
                 </tbody>
               </table>
 
-              {filteredUsers.length === 0 && (
+              {users.length === 0 && !loading && (
                 <div className="text-center py-12">
                   <Users size={48} className="mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-500 text-lg">No users found</p>
@@ -1177,6 +1145,29 @@ const UserManagement = () => {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {total > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <button
+                  onClick={() => setSkip(Math.max(0, skip - limit))}
+                  disabled={skip === 0}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700">
+                  Showing {skip + 1} to {Math.min(skip + limit, total)} of {total}
+                </span>
+                <button
+                  onClick={() => setSkip(skip + limit)}
+                  disabled={skip + limit >= total}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

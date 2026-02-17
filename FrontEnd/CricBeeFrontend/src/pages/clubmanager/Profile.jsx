@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getClubProfile, createClub, updateClub, updateProfile, uploadClubImage, getClubPlayers, getPendingInvitations } from '@/api/clubService';
 import AddPlayerModal from '@/components/clubmanager/AddPlayerModal';
+import CreateNewPlayerModal from '@/components/clubmanager/CreateNewPlayerModal';
 
 const ClubProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -32,6 +33,7 @@ const ClubProfile = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
   const [formData, setFormData] = useState({
     club_name: '',
     description: '',
@@ -304,8 +306,8 @@ const ClubProfile = () => {
   const tabs = [
     { id: 'profile', label: 'Profile Details' },
     { id: 'players', label: 'Players' },
-    { id: 'invitations', label: 'Pending Invitations' },
-    { id: 'statistics', label: 'Statistics' },
+    { id: 'invitations', label: 'Pending Invitations' }
+   
   ];
 
   return (
@@ -793,13 +795,22 @@ const ClubProfile = () => {
               
               {/* Add Player Button */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <button
-                  onClick={() => setShowAddPlayerModal(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold"
-                >
-                  <Users size={20} />
-                  Add Player to Club
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCreatePlayerModal(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold"
+                  >
+                    <Users size={20} />
+                    Create New Player
+                  </button>
+                  <button
+                    onClick={() => setShowAddPlayerModal(true)}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold"
+                  >
+                    <Users size={20} />
+                    Invite Existing Player
+                  </button>
+                </div>
               </div>
               
               <div className="flex justify-end gap-3 mt-6">
@@ -836,30 +847,7 @@ const ClubProfile = () => {
           )}
         </div>
 
-        {/* Verification Status */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Verification Status</h3>
-          <div className="flex flex-wrap gap-6">
-            {manager.verifications.identity && (
-              <div className="flex items-center gap-2">
-                <CheckCircle size={20} className="text-green-600" />
-                <span className="text-gray-700 font-medium">Identity Verified</span>
-              </div>
-            )}
-            {manager.verifications.phone && (
-              <div className="flex items-center gap-2">
-                <Phone size={20} className="text-slate-600" />
-                <span className="text-gray-700 font-medium">Phone Verified</span>
-              </div>
-            )}
-            {manager.verifications.payment && (
-              <div className="flex items-center gap-2">
-                <CreditCard size={20} className="text-blue-600" />
-                <span className="text-gray-700 font-medium">Payment Verified</span>
-              </div>
-            )}
-          </div>
-        </div>
+   
 
         {/* Personal Details Tab Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -946,13 +934,22 @@ const ClubProfile = () => {
                     Club Players ({players.length})
                   </h4>
                   {profile?.club && (
-                    <button
-                      onClick={() => setShowAddPlayerModal(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                    >
-                      <Plus size={18} />
-                      Add Player
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowCreatePlayerModal(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                      >
+                        <Plus size={18} />
+                        Create New
+                      </button>
+                      <button
+                        onClick={() => setShowAddPlayerModal(true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                      >
+                        <Users size={18} />
+                        Invite Existing
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -967,13 +964,22 @@ const ClubProfile = () => {
                     <p className="text-gray-500 text-lg mb-2">No players in your club yet</p>
                     <p className="text-gray-400 text-sm mb-6">Add players to start building your team</p>
                     {profile?.club && (
-                      <button
-                        onClick={() => setShowAddPlayerModal(true)}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        <Plus size={18} />
-                        Add First Player
-                      </button>
+                      <div className="flex gap-3 justify-center">
+                        <button
+                          onClick={() => setShowCreatePlayerModal(true)}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        >
+                          <Plus size={18} />
+                          Create New Player
+                        </button>
+                        <button
+                          onClick={() => setShowAddPlayerModal(true)}
+                          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                        >
+                          <Users size={18} />
+                          Invite Existing Player
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -1129,6 +1135,21 @@ const ClubProfile = () => {
             fetchPlayers(); // Refresh players list
             fetchPendingInvitations(); // Refresh pending invitations
             setShowAddPlayerModal(false);
+          }}
+        />
+      )}
+
+      {/* Create New Player Modal */}
+      {profile?.club && (
+        <CreateNewPlayerModal
+          isOpen={showCreatePlayerModal}
+          onClose={() => setShowCreatePlayerModal(false)}
+          clubId={profile.club.id}
+          onPlayerCreated={() => {
+            fetchProfile(); // Refresh profile to update player count
+            fetchPlayers(); // Refresh players list
+            fetchPendingInvitations(); // Refresh pending invitations
+            setShowCreatePlayerModal(false);
           }}
         />
       )}

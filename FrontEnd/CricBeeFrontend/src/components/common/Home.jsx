@@ -1,214 +1,6 @@
-// "use client"
-
-// import { useState } from "react"
-// import SignInModal from "@/components/auth/Signin"
-// import SignUpModal from "@/components/auth/Signup"
-
-
-// export default function Home() {
-//   const [showSignIn, setShowSignIn] = useState(false)
-//   const [showSignUp, setShowSignUp] = useState(false)
-
-//   return (
-//     <div className="min-h-screen bg-white">
-//       {/* Header */}
-//       <header className="sticky top-0 z-40 w-full bg-white shadow-sm">
-//         <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-//           <div className="flex items-center gap-2">
-//             <div className="w-8 h-8 bg-teal-600 rounded-md flex items-center justify-center">
-//               <span className="text-white font-bold text-sm">CB</span>
-//             </div>
-//             <span className="font-semibold text-lg">CricB</span>
-//           </div>
-
-//           <div className="hidden md:flex items-center gap-8 text-sm">
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Home
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Tournaments
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Live Scores
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Stats
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Players
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               About
-//             </a>
-//             <a href="#" className="text-gray-700 hover:text-gray-900">
-//               Contact
-//             </a>
-//           </div>
-
-//           <div className="flex items-center gap-3">
-//             <a href="/signin" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
-//               Sign In
-//             </a>
-//             <a
-//               href="/signup"
-//               className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700"
-//             >
-//               Sign Up
-//             </a>
-//           </div>
-//         </nav>
-//       </header>
-
-//       {/* Hero Section */}
-//       <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-24">
-//         <div className="max-w-7xl mx-auto px-4 text-center">
-//           <h1 className="text-5xl md:text-6xl font-bold mb-4">Your Digital Cricket</h1>
-//           <p className="text-xl md:text-2xl text-gray-300 mb-8">Cricket stadium wide hero image</p>
-//           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-//             Manage tournaments, organize matches, and connect with cricket enthusiasts worldwide
-//           </p>
-//           <div className="flex flex-wrap justify-center gap-4">
-//             <a
-//               href="/signup"
-//               className="px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition"
-//             >
-//               Register Tournament
-//             </a>
-//             <a
-//               href="/signin"
-//               className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
-//             >
-//               Join as a Player
-//             </a>
-//             <button className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition">
-//               Explore Teams
-//             </button>
-//           </div>
-//         </div>
-//       </section>
-
-//       {/* Choose Your Role */}
-//       <section className="py-16 px-4">
-//         <div className="max-w-7xl mx-auto">
-//           <h2 className="text-3xl font-bold text-center mb-4">Choose Your Role</h2>
-//           <p className="text-center text-gray-600 mb-12">Join CricB as a player, organizer, manager, or fan</p>
-
-//           <div className="grid md:grid-cols-4 gap-6">
-//             {/* Organizer */}
-//             <div className="bg-white border border-gray-200 rounded-lg p-6">
-//               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-//                 <span className="text-teal-600 text-xl">📋</span>
-//               </div>
-//               <h3 className="font-semibold text-lg mb-2 text-teal-600">Organizer</h3>
-//               <p className="text-gray-600 text-sm mb-4">Host tournaments and manage registrations with ease</p>
-//               <button className="w-full py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700">
-//                 Get Started
-//               </button>
-//             </div>
-
-//             {/* Club Manager */}
-//             <div className="bg-white border border-gray-200 rounded-lg p-6">
-//               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-//                 <span className="text-blue-600 text-xl">👥</span>
-//               </div>
-//               <h3 className="font-semibold text-lg mb-2 text-blue-600">Club Manager</h3>
-//               <p className="text-gray-600 text-sm mb-4">Manage teams and coordinate team activities efficiently</p>
-//               <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-//                 Get Started
-//               </button>
-//             </div>
-
-//             {/* Player */}
-//             <div className="bg-white border border-gray-200 rounded-lg p-6">
-//               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-//                 <span className="text-orange-600 text-xl">🏏</span>
-//               </div>
-//               <h3 className="font-semibold text-lg mb-2 text-orange-600">Player</h3>
-//               <p className="text-gray-600 text-sm mb-4">Showcase your cricket skills and join tournaments</p>
-//               <button className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
-//                 Get Started
-//               </button>
-//             </div>
-
-//             {/* Fan */}
-//             <div className="bg-white border border-gray-200 rounded-lg p-6">
-//               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-//                 <span className="text-purple-600 text-xl">⭐</span>
-//               </div>
-//               <h3 className="font-semibold text-lg mb-2 text-purple-600">Fan</h3>
-//               <p className="text-gray-600 text-sm mb-4">Follow tournaments and support your favorite teams</p>
-//               <button className="w-full py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
-//                 Get Started
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       </section>
-
-//       {/* Cricket by the Numbers */}
-//       <section className="bg-gray-50 py-16 px-4">
-//         <div className="max-w-7xl mx-auto">
-//           <h2 className="text-3xl font-bold text-center mb-12">Cricket by the Numbers</h2>
-
-//           <div className="grid md:grid-cols-4 gap-8">
-//             <div className="text-center">
-//               <div className="text-4xl font-bold text-teal-600 mb-2">1,250</div>
-//               <p className="text-gray-600">Total Tournaments Hosted</p>
-//             </div>
-//             <div className="text-center">
-//               <div className="text-4xl font-bold text-blue-600 mb-2">450</div>
-//               <p className="text-gray-600">Total Clubs Registered</p>
-//             </div>
-//             <div className="text-center">
-//               <div className="text-4xl font-bold text-orange-600 mb-2">15,000</div>
-//               <p className="text-gray-600">Total Players with CricB</p>
-//             </div>
-//             <div className="text-center">
-//               <div className="text-4xl font-bold text-purple-600 mb-2">24+</div>
-//               <p className="text-gray-600">Live Matches / Week</p>
-//             </div>
-//           </div>
-//         </div>
-//       </section>
-
-//       {/* Active & Upcoming Tournaments */}
-//       <section className="py-16 px-4">
-//         <div className="max-w-7xl mx-auto">
-//           <div className="flex justify-between items-center mb-12">
-//             <h2 className="text-3xl font-bold">Active & Upcoming Tournaments</h2>
-//             <button className="text-teal-600 font-medium hover:text-teal-700">View All →</button>
-//           </div>
-
-//           <div className="grid md:grid-cols-3 gap-6">
-//             {[1, 2, 3].map((tournament) => (
-//               <div key={tournament} className="bg-gray-900 rounded-lg overflow-hidden">
-//                 <div className="bg-gray-700 h-40 flex items-center justify-center text-white">
-//                   <span className="text-lg font-semibold">Match Photo</span>
-//                 </div>
-//                 <div className="p-4 text-white">
-//                   <div className="inline-block bg-teal-600 px-3 py-1 rounded text-xs font-medium mb-3">Live</div>
-//                   <h3 className="font-semibold mb-2">Tournament {tournament}</h3>
-//                   <p className="text-gray-400 text-sm mb-4">Tournament details and schedule</p>
-//                   <button className="px-4 py-2 bg-teal-600 text-white rounded text-sm font-medium hover:bg-teal-700 w-full">
-//                     Join Now
-//                   </button>
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       </section>
-
-//       {/* Modals */}
-//       {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
-//       {showSignUp && <SignUpModal onClose={() => setShowSignUp(false)} />}
-//     </div>
-//   )
-// }
-
-
 "use client"
 
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { 
   Trophy, 
@@ -224,11 +16,67 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Eye
+  Eye,
+  Radio
 } from "lucide-react"
+import { getPublicTournaments, getLiveMatches } from "@/api/public"
 
 export default function Home() {
   const navigate = useNavigate()
+  const [tournaments, setTournaments] = useState([])
+  const [liveMatches, setLiveMatches] = useState([])
+  const [loadingTournaments, setLoadingTournaments] = useState(true)
+  const [loadingLiveMatches, setLoadingLiveMatches] = useState(true)
+
+  useEffect(() => {
+    loadTournaments()
+    loadLiveMatches()
+    // Refresh live matches every 5 seconds
+    const interval = setInterval(loadLiveMatches, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadTournaments = async () => {
+    try {
+      setLoadingTournaments(true)
+      // Get ongoing and upcoming tournaments
+      const data = await getPublicTournaments()
+      // Filter to show only ongoing and upcoming, limit to 4
+      const filtered = data
+        .filter(t => t.status_badge === 'ongoing' || t.status_badge === 'upcoming')
+        .slice(0, 4)
+      setTournaments(filtered)
+    } catch (error) {
+      console.error('Failed to load tournaments:', error)
+    } finally {
+      setLoadingTournaments(false)
+    }
+  }
+
+  const loadLiveMatches = async () => {
+    try {
+      setLoadingLiveMatches(true)
+      const data = await getLiveMatches()
+      setLiveMatches(data)
+    } catch (error) {
+      console.error('Failed to load live matches:', error)
+    } finally {
+      setLoadingLiveMatches(false)
+    }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -269,84 +117,6 @@ export default function Home() {
           </div>
         </nav>
       </header> */}
-     <header className="bg-white shadow-sm sticky top-0 z-50">
-        <nav className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo Section with Bee Icon */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollToSection('home')}>
-            {/* Bee Icon SVG */}
-            <div className="w-15 h-12 flex items-center justify-center">
-              <img 
-                src="/Image (1).png" 
-                alt="CricB Logo" 
-                className="w-50 h-20 object-contain"
-              />
-            </div>
-           
-          </div>
-
-          {/* Navigation Links - Center */}
-          <div className="hidden lg:flex items-center gap-8">
-            <button
-              onClick={() => scrollToSection('home')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => scrollToSection('tournaments')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Tournaments
-            </button>
-            <button
-              onClick={() => scrollToSection('scores')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Live Scores
-            </button>
-            <button
-              onClick={() => scrollToSection('clubs')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Clubs
-            </button>
-            <button
-              onClick={() => scrollToSection('players')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Players
-            </button>
-            <button
-              onClick={() => scrollToSection('about')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              About
-            </button>
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="text-gray-900 font-medium hover:text-teal-600 transition-colors"
-            >
-              Contact
-            </button>
-          </div>
-
-          {/* Action Buttons - Right */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/signin")}
-              className="px-6 py-2.5 border-2 border-teal-600 bg-white text-teal-600 font-semibold rounded-lg hover:bg-teal-50 transition-colors"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => navigate("/signup")}
-              className="px-6 py-2.5 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              Sign Up
-            </button>
-          </div>
-        </nav>
-      </header>
       {/* Hero Section */}
       <section 
         id="home" 
@@ -587,42 +357,70 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[
-              { status: "LIVE", statusColor: "bg-red-500", title: "Broto Type Premier League 2024", location: "City Arena - 8 Teams", starts: "Today" },
-              { status: "UPCOMING", statusColor: "bg-blue-500", title: "Broto Type Kerala Cricket League", location: "Kochi - 4 Teams", starts: "7 Weeks" },
-              { status: "LIVE", statusColor: "bg-red-500", title: "Broto Type Kochi Hub League", location: "Kochi Grounds - 8 Teams", starts: "Today" },
-              { status: "LIVE", statusColor: "bg-red-500", title: "Broto Type Premier League 2023", location: "Metro Grounds - 10 Teams", starts: "Ongoing" },
-            ].map((tournament, index) => (
-              <div key={index} className="bg-slate-900 rounded-xl overflow-hidden text-white hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                  <Trophy className="w-16 h-16 text-gray-400" />
-                </div>
-                <div className="p-5">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 ${tournament.statusColor}`}>
-                    {tournament.status}
-                  </span>
-                  <h3 className="font-bold text-lg mb-2">{tournament.title}</h3>
-                  <div className="space-y-1 text-sm text-gray-300 mb-4">
-                    <p className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {tournament.location}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Starts: {tournament.starts}
-                    </p>
+          {loadingTournaments ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading tournaments...</p>
+            </div>
+          ) : tournaments.length === 0 ? (
+            <div className="text-center py-12">
+              <Trophy className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+              <p className="text-gray-600 text-lg">No active tournaments at the moment</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {tournaments.map((tournament) => (
+                <div 
+                  key={tournament.id} 
+                  className="bg-slate-900 rounded-xl overflow-hidden text-white hover:shadow-xl transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/tournaments/${tournament.id}`)}
+                >
+                  <div className="h-48 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                    <Trophy className="w-16 h-16 text-gray-400" />
                   </div>
-                  <button className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors">
-                    View Details
-                  </button>
+                  <div className="p-5">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 ${
+                      tournament.status_badge === 'ongoing' ? 'bg-red-500' : 
+                      tournament.status_badge === 'upcoming' ? 'bg-blue-500' : 
+                      'bg-gray-500'
+                    }`}>
+                      {tournament.status_badge.toUpperCase()}
+                    </span>
+                    <h3 className="font-bold text-lg mb-2">{tournament.tournament_name}</h3>
+                    <div className="space-y-1 text-sm text-gray-300 mb-4">
+                      {tournament.location && (
+                        <p className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          {tournament.location}
+                        </p>
+                      )}
+                      {tournament.start_date && (
+                        <p className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          Starts: {formatDate(tournament.start_date)}
+                        </p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/tournaments/${tournament.id}`)
+                      }}
+                      className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center">
-            <button className="px-8 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold">
+            <button 
+              onClick={() => navigate('/tournaments')}
+              className="px-8 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+            >
               View All Tournaments
             </button>
           </div>
@@ -786,34 +584,95 @@ export default function Home() {
       </section>
 
       {/* Live Match Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-orange-500 to-red-600 text-white">
+      <section id="scores" className="py-20 px-6 bg-gradient-to-r from-orange-500 to-red-600 text-white">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="px-4 py-1 bg-red-600 rounded-full text-sm font-bold">LIVE</span>
-              <span className="text-sm opacity-90">Now Playing</span>
+          {loadingLiveMatches ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+              <p className="mt-4 opacity-90">Loading live matches...</p>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Mumbai Strikers vs Delhi Warriors</h2>
-            <p className="text-xl mb-6 opacity-90">Mumbai Premier League 2024 - Final</p>
-            <div className="flex flex-wrap gap-6 mb-8 text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                <span>Time: 6:00 PM IST</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                <span>Venue: Wankhede Stadium</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span>Attendance: 12,453</span>
-              </div>
+          ) : liveMatches.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+              <Radio className="mx-auto h-16 w-16 opacity-50 mb-4" />
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">No Live Matches</h2>
+              <p className="text-xl mb-6 opacity-90">Check back later for live action!</p>
+              <button 
+                onClick={() => navigate('/tournaments')}
+                className="px-8 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors shadow-lg"
+              >
+                View Tournaments
+              </button>
             </div>
-            <button className="px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg flex items-center gap-2">
-              <Play className="w-5 h-5" />
-              Watch Now
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {liveMatches.slice(0, 3).map((match) => (
+                <div 
+                  key={match.id}
+                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 cursor-pointer hover:bg-white/15 transition-colors"
+                  onClick={() => navigate(`/watch-live/${match.id}`)}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="px-4 py-1 bg-red-600 rounded-full text-sm font-bold flex items-center gap-2">
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      LIVE
+                    </span>
+                    {match.tournament_name && (
+                      <span className="text-sm opacity-90">{match.tournament_name}</span>
+                    )}
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-2">
+                    {match.team_a_name} vs {match.team_b_name}
+                  </h2>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-2xl font-bold">{match.score || '0/0'}</span>
+                    <span className="text-lg opacity-90">
+                      ({match.overs ? (typeof match.overs === 'number' ? match.overs.toFixed(1) : match.overs) : '0.0'} overs)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-6 mb-8 text-sm">
+                    {match.match_time && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        <span>Time: {match.match_time}</span>
+                      </div>
+                    )}
+                    {match.ground && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5" />
+                        <span>Venue: {match.ground}</span>
+                      </div>
+                    )}
+                    {match.match_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        <span>{formatDate(match.match_date)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/watch-live/${match.id}`)
+                    }}
+                    className="px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg flex items-center gap-2"
+                  >
+                    <Play className="w-5 h-5" />
+                    Watch Live
+                  </button>
+                </div>
+              ))}
+              {liveMatches.length > 3 && (
+                <div className="text-center">
+                  <button 
+                    onClick={() => navigate('/live-matches')}
+                    className="px-8 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
+                  >
+                    View All Live Matches ({liveMatches.length})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

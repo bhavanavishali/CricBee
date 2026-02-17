@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
+from app.schemas.club_manager import ClubRead
 
 class TournamentDetailsCreate(BaseModel):
     overs: int = Field(..., gt=0, le=50)
@@ -26,10 +27,14 @@ class TournamentResponse(BaseModel):
     organizer_id: int
     plan_id: int
     status: str
+    is_blocked: bool = False
+    fixture_mode_id: Optional[int] = None
+    winner_team_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     details: Optional['TournamentDetailsResponse'] = None
     payment: Optional['TournamentPaymentResponse'] = None
+    winner_team: Optional[ClubRead] = None
     
     class Config:
         from_attributes = True
@@ -101,6 +106,40 @@ class PaymentVerification(BaseModel):
 class OrganizerWalletBalanceResponse(BaseModel):
     balance: Decimal
     total_transactions: int
+    
+    class Config:
+        from_attributes = True
+
+class FinanceReportRequest(BaseModel):
+    filter_type: str  # 'weekly', 'monthly', 'yearly', 'custom'
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+class FinanceReportTransactionResponse(BaseModel):
+    transaction_id: Optional[str] = None
+    tournament_id: Optional[int] = None
+    tournament_name: Optional[str] = None
+    tournament_type: Optional[str] = None
+    amount: Decimal
+    status: str
+    description: Optional[str] = None
+    transaction_direction: str
+    transaction_type: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class TournamentCancellationRequest(BaseModel):
+    notification_title: str
+    notification_description: str
+
+class FinanceReportSummaryResponse(BaseModel):
+    total_revenue: Decimal  # Total credits (enrollment fees)
+    total_debits: Decimal  # Total debits (tournament creation fees)
+    net_balance: Decimal  # Revenue - Debits
+    total_transactions: int
+    transactions: List[FinanceReportTransactionResponse]
     
     class Config:
         from_attributes = True

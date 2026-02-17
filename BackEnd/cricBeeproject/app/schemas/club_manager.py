@@ -54,6 +54,8 @@ class PlayerSearchResponse(BaseModel):
     player_profile: PlayerRead
     user: UserRead
     is_already_in_club: bool = False
+    is_already_in_any_club: bool = False
+    current_club: Optional[ClubRead] = None
     has_pending_invitation: bool = False  
 
 class AddPlayerRequest(BaseModel):
@@ -92,3 +94,42 @@ class ClubPlayerInvitationListResponse(BaseModel):
 
 class InvitationResponseRequest(BaseModel):
     invitation_id: int
+
+# Transaction and Wallet Schemas
+class ClubManagerTransactionResponse(BaseModel):
+    id: int
+    transaction_id: str
+    transaction_type: str
+    transaction_direction: str
+    amount: float
+    status: str
+    tournament_id: Optional[int] = None
+    tournament_name: Optional[str] = None
+    description: Optional[str] = None
+    created_at: datetime
+    payment_date: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class ClubManagerWalletBalanceResponse(BaseModel):
+    balance: float
+    total_transactions: int
+
+class ClubManagerTransactionListResponse(BaseModel):
+    transactions: list[ClubManagerTransactionResponse]
+    total: int
+
+# Player Creation Schemas
+class CreatePlayerRequest(BaseModel):
+    full_name: str
+    email: str
+    phone: str
+    age: int
+    address: str
+
+class CreatePlayerResponse(BaseModel):
+    player_profile: PlayerRead
+    user: UserRead
+    club_player: ClubPlayerResponse
+    message: str

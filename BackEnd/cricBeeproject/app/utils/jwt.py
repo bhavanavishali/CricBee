@@ -17,8 +17,8 @@ security = HTTPBearer()
 ALGORITHM = "HS256"
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
-REFRESH_TOKEN_EXPIRE_HOURS = 168  # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 
+REFRESH_TOKEN_EXPIRE_HOURS = 168  # 
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

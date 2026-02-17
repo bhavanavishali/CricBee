@@ -10,6 +10,7 @@ class TournamentStatus(str, enum.Enum):
     REGISTRATION_END = "registration_end"
     TOURNAMENT_START = "tournament_start"
     TOURNAMENT_END = "tournament_end"
+    COMPLETED = "completed"
     CANCELLED = "cancelled"
 
 class PaymentStatus(str, enum.Enum):
@@ -18,6 +19,13 @@ class PaymentStatus(str, enum.Enum):
     FAILED = "failed"
     REFUNDED = "refunded"
 
+class TournamentType(str, enum.Enum):
+    T10 = "T10"
+    T20 = "T20"
+    ODI = "ODI"
+    TEST = "Test"
+    OTHER = "Other"
+
 class Tournament(Base):
     __tablename__ = "tournaments"
     
@@ -25,17 +33,25 @@ class Tournament(Base):
     tournament_name = Column(String, nullable=False)
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan_id = Column(Integer, ForeignKey("tournament_pricing_plans.id"), nullable=False)
+    fixture_mode_id = Column(Integer, ForeignKey("fixture_modes.id"), nullable=True)
     status = Column(String, nullable=False, default=TournamentStatus.PENDING_PAYMENT.value)
+    winner_team_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    is_blocked=Column(Boolean,default=False,nullable=False)
     
-
     organizer = relationship("User", back_populates="tournaments")
     plan = relationship("TournamentPricingPlan")
+    fixture_mode = relationship("FixtureMode")
+    winner_team = relationship("Club", foreign_keys=[winner_team_id])
     details = relationship("TournamentDetails", back_populates="tournament", uselist=False, cascade="all, delete-orphan")
     payment = relationship("TournamentPayment", back_populates="tournament", uselist=False, cascade="all, delete-orphan")
-    fixture_rounds = relationship("FixtureRound", back_populates="tournament", cascade="all, delete-orphan")
     matches = relationship("Match", back_populates="tournament", cascade="all, delete-orphan")
+
+
+    notifications = relationship("Notification", back_populates="tournament", cascade="all, delete-orphan")
+
 
 class TournamentDetails(Base):
     __tablename__ = "tournament_details"

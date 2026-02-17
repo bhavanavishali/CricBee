@@ -135,7 +135,7 @@ def signin(payload: UserSignIn, response: Response, db: Session = Depends(get_db
         additional_claims={"is_superuser": user.is_superuser}
     )
     
-    # Set httpOnly cookies 
+   
     cookie_params = get_cookie_params(is_prod=False)
     cookie_params["path"] = "/"
     
@@ -248,7 +248,7 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
             additional_claims={"is_superuser": user.is_superuser}
         )
         
-        # Set new cookies with explicit path
+        
         cookie_params = get_cookie_params(is_prod=False)
         cookie_params["path"] = "/"
         
@@ -282,9 +282,7 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """
-    Request password reset - sends email with reset link
-    """
+    
     
     user = db.query(User).filter(User.email == payload.email).first()
     
@@ -299,10 +297,10 @@ async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(
             "message": "If an account with that email exists, we've sent a password reset link."
         }
     
-    # Generate reset token
+   
     reset_token = generate_password_reset_token()
     
-    # Store token in Redis (expires in 1 hour)
+    
     try:
         token_stored = store_password_reset_token(payload.email, reset_token, expire_hours=1)
         
@@ -351,7 +349,7 @@ async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
   
-    # Verify token
+    
     is_valid, email = verify_password_reset_token(payload.token)
     
     if not is_valid or not email:
@@ -360,14 +358,14 @@ async def reset_password(payload: ResetPasswordRequest, db: Session = Depends(ge
             detail="Invalid or expired reset token"
         )
     
-    # Validate password strength
+    
     if len(payload.new_password) < 6:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters long"
         )
     
-    # Reset password
+    
     success, message = reset_user_password(db, email, payload.new_password)
     
     if not success:

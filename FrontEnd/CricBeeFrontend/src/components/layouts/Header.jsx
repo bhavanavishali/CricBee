@@ -3,15 +3,16 @@
 import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
-import { Bell, Settings, LogOut, ChevronRight } from "lucide-react"
+import { Settings, LogOut, ChevronRight } from "lucide-react"
 import { clearUser } from '@/store/slices/authSlice'
 import api from '@/api'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function Header({ title, profilePath }) {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const user = useSelector((state) => state.auth.user)
-  const userRole = user?.role
+  const userRole = user?.role?.toLowerCase()?.replace(/\s+/g, '_') // Convert to lowercase and replace spaces with underscores
 
   const handleLogout = async () => {
     try {
@@ -77,11 +78,10 @@ export default function Header({ title, profilePath }) {
           )}
         </div>
         <div className="flex items-center space-x-6">
+          {/* Show NotificationBell for club_manager and fan */}
+          {(userRole === 'club_manager' || userRole === 'fan') && <NotificationBell />}
           <button className="p-2 hover:bg-gray-100 rounded-lg">
-            <Bell size={20} className="text-gray-600" />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-lg">
-            <Settings size={20} className="text-gray-600" />
+            {/* <Settings size={20} className="text-gray-600" /> */}
           </button>
           <div className="flex items-center space-x-3 border-l border-gray-200 pl-6">
             <div className="text-right">

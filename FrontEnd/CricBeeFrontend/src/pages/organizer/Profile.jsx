@@ -249,10 +249,10 @@ export default function ProfilePage() {
   }
 
   const tabs = [
-    { id: "profile", label: "Profile Details" },
-    { id: "statistics", label: "Statistics" },
-    { id: "achievements", label: "Achievements" },
-    { id: "tournaments", label: "Tournaments" },
+    { id: "profile", label: "Profile Details" }
+    // { id: "statistics", label: "Statistics" },
+    // { id: "achievements", label: "Achievements" },
+    // { id: "tournaments", label: "Tournaments" },
   ]
 
   return (
@@ -711,36 +711,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Verification Status */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Verification Status</h3>
-          <div className="flex flex-wrap gap-6">
-            {organizer.verifications.organizer && (
-              <div className="flex items-center gap-2">
-                <CheckCircle size={20} className="text-green-600" />
-                <span className="text-gray-700 font-medium">Verified Organizer</span>
-              </div>
-            )}
-            {organizer.verifications.payment && (
-              <div className="flex items-center gap-2">
-                <CreditCard size={20} className="text-blue-600" />
-                <span className="text-gray-700 font-medium">Payment Verified</span>
-              </div>
-            )}
-            {organizer.verifications.identity && (
-              <div className="flex items-center gap-2">
-                <Shield size={20} className="text-purple-600" />
-                <span className="text-gray-700 font-medium">Identity Verified</span>
-              </div>
-            )}
-            {organizer.verifications.phone && (
-              <div className="flex items-center gap-2">
-                <Phone size={20} className="text-slate-600" />
-                <span className="text-gray-700 font-medium">Phone Verified</span>
-              </div>
-            )}
-          </div>
-        </div>
+ 
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

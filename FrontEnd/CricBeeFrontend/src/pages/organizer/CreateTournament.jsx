@@ -28,9 +28,21 @@ const CreateTournament = () => {
   useEffect(() => {
     loadPricingPlans();
     // Preload Razorpay script when component mounts
+    // Check if script is already in HTML
+    const scriptInHTML = document.querySelector('script[src*="checkout.razorpay.com"]');
+    if (scriptInHTML) {
+      console.log('Razorpay script found in HTML, waiting for initialization...');
+      // Check if script has loaded
+      if (scriptInHTML.readyState) {
+        console.log('Script readyState:', scriptInHTML.readyState);
+      }
+    }
+    
+    // Try to preload Razorpay
     loadRazorpayScript().catch(err => {
       console.warn('Razorpay preload warning:', err);
-      // Don't show error on mount, just log it
+      console.warn('This is not critical - Razorpay will be loaded when needed');
+      // Don't show error on mount, just log it - user will see error when they try to create tournament
     });
   }, []);
 
@@ -47,49 +59,124 @@ const CreateTournament = () => {
     return new Promise((resolve, reject) => {
       // Check if Razorpay is already available and is a constructor
       if (window.Razorpay && typeof window.Razorpay === 'function') {
+        console.log('Razorpay already available');
         resolve();
         return;
       }
 
-      // Check if script is already in the DOM
-      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      // Check if script is already in the DOM (from index.html or previous load)
+      const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]');
+      
+      // If script exists, wait for it to initialize
       if (existingScript) {
-        // Script exists, wait for it to load and initialize
+        console.log('Razorpay script found in DOM, waiting for initialization...');
         let attempts = 0;
-        const maxAttempts = 100; // 10 seconds (100 * 100ms)
+        const maxAttempts = 200; // 20 seconds
         const checkInterval = setInterval(() => {
           attempts++;
+          // Check multiple ways Razorpay might be available
           if (window.Razorpay && typeof window.Razorpay === 'function') {
             clearInterval(checkInterval);
+            console.log('Razorpay initialized successfully');
             resolve();
           } else if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            reject(new Error('Razorpay SDK loading timeout'));
+            console.error('Razorpay initialization timeout. Script exists but Razorpay not available.');
+            console.log('Window.Razorpay:', window.Razorpay);
+            console.log('Type of window.Razorpay:', typeof window.Razorpay);
+            
+            // Try to remove and reload the script
+            if (existingScript.parentNode) {
+              existingScript.parentNode.removeChild(existingScript);
+            }
+            
+            // Load script dynamically
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            
+            const loadTimeout = setTimeout(() => {
+              if (script.parentNode) {
+                script.parentNode.removeChild(script);
+              }
+              reject(new Error('Razorpay SDK script load timeout. Please check your internet connection and refresh the page.'));
+            }, 15000);
+
+            script.onload = () => {
+              clearTimeout(loadTimeout);
+              console.log('Razorpay script loaded, waiting for initialization...');
+              // Wait for Razorpay to initialize
+              let initAttempts = 0;
+              const maxInitAttempts = 100; // 10 seconds
+              const initInterval = setInterval(() => {
+                initAttempts++;
+                if (window.Razorpay && typeof window.Razorpay === 'function') {
+                  clearInterval(initInterval);
+                  console.log('Razorpay initialized after reload');
+                  resolve();
+                } else if (initAttempts >= maxInitAttempts) {
+                  clearInterval(initInterval);
+                  reject(new Error('Razorpay SDK failed to initialize after script loaded. Please check browser console for errors.'));
+                }
+              }, 100);
+            };
+            
+            script.onerror = () => {
+              clearTimeout(loadTimeout);
+              if (script.parentNode) {
+                script.parentNode.removeChild(script);
+              }
+              reject(new Error('Failed to load Razorpay SDK. Please check your internet connection and refresh the page.'));
+            };
+            
+            document.head.appendChild(script);
           }
         }, 100);
         return;
       }
 
-      // Create and load script
+      // Script doesn't exist, load it dynamically
+      console.log('Loading Razorpay script dynamically...');
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
+      script.crossOrigin = 'anonymous';
+      
+      const loadTimeout = setTimeout(() => {
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        reject(new Error('Razorpay SDK script load timeout. Please check your internet connection and refresh the page.'));
+      }, 15000);
+
       script.onload = () => {
-        // Wait for Razorpay to initialize (may take a moment)
-        let attempts = 0;
-        const maxAttempts = 50; // 5 seconds
-        const checkInterval = setInterval(() => {
-          attempts++;
+        clearTimeout(loadTimeout);
+        console.log('Razorpay script loaded, waiting for initialization...');
+        // Wait for Razorpay to initialize
+        let initAttempts = 0;
+        const maxInitAttempts = 100; // 10 seconds
+        const initInterval = setInterval(() => {
+          initAttempts++;
           if (window.Razorpay && typeof window.Razorpay === 'function') {
-            clearInterval(checkInterval);
+            clearInterval(initInterval);
+            console.log('Razorpay initialized successfully');
             resolve();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            reject(new Error('Razorpay SDK failed to initialize'));
+          } else if (initAttempts >= maxInitAttempts) {
+            clearInterval(initInterval);
+            reject(new Error('Razorpay SDK failed to initialize after script loaded. Please check browser console for errors.'));
           }
         }, 100);
       };
-      script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+      
+      script.onerror = () => {
+        clearTimeout(loadTimeout);
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        reject(new Error('Failed to load Razorpay SDK. Please check your internet connection and refresh the page.'));
+      };
+      
       document.head.appendChild(script);
     });
   };
@@ -124,8 +211,16 @@ const CreateTournament = () => {
       try {
         await loadRazorpayScript();
       } catch (error) {
-        alert('Failed to load payment gateway. Please refresh the page and try again.');
+        const errorMessage = error.message || 'Unknown error';
         console.error('Razorpay load error:', error);
+        
+        // Provide more helpful error message
+        if (errorMessage.includes('timeout') || errorMessage.includes('connection')) {
+          alert('Payment gateway is taking too long to load. This might be due to:\n\n1. Slow internet connection\n2. Network firewall blocking Razorpay\n3. Ad blocker blocking the script\n\nPlease:\n- Check your internet connection\n- Disable ad blockers\n- Refresh the page and try again');
+        } else {
+          alert(`Failed to load payment gateway: ${errorMessage}\n\nPlease refresh the page and try again.`);
+        }
+        
         setLoading(false);
         return;
       }
@@ -207,9 +302,26 @@ const CreateTournament = () => {
       }
 
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to create tournament. Please try again.';
-      alert(errorMessage);
-      console.error('Tournament creation error:', error);
+      let errorMessage = 'Failed to create tournament. Please try again.';
+      
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show more detailed error in console for debugging
+      console.error('Tournament creation error:', {
+        message: errorMessage,
+        status: error.response?.status,
+        data: error.response?.data,
+        fullError: error
+      });
+      
+      // Display user-friendly error message
+      alert(`Tournament Creation Error:\n\n${errorMessage}\n\nPlease check:\n- All required fields are filled\n- Razorpay credentials are configured\n- Network connection is stable`);
       setLoading(false);
     }
   };

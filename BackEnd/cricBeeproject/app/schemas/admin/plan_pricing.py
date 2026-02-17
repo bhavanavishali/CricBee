@@ -25,6 +25,8 @@ class TournamentPricingPlanResponse(BaseModel):
     plan_range: str
     amount: Decimal
     status: str
+    tournaments: int = 0
+    revenue: Decimal = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
     

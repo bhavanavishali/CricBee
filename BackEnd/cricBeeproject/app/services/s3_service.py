@@ -56,8 +56,6 @@ def upload_file_to_s3(file: UploadFile, folder: Optional[str] = None) -> str:
        
         file.file.seek(0)
 
-        # Upload without ACL (bucket policy handles public access)
-        # Modern S3 buckets often have ACLs disabled and use bucket policies instead
         try:
             client.put_object(
                 Bucket=settings.aws_s3_bucket,

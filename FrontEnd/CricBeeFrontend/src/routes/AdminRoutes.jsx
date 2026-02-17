@@ -7,7 +7,7 @@ import AdminDashboard from "@/pages/admin/Dashboard/admin-dashboard";
 import UserManagement from "@/pages/admin/Usermanagement";
 import PricingPlans from "@/pages/admin/PricingPlans";
 import Transactions from "@/pages/admin/Transaction";
-
+import TournamentOversight from "@/pages/admin/TournamentOversight"; 
 const AdminRoutes = () => {
   return (
     <Routes>
@@ -16,6 +16,7 @@ const AdminRoutes = () => {
            <Route path="usermanagement" element={<UserManagement/>} />
            <Route path="plans" element={<PricingPlans/>} />
            <Route path="transaction" element={<Transactions/>} />
+           <Route path="tournaments" element={<TournamentOversight/>} />
     </Routes>
   );
 };

@@ -9,11 +9,41 @@ from app.models.admin.transaction import Transaction, TransactionType, Transacti
 from app.services.admin.transaction_service import generate_transaction_id, create_transaction
 from app.services.organizer.payment_service import create_razorpay_order, verify_payment_signature
 from app.schemas.organizer.tournament import TournamentResponse
-from app.schemas.clubmanager.enrollment import TournamentEnrollmentResponse
+from app.schemas.clubmanager.enrollment import TournamentEnrollmentResponse, MyEnrollmentResponse
 from app.core.config import settings
 from decimal import Decimal
 from datetime import date, datetime
 from typing import List, Optional, Dict, Any
+
+
+removed_club_managers_cache: Dict[int, List[int]] = {}
+
+def get_all_club_manager_ids_for_tournament(db: Session, tournament_id: int) -> List[int]:
+ 
+  
+    enrolled_clubs = db.query(TournamentEnrollment).filter(
+        TournamentEnrollment.tournament_id == tournament_id
+    ).all()
+    current_club_manager_ids = [enrollment.enrolled_by for enrollment in enrolled_clubs]
+    
+    
+    removed_club_manager_ids = removed_club_managers_cache.get(tournament_id, [])
+    
+   
+    all_club_manager_ids = list(set(current_club_manager_ids + removed_club_manager_ids))
+    
+
+
+    print(f"===  Club Manager IDs for Tournament {tournament_id} ===")
+    print(f" enrolled club managers: {current_club_manager_ids}")
+
+    
+    return all_club_manager_ids
+
+def clear_removed_club_managers_cache(tournament_id: int):
+
+    if tournament_id in removed_club_managers_cache:
+        del removed_club_managers_cache[tournament_id]
 
 def get_eligible_tournaments_for_club_manager(db: Session) -> List[TournamentResponse]:
 
@@ -24,7 +54,8 @@ def get_eligible_tournaments_for_club_manager(db: Session) -> List[TournamentRes
         .options(
             joinedload(Tournament.details),
             joinedload(Tournament.payment),
-            joinedload(Tournament.plan)
+            joinedload(Tournament.plan),
+            joinedload(Tournament.winner_team)
         )
         .join(TournamentDetails, Tournament.id == TournamentDetails.tournament_id)
         .join(TournamentPayment, Tournament.id == TournamentPayment.tournament_id)
@@ -71,7 +102,10 @@ def initiate_enrollment(
     )
     
     if not tournament:
-        raise ValueError("Tournament not found")
+        raise ValueError("tournament not found")
+    
+    if tournament.is_blocked:
+        raise ValueError("this tournament blocked by the admin and is not available for enrollment")
     
     if not tournament.details:
         raise ValueError("Tournament details not found")
@@ -131,7 +165,7 @@ def initiate_enrollment(
             currency="INR"
         )
         
-        # Create pending enrollment record (status will be SUCCESS only after payment verification)
+        
         enrollment = TournamentEnrollment(
             tournament_id=tournament_id,
             club_id=club_id,
@@ -249,8 +283,9 @@ def get_enrolled_clubs_for_tournament(
     db: Session,
     tournament_id: int,
     organizer_id: int
-) -> List[dict]:
-    
+) -> List[dict]:  
+    # -------------------Organizer can see enrolled clubs.
+
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
         Tournament.organizer_id == organizer_id
@@ -292,6 +327,7 @@ def remove_club_from_tournament_with_refund(
     club_id: int,
     organizer_id: int
 ) -> dict:
+            # --------- Organizer removes club + refund money.
 
     tournament = db.query(Tournament).filter(
         Tournament.id == tournament_id,
@@ -380,6 +416,18 @@ def remove_club_from_tournament_with_refund(
     enrollment.payment_status = PaymentStatus.REFUNDED.value
     enrollment.updated_at = datetime.now()
     
+    # Save club manager ID before deleting enrollment (for future notifications)
+
+    club_manager_id = enrollment.enrolled_by
+    if tournament_id not in removed_club_managers_cache:
+        removed_club_managers_cache[tournament_id] = []
+    if club_manager_id not in removed_club_managers_cache[tournament_id]:
+        removed_club_managers_cache[tournament_id].append(club_manager_id)
+    
+
+    print(f"Club Manager ID saved to cache: {club_manager_id}")
+    print(f"Current cache for tournament {tournament_id}: {removed_club_managers_cache[tournament_id]}")
+    
 
     db.delete(enrollment)
     
@@ -391,3 +439,43 @@ def remove_club_from_tournament_with_refund(
         "tournament_id": tournament_id,
         "refunded_amount": float(enrollment.enrolled_fee)
     }
+
+def get_club_manager_enrollments(db: Session, club_manager_id: int) -> List[MyEnrollmentResponse]:
+        # -------- Club manager sees his enrollments.
+
+    club = db.query(Club).filter(Club.manager_id == club_manager_id).first()
+    
+    if not club:
+        raise ValueError("Club not found for this manager")
+    
+   
+    enrollments = (
+        db.query(TournamentEnrollment)
+        .options(
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.details),
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.payment),
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.plan),
+            joinedload(TournamentEnrollment.tournament).joinedload(Tournament.winner_team)
+        )
+        .filter(TournamentEnrollment.club_id == club.id)
+        .order_by(TournamentEnrollment.created_at.desc())
+        .all()
+    )
+    
+    result = []
+    for enrollment in enrollments:
+       
+        enrollment_dict = {
+            "id": enrollment.id,
+            "tournament_id": enrollment.tournament_id,
+            "club_id": enrollment.club_id,
+            "enrolled_by": enrollment.enrolled_by,
+            "enrolled_fee": enrollment.enrolled_fee,
+            "payment_status": enrollment.payment_status,
+            "created_at": enrollment.created_at,
+            "updated_at": enrollment.updated_at,
+            "tournament": TournamentResponse.model_validate(enrollment.tournament)
+        }
+        result.append(MyEnrollmentResponse(**enrollment_dict))
+    
+    return result

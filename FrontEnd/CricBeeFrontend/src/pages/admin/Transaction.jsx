@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/layouts/Layout';
-import { getTransactions, getWalletBalance } from '@/api/adminService';
-import { DollarSign, Calendar, CheckCircle, XCircle, Clock, Wallet } from 'lucide-react';
+import { getTransactions, getWalletBalance, getFinancialStats, downloadFinancialReport } from '@/api/adminService';
+import { DollarSign, Calendar, CheckCircle, XCircle, Clock, Wallet, TrendingUp, TrendingDown, Download, X } from 'lucide-react';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [walletBalance, setWalletBalance] = useState(null);
   const [walletLoading, setWalletLoading] = useState(true);
+  const [financialStats, setFinancialStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
-  const limit = 50;
+  const limit = 10;
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState('weekly');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     loadTransactions();
     loadWalletBalance();
+    loadFinancialStats();
   }, [skip]);
 
   const loadTransactions = async () => {
@@ -41,6 +49,41 @@ export default function Transactions() {
       console.error('Failed to load wallet balance:', error);
     } finally {
       setWalletLoading(false);
+    }
+  };
+
+  const loadFinancialStats = async () => {
+    try {
+      setStatsLoading(true);
+      const result = await getFinancialStats();
+      if (result.success) {
+        setFinancialStats(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load financial stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      setDownloading(true);
+      const result = await downloadFinancialReport(
+        reportType,
+        reportType === 'custom' ? customStartDate : null,
+        reportType === 'custom' ? customEndDate : null
+      );
+      if (result.success) {
+        setShowReportModal(false);
+      } else {
+        alert(result.message || 'Failed to download report');
+      }
+    } catch (error) {
+      console.error('Failed to download report:', error);
+      alert('Failed to download report');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -98,11 +141,93 @@ export default function Transactions() {
           </div>
         </div>
 
+        {/* Financial Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
+                {statsLoading ? (
+                  <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-green-600">
+                    ₹{financialStats ? financialStats.total_revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  </p>
+                )}
+              </div>
+              <div className="bg-green-100 p-3 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Debits</p>
+                {statsLoading ? (
+                  <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-red-600">
+                    ₹{financialStats ? financialStats.total_debits.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  </p>
+                )}
+              </div>
+              <div className="bg-red-100 p-3 rounded-lg">
+                <TrendingDown className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Refunds</p>
+                {statsLoading ? (
+                  <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-orange-600">
+                    ₹{financialStats ? financialStats.total_refunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  </p>
+                )}
+              </div>
+              <div className="bg-orange-100 p-3 rounded-lg">
+                <XCircle className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Net Balance</p>
+                {statsLoading ? (
+                  <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  <p className={`text-2xl font-bold ${financialStats && financialStats.net_balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    ₹{financialStats ? financialStats.net_balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  </p>
+                )}
+              </div>
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <DollarSign className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">All Transactions</h1>
             <p className="text-sm text-gray-600 mt-1">Total: {total} transactions</p>
           </div>
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Download Report
+          </button>
         </div>
 
         {loading ? (
@@ -126,6 +251,12 @@ export default function Transactions() {
                         Transaction ID
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tournament
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -140,9 +271,6 @@ export default function Transactions() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tournament ID
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -152,6 +280,26 @@ export default function Transactions() {
                           <div className="text-sm font-mono text-gray-900">
                             {transaction.transaction_id}
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {transaction.tournament_name || '-'}
+                          </div>
+                          {transaction.tournament_status && (
+                            <div className="text-xs text-gray-500 capitalize">
+                              {transaction.tournament_status.replace('_', ' ')}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {transaction.user_name || '-'}
+                          </div>
+                          {transaction.user_email && (
+                            <div className="text-xs text-gray-500">
+                              {transaction.user_email}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 capitalize">
@@ -184,11 +332,6 @@ export default function Transactions() {
                             {new Date(transaction.created_at).toLocaleString('en-IN')}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {transaction.tournament_id || '-'}
-                          </div>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -219,6 +362,95 @@ export default function Transactions() {
           </>
         )}
       </div>
+
+      {/* Report Download Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Download Financial Report</h2>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Report Type
+                </label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                  <option value="custom">Custom Date Range</option>
+                </select>
+              </div>
+
+              {reportType === 'custom' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={downloading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={downloading || (reportType === 'custom' && (!customStartDate || !customEndDate))}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Download
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

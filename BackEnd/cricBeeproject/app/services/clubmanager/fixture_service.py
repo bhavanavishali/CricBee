@@ -10,7 +10,7 @@ def get_club_manager_matches(
     club_id: int,
     manager_id: int
 ) -> List[Match]:
-    #Get all published matches for tournaments where the club is enrolled
+#    ------ get to all published matches for tournaments where the club is enrolled.
     
     club = db.query(Club).filter(
         Club.id == club_id,
@@ -50,7 +50,7 @@ def get_club_players_for_match(
     club_id: int,
     manager_id: int
 ) -> List[ClubPlayer]:
-    #get all players in a club for Playing XI selection
+    # -------- get all players in a club (for Playing XI selection)
     
     
     club = db.query(Club).filter(
@@ -80,7 +80,7 @@ def set_playing_xi(
     captain_id: Optional[int] = None,
     vice_captain_id: Optional[int] = None
 ) -> List[PlayingXI]:
-    
+    # ------------ Set Playing 11 for a match.
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -92,7 +92,7 @@ def set_playing_xi(
     
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
-        raise ValueError("Match not found")
+        raise ValueError("match not found")
     
     if match.team_a_id != club_id and match.team_b_id != club_id:
         raise ValueError("Club is not part of this match")
@@ -121,7 +121,7 @@ def set_playing_xi(
         PlayingXI.match_id == match_id,
         PlayingXI.club_id == club_id
     ).delete()
-    
+    # Removes old selection (so no duplicates)
    
     playing_xi_list = []
     for player_id in player_ids:

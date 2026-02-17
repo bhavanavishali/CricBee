@@ -51,18 +51,18 @@ def update_profile_endpoint(
         )
 
     try:
-        # Update user details if provided
+      
         if payload.user:
             update_user(db, current_user.id, payload.user)
         
-        # Update organization details if provided
+        
         if payload.organization:
             org = get_organization(db, current_user.id)
             if not org:
                 raise ValueError("Organization not found")
             update_organization(db, org.id, payload.organization, current_user.id)
         
-        # Return updated profile
+        
         return get_profile(db, current_user.id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -145,7 +145,7 @@ async def upload_organization_image_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except RuntimeError as exc:
-        # Log the full error for debugging
+        
         import logging
         logging.error(f"S3 upload error: {str(exc)}", exc_info=True)
         raise HTTPException(

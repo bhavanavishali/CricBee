@@ -11,7 +11,8 @@ from app.schemas.club_manager import (
     ClubPlayerInvitationResponse, ClubPlayerInvitationListResponse, InvitationResponseRequest
 )
 from app.services.player_service import (
-    get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo
+    get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo,
+    get_player_current_club, leave_club
 )
 from app.services.club_service import (
     get_invitations_for_player, accept_club_invitation, reject_club_invitation
@@ -82,7 +83,7 @@ async def upload_profile_photo_endpoint(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Upload player profile photo"""
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -154,11 +155,11 @@ def get_image_proxy(request: Request, url: str):
             parts = url.split('.amazonaws.com/')
             if len(parts) > 1:
                 object_key = parts[1]
-                # Generate presigned URL (valid for 1 hour)
+                
                 presigned_url = generate_presigned_url(object_key, expiration=3600)
                 return RedirectResponse(url=presigned_url)
         
-        # If URL parsing fails, return the original URL
+        
         return RedirectResponse(url=url)
     except Exception as e:
         raise HTTPException(
@@ -173,7 +174,7 @@ def get_player_invitations_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get all club invitations for the current player"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -207,7 +208,7 @@ def accept_invitation_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Accept a club invitation"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -233,7 +234,7 @@ def reject_invitation_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Reject a club invitation"""
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(
@@ -247,5 +248,47 @@ def reject_invitation_endpoint(
             "message": "Invitation rejected successfully",
             "invitation_id": invitation.id
         }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/current-club")
+def get_current_club_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can access this endpoint"
+        )
+    
+    try:
+        club_info = get_player_current_club(db, current_user.id)
+        if not club_info:
+            return {"message": "Player is not a member of any club", "club": None}
+        
+        return {
+            "club": ClubRead.model_validate(club_info["club"]),
+            "joined_at": club_info["joined_at"]
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.post("/leave-club", status_code=status.HTTP_200_OK)
+def leave_club_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can leave clubs"
+        )
+    
+    try:
+        leave_club(db, current_user.id)
+        return {"message": "Successfully left the club"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

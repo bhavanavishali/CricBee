@@ -213,7 +213,7 @@ const TournamentEnrollments = () => {
                           <Eye size={18} />
                           <span>View Clubs</span>
                         </button>
-                        {canCancel(tournament) && (
+                        {/* {canCancel(tournament) && (
                           <button
                             onClick={() => setShowCancelConfirm(tournament.id)}
                             disabled={cancellingId !== null}
@@ -222,7 +222,7 @@ const TournamentEnrollments = () => {
                             <X size={18} />
                             <span>Cancel Tournament</span>
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>

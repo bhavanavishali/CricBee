@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.models.admin.plan_pricing import TournamentPricingPlan, PlanStatus
+from app.models.organizer.tournament import Tournament, TournamentPayment, PaymentStatus
 from typing import List, Optional
 from app.schemas.admin.plan_pricing import (
     TournamentPricingPlanCreate,
@@ -28,7 +30,29 @@ def create_tournament_pricing_plan(
 def get_all_tournament_pricing_plans(db: Session) -> List[TournamentPricingPlanResponse]:
     
     plans = db.query(TournamentPricingPlan).order_by(TournamentPricingPlan.created_at.desc()).all()
-    return [TournamentPricingPlanResponse.model_validate(plan) for plan in plans]
+    
+    results = []
+    for plan in plans:
+        
+        tournament_count = db.query(func.count(Tournament.id)).filter(
+            Tournament.plan_id == plan.id
+        ).scalar()
+        
+        
+        revenue = db.query(func.sum(TournamentPayment.amount)).join(
+            Tournament, TournamentPayment.tournament_id == Tournament.id
+        ).filter(
+            Tournament.plan_id == plan.id,
+            TournamentPayment.payment_status == PaymentStatus.SUCCESS
+        ).scalar() or 0
+        
+       
+        setattr(plan, 'tournaments', tournament_count)
+        setattr(plan, 'revenue', revenue)
+        
+        results.append(TournamentPricingPlanResponse.model_validate(plan))
+        
+    return results
 
 
 def get_tournament_pricing_plan_by_id(

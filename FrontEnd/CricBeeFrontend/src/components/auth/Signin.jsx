@@ -450,7 +450,7 @@ export default function SignInPage() {
     } else if (roleLower === "player") {
       return "/player/dashboard"
     } else if (roleLower === "fan") {
-      return "/"
+      return "/fans/dashboard"
     }
     return "/"
   }

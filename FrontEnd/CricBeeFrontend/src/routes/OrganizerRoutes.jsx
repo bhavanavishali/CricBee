@@ -9,7 +9,15 @@ import OrganizerTransactions from "@/pages/organizer/Transactions"
 import TournamentEnrollments from "@/pages/organizer/TournamentEnrollments"
 import EnrolledClubs from "@/pages/organizer/EnrolledClubs"
 import ManageFixtures from "@/pages/organizer/ManageFixtures"
+import ManageMatches from "@/pages/organizer/ManageMatches"
+import TournamentDetails from "@/pages/organizer/TournamentDetails"
 import TournamentFixtures from "@/pages/organizer/TournamentFixtures"
+import SelectFixtureMode from "@/pages/organizer/SelectFixtureMode"
+import FixtureSetup from "@/pages/organizer/FixtureSetup"
+import Toss from "@/pages/organizer/Toss"
+import LiveScoring from "@/pages/organizer/LiveScoring"
+import FinanceReport from "@/pages/organizer/FinanceReport"
+import PointsTable from "@/pages/organizer/PointsTable"
 
 const OrganizerRoutes = () => {
   return (
@@ -19,10 +27,18 @@ const OrganizerRoutes = () => {
         <Route path="create-tournament" element={<OrganizerProtectedRoute><CreateTournament /></OrganizerProtectedRoute>} />
         <Route path="tournaments" element={<OrganizerProtectedRoute><TournamentList /></OrganizerProtectedRoute>} />
         <Route path="transactions" element={<OrganizerProtectedRoute><OrganizerTransactions /></OrganizerProtectedRoute>} />
+        <Route path="finance-report" element={<OrganizerProtectedRoute><FinanceReport /></OrganizerProtectedRoute>} />
         <Route path="tournament-enrollments" element={<OrganizerProtectedRoute><TournamentEnrollments /></OrganizerProtectedRoute>} />
         <Route path="tournaments/:tournamentId/enrolled-clubs" element={<OrganizerProtectedRoute><EnrolledClubs /></OrganizerProtectedRoute>} />
         <Route path="manage-fixtures" element={<OrganizerProtectedRoute><ManageFixtures /></OrganizerProtectedRoute>} />
+        <Route path="manage-matches" element={<OrganizerProtectedRoute><ManageMatches /></OrganizerProtectedRoute>} />
+        <Route path="tournaments/:id/details" element={<OrganizerProtectedRoute><TournamentDetails /></OrganizerProtectedRoute>} />
         <Route path="tournaments/:tournamentId/fixtures" element={<OrganizerProtectedRoute><TournamentFixtures /></OrganizerProtectedRoute>} />
+        <Route path="tournaments/:tournamentId/select-fixture-mode" element={<OrganizerProtectedRoute><SelectFixtureMode /></OrganizerProtectedRoute>} />
+        <Route path="tournaments/:tournamentId/fixture-setup" element={<OrganizerProtectedRoute><FixtureSetup /></OrganizerProtectedRoute>} />
+        <Route path="matches/:matchId/toss" element={<OrganizerProtectedRoute><Toss /></OrganizerProtectedRoute>} />
+        <Route path="matches/:matchId/live-scoring" element={<OrganizerProtectedRoute><LiveScoring /></OrganizerProtectedRoute>} />
+        <Route path="tournaments/:tournamentId/points-table" element={<OrganizerProtectedRoute><PointsTable /></OrganizerProtectedRoute>} />
     </Routes>
   );
 };

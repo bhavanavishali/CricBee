@@ -8,9 +8,11 @@ import {
   XCircle,
   Settings,
   DollarSign,
-  Trophy,
+  BarChart3,
+  CreditCard,
   Users,
   Info,
+  Trophy,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import {
@@ -224,22 +226,22 @@ const PricingPlans = () => {
 
   return (
     <Layout title="Plans & Pricing Configuration" profilePath="/admin/profile">
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 transition-colors duration-200">
         {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => navigate("/admin/dashboard")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back to Dashboard</span>
           </button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Plans & Pricing Configuration
               </h1>
-              <p className="text-gray-600 mt-1">Dashboard &gt; Plan Management</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Dashboard &gt; Plan Management</p>
             </div>
             <button
               onClick={handleCreate}
@@ -252,53 +254,53 @@ const PricingPlans = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Trophy className="w-6 h-6 text-blue-600" />
-              </div>
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Tournaments</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalTournaments}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Tournaments</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalTournaments}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatRevenue(stats.totalRevenue)}
                 </p>
               </div>
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Plans</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activePlans}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Active Plans</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.activePlans}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                <CreditCard className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-700 transition-colors">
           <div className="flex items-center gap-3 mb-6">
-            <Settings className="w-6 h-6 text-gray-700" />
-            <h2 className="text-2xl font-bold text-gray-900">
+            <Settings className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Team-Based Pricing Configuration
             </h2>
           </div>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Configure pricing based on the number of teams in tournaments. Plans are
             automatically assigned when organizers create tournaments.
           </p>
@@ -307,11 +309,11 @@ const PricingPlans = () => {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
-              <p className="mt-2 text-gray-600">Loading plans...</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading plans...</p>
             </div>
           ) : plans.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 mb-4">No pricing plans found</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">No pricing plans found</p>
               <button
                 onClick={handleCreate}
                 className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
@@ -323,56 +325,56 @@ const PricingPlans = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Plan Name
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Team Range
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Price
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Tournaments
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Revenue
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {plans.map((plan) => (
-                    <tr key={plan.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={plan.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="py-4 px-4">
-                        <span className="font-medium text-gray-900">{plan.plan_name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{plan.plan_name}</span>
                       </td>
-                      <td className="py-4 px-4 text-gray-700">{plan.plan_range}</td>
+                      <td className="py-4 px-4 text-gray-700 dark:text-gray-400">{plan.plan_range}</td>
                       <td className="py-4 px-4">
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {formatCurrency(plan.amount)}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-gray-700">
+                      <td className="py-4 px-4 text-gray-700 dark:text-gray-400">
                         {plan.tournaments || 0}
                       </td>
                       <td className="py-4 px-4">
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(plan.revenue || 0)}
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {formatRevenue(parseFloat(plan.revenue || 0))}
                         </span>
                       </td>
                       <td className="py-4 px-4">
                         <span
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
                             plan.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                           }`}
                         >
                           {plan.status === "active" ? (
@@ -387,7 +389,7 @@ const PricingPlans = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleEdit(plan)}
-                            className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded transition-colors"
                             title="Edit Plan"
                           >
                             <Edit className="w-4 h-4" />
@@ -396,8 +398,8 @@ const PricingPlans = () => {
                             onClick={() => handleStatusToggle(plan)}
                             className={`p-2 rounded transition-colors ${
                               plan.status === "active"
-                                ? "text-green-600 hover:text-red-600 hover:bg-red-50"
-                                : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                                ? "text-green-600 dark:text-green-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                : "text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
                             }`}
                             title={plan.status === "active" ? "Deactivate" : "Activate"}
                           >
@@ -418,54 +420,92 @@ const PricingPlans = () => {
         </div>
 
         {/* How It Works Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mt-6 border border-transparent dark:border-gray-700 transition-colors">
           <div className="flex items-center gap-3 mb-4">
-            <Info className="w-6 h-6 text-gray-700" />
-            <h3 className="text-xl font-bold text-gray-900">
+            <Info className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
               How Team-Based Pricing Works
             </h3>
           </div>
-          <ol className="list-decimal list-inside space-y-2 text-gray-700">
+          <ol className="list-decimal list-inside space-y-2 text-gray-700 dark:text-gray-400">
             <li>Organizers create tournaments and specify the number of teams they want to enroll.</li>
             <li>Based on the team count, the system automatically selects the appropriate pricing plan.</li>
             <li>Payment is processed according to the selected plan's pricing before tournament activation.</li>
           </ol>
         </div>
 
-        {/* Pricing Examples */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-green-600" />
-              <h4 className="font-semibold text-gray-900">4 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-green-700">Free Plan (₹0)</p>
+        {/* Pricing Cards */}
+        {plans.length > 0 && (
+          <div className="grid grid-cols-3 gap-6 mt-6">
+            {plans.map((plan, index) => {
+              const colors = [
+                {
+                  bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
+                  border: "border-green-200 dark:border-green-800",
+                  icon: "text-green-600 dark:text-green-400",
+                  text: "text-green-700 dark:text-green-300",
+                },
+                {
+                  bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
+                  border: "border-blue-200 dark:border-blue-800",
+                  icon: "text-blue-600 dark:text-blue-400",
+                  text: "text-blue-700 dark:text-blue-300",
+                },
+                {
+                  bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
+                  border: "border-purple-200 dark:border-purple-800",
+                  icon: "text-purple-600 dark:text-purple-400",
+                  text: "text-purple-700 dark:text-purple-300",
+                },
+                {
+                  bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+                  border: "border-orange-200 dark:border-orange-800",
+                  icon: "text-orange-600 dark:text-orange-400",
+                  text: "text-orange-700 dark:text-orange-300",
+                },
+                {
+                  bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-900/10",
+                  border: "border-pink-200 dark:border-pink-800",
+                  icon: "text-pink-600 dark:text-pink-400",
+                  text: "text-pink-700 dark:text-pink-300",
+                },
+              ];
+              const color = colors[index % colors.length];
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`bg-gradient-to-br ${color.bg} rounded-lg p-6 border ${color.border} flex flex-col items-center text-center transition-colors`}
+                >
+                  <Users className={`w-6 h-6 ${color.icon} mb-3`} />
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    {plan.plan_name}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{plan.plan_range}</p>
+                  <p className={`${color.text} font-bold mb-3`}>
+                    {formatCurrency(plan.amount)}
+                  </p>
+                  <div className="flex items-center gap-2 bg-white/60 dark:bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    <Trophy className={`w-4 h-4 ${color.icon}`} />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {plan.tournaments || 0} Tournaments
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-blue-600" />
-              <h4 className="font-semibold text-gray-900">8 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-blue-700">Standard Plan (₹10,000)</p>
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="w-6 h-6 text-purple-600" />
-              <h4 className="font-semibold text-gray-900">16 Teams Tournament</h4>
-            </div>
-            <p className="text-2xl font-bold text-purple-700">Premium Plan (₹15,000)</p>
-          </div>
-        </div>
+        )}
 
         {/* Create Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Create Pricing Plan</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Create Pricing Plan</h3>
               <form onSubmit={handleSubmitCreate}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Plan Name
                     </label>
                     <input
@@ -475,12 +515,12 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, plan_name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                       placeholder="e.g., Free Plan, Standard Plan"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Team Range
                     </label>
                     <input
@@ -490,12 +530,12 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, plan_range: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                       placeholder="e.g., 1-4 teams, 5-10 teams, 11-∞ teams"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Amount (₹)
                     </label>
                     <input
@@ -507,12 +547,12 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, amount: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                       placeholder="0.00"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Status
                     </label>
                     <select
@@ -520,7 +560,7 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
@@ -531,13 +571,13 @@ const PricingPlans = () => {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                   >
                     Create Plan
                   </button>
@@ -550,12 +590,12 @@ const PricingPlans = () => {
         {/* Edit Modal */}
         {showEditModal && editingPlan && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Edit Pricing Plan</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Edit Pricing Plan</h3>
               <form onSubmit={handleSubmitEdit}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Plan Name
                     </label>
                     <input
@@ -565,11 +605,11 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, plan_name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Team Range
                     </label>
                     <input
@@ -579,11 +619,11 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, plan_range: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Amount (₹)
                     </label>
                     <input
@@ -595,11 +635,11 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, amount: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Status
                     </label>
                     <select
@@ -607,7 +647,7 @@ const PricingPlans = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
@@ -621,13 +661,13 @@ const PricingPlans = () => {
                       setShowEditModal(false);
                       setEditingPlan(null);
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                   >
                     Update Plan
                   </button>
