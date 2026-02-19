@@ -21,7 +21,8 @@ const CreateTournament = () => {
       venue_details: '',
       team_range: '',
       is_public: true,
-      enrollment_fee: ''
+      enrollment_fee: '',
+      prize_amount: ''
     }
   });
 
@@ -546,6 +547,32 @@ const CreateTournament = () => {
                 />
                 <p className="mt-1 text-sm text-gray-500">
                   Amount clubs need to pay to enroll in this tournament (minimum ₹1.00)
+                </p>
+              </div>
+
+              {/* Prize Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Prize Amount (₹) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.details.prize_amount}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                    setFormData({
+                      ...formData,
+                      details: {...formData.details, prize_amount: value}
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Prize amount for the tournament winner (can be ₹0.00)
                 </p>
               </div>
 

@@ -5,6 +5,7 @@ from app.models.user import UserRole
 from app.utils.jwt import get_current_user
 from app.schemas.organizer.tournament import (
     TournamentCreate,
+    TournamentUpdate,
     TournamentResponse,
     PaymentVerification,
     OrganizerTransactionResponse,
@@ -29,6 +30,7 @@ from app.services.organizer.tournament_service import (
     get_organizer_tournaments,
     get_organizer_transactions,
     cancel_tournament,
+    update_tournament,
     get_organizer_wallet_balance,
     get_finance_report
 )
@@ -245,6 +247,30 @@ def cancel_tournament_endpoint(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+@router.put("/{tournament_id}/update", response_model=TournamentResponse)
+def update_tournament_endpoint(
+    tournament_id: int,
+    tournament_data: TournamentUpdate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can update tournaments"
+        )
+    
+    try:
+        tournament = update_tournament(db, tournament_id, tournament_data, current_user.id)
+        return tournament
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
 @router.get("/{tournament_id}/enrolled-clubs", response_model=List[EnrolledClubResponse])
 def get_enrolled_clubs(
     tournament_id: int,

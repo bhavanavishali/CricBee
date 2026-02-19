@@ -1,23 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.db.base import Base
 from app.db.session import engine
 from app.core.celery_app import celery_app
+import logging
 
 from app.models.player import PlayerProfile  
 from app.models.club import Club  
 from app.models.club_player import ClubPlayer  
 from app.models.club_player_invitation import ClubPlayerInvitation
-from app.models.user import User 
-from app.models.organizer import OrganizationDetails
-from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
-from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
-from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatchStats
-from app.models.organizer.point_table import PointTable
+from app.models.organizer.organization import OrganizationDetails
+from app.models.user import User
 from app.models.admin.plan_pricing import TournamentPricingPlan
+from app.models.organizer.fixture_mode import FixtureMode
+from app.models.notification import Notification
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
+from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatchStats
+from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
+from app.models.organizer.point_table import PointTable
 from app.models.admin.transaction import AdminWallet, Transaction
 from app.models.chat import ChatMessage
-from app.models.notification import Notification
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
@@ -42,6 +46,21 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
+# Custom exception handler for validation errors
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request: Request, exc: RequestValidationError):
+#     logging.error(f"Validation error on {request.method} {request.url}")
+#     logging.error(f"Validation errors: {exc.errors()}")
+#     logging.error(f"Request body: {await request.body()}")
+    
+#     return JSONResponse(
+#         status_code=status.HTTP_400_BAD_REQUEST,
+#         content={
+#             "detail": exc.errors(),
+#             "body": exc.body
+#         }
+#     )
 
 
 cors_origins_env = os.getenv("CORS_ORIGINS", "")

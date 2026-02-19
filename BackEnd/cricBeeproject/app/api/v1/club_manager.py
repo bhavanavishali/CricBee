@@ -14,7 +14,7 @@ from app.services.club_service import (
     get_profile, create_club, update_club, update_club_image, get_club,
     search_player_by_cricb_id, invite_player_to_club, get_club_players, remove_player_from_club,
     get_pending_invitations_for_club, get_dashboard_stats, get_club_manager_transactions, get_club_manager_wallet_balance,
-    create_new_player
+    create_new_player, refresh_club_player_count
 )
 from app.services.clubmanager.fixture_service import (
     get_club_manager_matches,
@@ -686,6 +686,36 @@ def get_club_manager_wallet_balance_endpoint(
         )
 
 
+@router.delete("/club/{club_id}/players/{player_id}", status_code=status.HTTP_200_OK)
+def remove_player_from_club_endpoint(
+    club_id: int,
+    player_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Remove a player from the club. Cannot remove if player is in any Playing XI for upcoming/live matches."""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can remove players"
+        )
+    
+    try:
+        remove_player_from_club(db, club_id, player_id, current_user.id)
+        return {
+            "message": "Player removed from club successfully",
+            "player_id": player_id,
+            "club_id": club_id
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to remove player: {str(e)}"
+        )
+
 @router.post("/club/{club_id}/create-player", response_model=CreatePlayerResponse, status_code=status.HTTP_201_CREATED)
 def create_new_player_endpoint(
     club_id: int,
@@ -693,6 +723,12 @@ def create_new_player_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
+    import logging
+    import traceback
+    
+    logging.info(f"Create player request received for club {club_id}")
+    logging.info(f"Payload: {payload.model_dump()}")
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.CLUB_MANAGER:
         raise HTTPException(
@@ -710,7 +746,7 @@ def create_new_player_endpoint(
             )
         
         
-        result = create_new_player(db, club_id, payload.dict(), current_user.id)
+        result = create_new_player(db, club_id, payload.model_dump(), current_user.id)
         
         return CreatePlayerResponse(
             player_profile=PlayerRead.model_validate(result["player_profile"]),
@@ -725,9 +761,53 @@ def create_new_player_endpoint(
         )
         
     except ValueError as e:
+        logging.error(f"ValueError in create_new_player: {str(e)}")
+        logging.error(traceback.format_exc())
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logging.error(f"Unexpected error in create_new_player: {str(e)}")
+        logging.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create player: {str(e)}"
+        )
+
+@router.post("/refresh-player-count")
+def refresh_player_count_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Refresh and fix the player count for the club manager's club.
+    This endpoint recalculates the actual number of players and updates the database.
+    """
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.CLUB_MANAGER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only club managers can access this endpoint"
+        )
+    
+    try:
+        result = refresh_club_player_count(db, current_user.id)
+        
+        if result["was_fixed"]:
+            message = f"Player count updated from {result['old_count']} to {result['new_count']}"
+        else:
+            message = f"Player count is already correct ({result['new_count']})"
+        
+        return {
+            "success": True,
+            "message": message,
+            "details": result
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error refreshing player count: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to refresh player count: {str(e)}"
         )

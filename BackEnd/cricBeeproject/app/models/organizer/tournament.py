@@ -68,6 +68,7 @@ class TournamentDetails(Base):
     team_range = Column(String, nullable=False)  # e.g., "4-8 teams"
     is_public = Column(Boolean, default=True, nullable=False)
     enrollment_fee = Column(Numeric(10, 2), nullable=False, default=Decimal('0.00'))
+    prize_amount = Column(Numeric(10, 2), nullable=False, default=Decimal('0.00'))
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     

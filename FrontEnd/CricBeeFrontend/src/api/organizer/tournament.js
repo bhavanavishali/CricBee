@@ -59,3 +59,8 @@ export const getFinanceReport = async (filterType, startDate = null, endDate = n
   });
   return response.data;
 };
+
+export const updateTournament = async (tournamentId, tournamentData) => {
+  const response = await api.put(`/tournaments/${tournamentId}/update`, tournamentData);
+  return response.data;
+};

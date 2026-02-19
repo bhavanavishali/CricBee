@@ -41,7 +41,7 @@ def get_club_manager_matches(
         Match.tournament_id.in_(tournament_ids),
         Match.is_fixture_published == True,
         (Match.team_a_id == club_id) | (Match.team_b_id == club_id)
-    ).order_by(Match.match_date.asc(), Match.match_time.asc()).all()
+    ).order_by(Match.match_date.desc(), Match.match_time.desc()).all()
     
     return matches
 

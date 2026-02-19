@@ -269,9 +269,13 @@ def add_player_to_club(db: Session, club_id: int, player_id: int, manager_id: in
         player_id=player_id
     )
     db.add(club_player)
+    db.flush()  # Flush to include the new player in the count
     
     # Update player count
-    club.no_of_players = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count() + 1
+    club.no_of_players = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count()
+    
+    # Update club verification status
+    club.club_is_verified = club.no_of_players >= 3
     
     db.commit()
     db.refresh(club_player)
@@ -362,6 +366,7 @@ def get_invitations_for_player(db: Session, player_user_id: int) -> list:
     ).order_by(ClubPlayerInvitation.requested_at.desc()).all()
     
     return invitations
+
 def get_club_players(db: Session, club_id: int, manager_id: int) -> list:
     
     club = db.query(Club).filter(
@@ -380,7 +385,8 @@ def get_club_players(db: Session, club_id: int, manager_id: int) -> list:
     return club_players 
 
 def remove_player_from_club(db: Session, club_id: int, player_id: int, manager_id: int) -> bool:
-   
+    from app.models.organizer.fixture import PlayingXI, Match
+    
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -396,10 +402,31 @@ def remove_player_from_club(db: Session, club_id: int, player_id: int, manager_i
     if not club_player:
         raise ValueError("Player is not in this club")
     
+    # Check if player is in any Playing XI for upcoming or live matches
+    playing_xi_entries = db.query(PlayingXI).join(
+        Match, PlayingXI.match_id == Match.id
+    ).filter(
+        PlayingXI.player_id == player_id,
+        PlayingXI.club_id == club_id,
+        Match.match_status.in_(['upcoming', 'live'])
+    ).all()
+    
+    if playing_xi_entries:
+        # Get match details for error message
+        match_numbers = [entry.match.match_number for entry in playing_xi_entries[:3]]  # Show up to 3 matches
+        match_list = ", ".join(match_numbers)
+        if len(playing_xi_entries) > 3:
+            match_list += f" and {len(playing_xi_entries) - 3} more"
+        raise ValueError(f"Cannot remove player. They are currently selected in Playing XI for: {match_list}")
+    
     db.delete(club_player)
+    db.flush()  # Flush to exclude the deleted player from the count
     
     # Update player count
-    club.no_of_players = max(0, db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count() - 1)
+    club.no_of_players = max(0, db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count())
+    
+    # Update club verification status
+    club.club_is_verified = club.no_of_players >= 3
     
     db.commit()
     return True
@@ -446,25 +473,95 @@ def get_club_manager_wallet_balance(db: Session, club_manager_id: int) -> float:
     return float(credit_total)
 
 def generate_cricb_id(db: Session) -> str:
-    """Generate a unique CricB ID"""
-    # Get the highest existing numeric ID
+    """Generate a unique CricB ID with retry logic to handle race conditions"""
     from app.models.player import PlayerProfile
+    import random
     
-    last_player = db.query(PlayerProfile).filter(
-        PlayerProfile.cricb_id.like('CRICB%')
-    ).order_by(PlayerProfile.cricb_id.desc()).first()
-    
-    if last_player and last_player.cricb_id:
-        # Extract numeric part and increment
-        try:
-            numeric_part = int(last_player.cricb_id[5:])  # Remove 'CRICB' prefix
-            new_number = numeric_part + 1
-        except ValueError:
+    max_attempts = 10
+    for attempt in range(max_attempts):
+        # Get all existing CricB IDs and find the maximum numeric value
+        all_players = db.query(PlayerProfile.cricb_id).filter(
+            PlayerProfile.cricb_id.like('CRICB%')
+        ).all()
+        
+        if all_players:
+            # Extract numeric parts and find the maximum
+            max_number = 0
+            for (cricb_id,) in all_players:
+                try:
+                    numeric_part = int(cricb_id[5:])  # Remove 'CRICB' prefix
+                    max_number = max(max_number, numeric_part)
+                except (ValueError, IndexError):
+                    continue
+            new_number = max_number + 1
+        else:
             new_number = 1
-    else:
-        new_number = 1
+        
+        # Generate new ID
+        new_cricb_id = f"CRICB{new_number:06d}"
+        
+        # Check if this ID already exists (race condition check)
+        existing = db.query(PlayerProfile).filter(
+            PlayerProfile.cricb_id == new_cricb_id
+        ).first()
+        
+        if not existing:
+            return new_cricb_id
+        
+        # If ID exists (race condition), add a small random delay and retry
+        import time
+        time.sleep(random.uniform(0.01, 0.05))
     
-    return f"CRICB{new_number:06d}"
+    # If all attempts failed, raise an error
+    raise ValueError("Failed to generate unique CricB ID after multiple attempts")
+
+def update_club_verification_status(db: Session, club_id: int) -> Club:
+    """Update club verification status based on player count (minimum 3 players required)"""
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise ValueError("Club not found")
+    
+    # Count active players in the club
+    player_count = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count()
+    
+    # Update verification status: True if 3+ players, False otherwise
+    club.club_is_verified = player_count >= 3
+    
+    db.commit()
+    db.refresh(club)
+    return club
+
+def refresh_club_player_count(db: Session, manager_id: int) -> dict:
+    """Refresh and fix the player count for a club manager's club"""
+    club = db.query(Club).filter(Club.manager_id == manager_id).first()
+    if not club:
+        raise ValueError("Club not found")
+    
+    # Count actual players in the club
+    actual_count = db.query(ClubPlayer).filter(ClubPlayer.club_id == club.id).count()
+    
+    # Store old values for comparison
+    old_count = club.no_of_players
+    old_verified = club.club_is_verified
+    
+    # Update the count
+    club.no_of_players = actual_count
+    
+    # Update verification status (requires 3+ players)
+    club.club_is_verified = actual_count >= 3
+    
+    db.commit()
+    db.refresh(club)
+    
+    return {
+        "club_id": club.id,
+        "club_name": club.club_name,
+        "old_count": old_count,
+        "new_count": actual_count,
+        "was_fixed": old_count != actual_count,
+        "verification_changed": old_verified != club.club_is_verified,
+        "is_verified": club.club_is_verified
+    }
 
 def create_new_player(db: Session, club_id: int, player_data: dict, manager_id: int) -> dict:
     """Create a new player and automatically link them to the club"""
@@ -522,9 +619,13 @@ def create_new_player(db: Session, club_id: int, player_data: dict, manager_id: 
             player_id=player_profile.id
         )
         db.add(club_player)
+        db.flush()  # Flush to include the new player in the count
         
         # Update club's player count
         club.no_of_players = db.query(ClubPlayer).filter(ClubPlayer.club_id == club_id).count()
+        
+        # Update club verification status
+        club.club_is_verified = club.no_of_players >= 3
         
         db.commit()
         
@@ -547,6 +648,8 @@ def create_new_player(db: Session, club_id: int, player_data: dict, manager_id: 
             raise ValueError("A user with this email already exists")
         elif 'phone' in error_msg.lower():
             raise ValueError("A user with this phone number already exists")
+        elif 'cricb_id' in error_msg.lower():
+            raise ValueError("Failed to generate unique CricB ID. Please try again.")
         else:
             raise ValueError("Failed to create player due to a database constraint violation")
     except Exception as e:

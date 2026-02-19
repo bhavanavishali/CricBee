@@ -9,12 +9,11 @@ import {
   Plus,
   Mail,
   Phone,
-  Calendar,
-  Shield,
   X,
-  Edit3,
+  ArrowLeft
 } from "lucide-react"
-import { getMyFixtures, getClubPlayersForMatch, setPlayingXI, getPlayingXI, getClubPlayers } from '@/api/clubmanager/fixture'
+import { getMyFixtures, getClubPlayersForMatch, setPlayingXI, getPlayingXI, getClubPlayers, removePlayerFromClub } from '@/api/clubmanager/fixture'
+import { getDashboardStats } from '@/api/clubmanager/dashboardService'
 import Swal from 'sweetalert2'
 import api from '@/api'
 
@@ -25,6 +24,7 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredPlayers, setFilteredPlayers] = useState([])
+  const [clubId, setClubId] = useState(null)
 
   useEffect(() => {
     loadPlayers()
@@ -41,6 +41,13 @@ export default function PlayersPage() {
   const loadPlayers = async () => {
     try {
       setLoading(true)
+      
+      // Get club ID from dashboard stats
+      const statsResult = await getDashboardStats()
+      if (statsResult.success && statsResult.data.club_id) {
+        setClubId(statsResult.data.club_id)
+      }
+      
       const result = await getClubPlayers()
       
       if (result.success) {
@@ -93,10 +100,13 @@ export default function PlayersPage() {
     }
   }
 
-  const handleRemovePlayer = async (playerId) => {
+  const handleRemovePlayer = async (player) => {
     const result = await Swal.fire({
       title: 'Remove Player?',
-      text: 'Are you sure you want to remove this player from the club?',
+      html: `
+        <p>Are you sure you want to remove <strong>${player.user?.full_name || 'this player'}</strong> from the club?</p>
+        <p class="text-sm text-gray-600 mt-2">Note: Players in Playing XI for upcoming/live matches cannot be removed.</p>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
@@ -108,21 +118,40 @@ export default function PlayersPage() {
     if (!result.isConfirmed) return
 
     try {
-      // API call to remove player would go here
-      // const removeResult = await removePlayerFromClub(playerId)
-      Swal.fire({
-        icon: 'success',
-        title: 'Player Removed',
-        text: 'Player has been removed from the club successfully',
-        confirmButtonColor: '#10b981',
-        timer: 2000,
-      })
-      loadPlayers() // Reload players list
+      if (!clubId) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Club information not found. Please refresh the page.',
+          confirmButtonColor: '#10b981',
+        })
+        return
+      }
+
+      const removeResult = await removePlayerFromClub(clubId, player.player_profile.id)
+      
+      if (removeResult.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Player Removed',
+          text: removeResult.message || 'Player has been removed from the club successfully',
+          confirmButtonColor: '#10b981',
+          timer: 2000,
+        })
+        loadPlayers() // Reload players list
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Cannot Remove Player',
+          text: removeResult.message,
+          confirmButtonColor: '#10b981',
+        })
+      }
     } catch (error) {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Failed to remove player',
+        text: error.message || 'Failed to remove player',
         confirmButtonColor: '#10b981',
       })
     }
@@ -137,6 +166,13 @@ export default function PlayersPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">My Players</h1>
               <p className="text-gray-500">Manage all players in your club</p>
+              <button
+            onClick={() => navigate('/clubmanager/dashboard')}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          >
+            <ArrowLeft size={18} className="mr-2" />
+            <span>Back to Dashboard</span>
+          </button>
             </div>
             
           </div>
@@ -223,12 +259,12 @@ export default function PlayersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-2">
-                            
                             <button
-                              onClick={() => handleRemovePlayer(player.id)}
-                              className="text-red-600 hover:text-red-900"
+                              onClick={() => handleRemovePlayer(player)}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                              title="Remove player from club"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-5 h-5" />
                             </button>
                           </div>
                         </td>

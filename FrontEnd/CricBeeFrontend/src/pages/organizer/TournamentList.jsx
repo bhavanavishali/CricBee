@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
+import EditTournamentModal from '@/components/organizer/EditTournamentModal';
 import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X, Ban } from 'lucide-react';
 
 const TournamentList = () => {
@@ -9,6 +10,7 @@ const TournamentList = () => {
   const [tournaments, setTournaments] = useState([]);
   const [showCancelConfirm, setShowCancelConfirm] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+  const [editingTournament, setEditingTournament] = useState(null);
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     description: ''
@@ -39,7 +41,8 @@ const TournamentList = () => {
       'registration_end': { label: 'Registration Closed', color: 'bg-orange-500', icon: '✅' },
       'tournament_start': { label: 'Tournament Start', color: 'bg-red-500', icon: '🔴' },
       'tournament_end': { label: 'Tournament End', color: 'bg-gray-500', icon: '🏁' },
-      'cancelled': { label: 'Cancelled', color: 'bg-red-600', icon: '✕' }
+      'cancelled': { label: 'Cancelled', color: 'bg-red-600', icon: '✕' },
+      'completed': { label: 'Tournament Completed', color: 'bg-green-500', icon: '✅' },
     };
 
     return statusMap[status] || { label: status, color: 'bg-gray-500', icon: '' };
@@ -61,6 +64,15 @@ const TournamentList = () => {
     regEndDate.setHours(0, 0, 0, 0);
     
     return today <= regEndDate;
+  };
+
+  const handleEditTournament = (tournament) => {
+    setEditingTournament(tournament);
+  };
+
+  const handleTournamentUpdateSuccess = () => {
+    loadTournaments();
+    setEditingTournament(null);
   };
 
   const handleCancelTournament = async (tournamentId) => {
@@ -109,10 +121,7 @@ const TournamentList = () => {
   };
 
   const getFormatLabel = (overs) => {
-    if (!overs) return 'Format: T20';
-    if (overs === 10) return 'Format: T10';
-    if (overs === 20) return 'Format: T20';
-    if (overs === 50) return 'Format: One Day';
+    
     return `Format: ${overs} overs`;
   };
 
@@ -209,9 +218,9 @@ const TournamentList = () => {
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <DollarSign size={18} className="text-gray-500" />
+                            
                             <span className="text-sm text-gray-700">
-                              ₹{tournament.payment?.amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '0'}
+                              ₹{tournament.details?.prize_amount ? parseFloat(tournament.details.prize_amount).toLocaleString('en-IN') : '0'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -242,11 +251,7 @@ const TournamentList = () => {
                         </button>
                         {canEdit(tournament.status) && (
                           <button
-                            onClick={() => {
-                           
-                              console.log('Edit tournament:', tournament.id);
-                             
-                            }}
+                            onClick={() => handleEditTournament(tournament)}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Edit Tournament"
                           >
@@ -332,6 +337,14 @@ const TournamentList = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Tournament Modal */}
+      <EditTournamentModal
+        tournament={editingTournament}
+        isOpen={!!editingTournament}
+        onClose={() => setEditingTournament(null)}
+        onSuccess={handleTournamentUpdateSuccess}
+      />
     </Layout>
   );
 };

@@ -77,8 +77,9 @@ const ManageFixtures = () => {
       'registration_open': { label: 'Registration Open', color: 'bg-green-100 text-green-800' },
       'registration_end': { label: 'Registration Closed', color: 'bg-orange-100 text-orange-800' },
       'tournament_start': { label: 'Tournament Live', color: 'bg-red-100 text-red-800' },
-      'tournament_end': { label: 'Tournament Completed', color: 'bg-gray-100 text-gray-800' },
-      'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-800' }
+      'tournament_end': { label: 'Tournament End', color: 'bg-gray-100 text-gray-800' },
+      'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+      'completed': { label: 'Completed', color: 'bg-green-100 text-green-800' }
     };
     return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
   };
@@ -167,7 +168,7 @@ const ManageFixtures = () => {
   };
 
   const statusOptions = [
-    { value: 'all', label: 'All Status', count: tournaments.length },
+    { value: 'all', label: 'All Status' },
     { value: 'pending_payment', label: 'Pending Payment', count: tournaments.filter(t => t.status === 'pending_payment').length },
     { value: 'registration_open', label: 'Registration Open', count: tournaments.filter(t => t.status === 'registration_open').length },
     { value: 'registration_end', label: 'Registration Closed', count: tournaments.filter(t => t.status === 'registration_end').length },

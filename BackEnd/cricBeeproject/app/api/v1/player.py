@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import UserRole
 from app.schemas.player import (
-    PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse
+    PlayerCreate, PlayerUpdate, PlayerRead, PlayerProfileResponse, PlayerDashboardResponse
 )
 from app.schemas.user import ChangePasswordRequest
 from app.schemas.club_manager import (
@@ -12,7 +12,7 @@ from app.schemas.club_manager import (
 )
 from app.services.player_service import (
     get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo,
-    get_player_current_club, leave_club
+    get_player_current_club, leave_club, get_player_dashboard_data
 )
 from app.services.club_service import (
     get_invitations_for_player, accept_club_invitation, reject_club_invitation
@@ -292,3 +292,27 @@ def leave_club_endpoint(
         return {"message": "Successfully left the club"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/dashboard", response_model=PlayerDashboardResponse)
+def get_player_dashboard_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get player dashboard data including club, tournaments, and matches"""
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.PLAYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only players can access this dashboard"
+        )
+    
+    try:
+        dashboard_data = get_player_dashboard_data(db, current_user.id)
+        return dashboard_data
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch dashboard data: {str(e)}"
+        )

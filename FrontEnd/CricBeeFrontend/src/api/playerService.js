@@ -183,3 +183,19 @@ export const leaveClub = async () => {
     };
   }
 };
+
+export const getPlayerDashboard = async () => {
+  try {
+    const response = await api.get(`/player-profile/dashboard`);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error("Get player dashboard error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || error.message || "Failed to fetch dashboard data",
+    };
+  }
+};

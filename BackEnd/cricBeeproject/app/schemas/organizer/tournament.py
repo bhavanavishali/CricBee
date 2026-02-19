@@ -15,6 +15,7 @@ class TournamentDetailsCreate(BaseModel):
     team_range: str
     is_public: bool = True
     enrollment_fee: Decimal = Field(..., ge=1, description="fee must be at least ₹1.00")
+    prize_amount: Decimal = Field(..., ge=0, description="prize amount must be at least ₹0.00")
 
 class TournamentCreate(BaseModel):
     tournament_name: str
@@ -52,6 +53,7 @@ class TournamentDetailsResponse(BaseModel):
     team_range: str
     is_public: bool
     enrollment_fee: Decimal
+    prize_amount: Decimal
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -129,6 +131,23 @@ class FinanceReportTransactionResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class TournamentUpdate(BaseModel):
+    tournament_name: Optional[str] = None
+    details: Optional['TournamentDetailsUpdate'] = None
+
+class TournamentDetailsUpdate(BaseModel):
+    overs: Optional[int] = Field(None, gt=0, le=50)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    registration_start_date: Optional[date] = None
+    registration_end_date: Optional[date] = None
+    location: Optional[str] = None
+    venue_details: Optional[str] = None
+    team_range: Optional[str] = None
+    is_public: Optional[bool] = None
+    enrollment_fee: Optional[Decimal] = Field(None, ge=1, description="fee must be at least ₹1.00")
+    prize_amount: Optional[Decimal] = Field(None, ge=0, description="prize amount must be at least ₹0.00")
 
 class TournamentCancellationRequest(BaseModel):
     notification_title: str

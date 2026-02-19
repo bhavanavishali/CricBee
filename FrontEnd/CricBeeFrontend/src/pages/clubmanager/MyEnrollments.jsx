@@ -204,7 +204,7 @@ export default function MyEnrollments() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <DollarSign size={18} className="text-gray-500" />
+                            
                             <div>
                               <p className="text-xs text-gray-500">Enrollment Fee</p>
                               <p className="text-sm font-semibold text-gray-900">

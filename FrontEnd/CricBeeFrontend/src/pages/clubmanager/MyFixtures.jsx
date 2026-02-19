@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
-import { Calendar, MapPin, Clock, Users, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight,ArrowLeft } from 'lucide-react';
 import { getMyFixtures } from '@/api/clubmanager/fixture';
 
 export default function MyFixtures() {
@@ -53,6 +53,13 @@ export default function MyFixtures() {
       <Layout title="My Fixtures" profilePath="/clubmanager/profile">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="mb-8">
+            <button
+            onClick={() => navigate('/clubmanager/dashboard')}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          >
+            <ArrowLeft size={18} className="mr-2" />
+            <span>Back to Dashboard</span>
+          </button>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">My Fixtures</h1>
             <p className="text-gray-600">View and manage your club's match fixtures</p>
           </div>

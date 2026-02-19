@@ -388,10 +388,7 @@ const LiveWatch = () => {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-white/90">
-                <Users size={20} />
-                <span className="font-semibold">{watchingCount.toLocaleString()} watching</span>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -446,7 +443,7 @@ const LiveWatch = () => {
                           </h4>
                           <div className="text-sm text-gray-300 space-y-1">
                             <p>Match Status: {scoreboard.match_status || 'Scheduled'}</p>
-                            <p>Venue: {scoreboard.venue || 'TBD'}</p>
+                            
                             {isLive && (
                               <p className="text-green-400 font-semibold">
                                 Match is LIVE - Follow the live score below!
@@ -638,42 +635,7 @@ const LiveWatch = () => {
                 </form>
               </div>
 
-              {/* Match Stats */}
-              {scoreboard && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Match Stats</h2>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Match Progress</span>
-                        <span className="text-sm font-semibold text-gray-900">{calculateProgress()}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full transition-all"
-                          style={{ width: `${calculateProgress()}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Boundaries</span>
-                        <span className="font-semibold text-gray-900">18</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Sixes</span>
-                        <span className="font-semibold text-gray-900">7</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Extras</span>
-                        <span className="font-semibold text-gray-900">12</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+           
             </div>
           </div>
         </div>

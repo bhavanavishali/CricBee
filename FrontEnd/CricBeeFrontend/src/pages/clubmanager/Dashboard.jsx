@@ -71,7 +71,7 @@ export default function ClubManagerDashboard() {
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, {user?.full_name || 'Demo'}! 👋
+                Welcome back, {user?.full_name || 'Demo'}! 
               </h1>
               
             </div>

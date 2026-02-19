@@ -1,7 +1,7 @@
 # app/schemas/club.py
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from app.schemas.user import UserRead, UserUpdate
@@ -31,6 +31,7 @@ class ClubRead(BaseModel):
     is_active: bool
     no_of_players: int
     club_image: Optional[str] = None
+    club_is_verified: bool
     created_at: datetime
     updated_at: datetime | None = None
 
@@ -122,11 +123,20 @@ class ClubManagerTransactionListResponse(BaseModel):
 
 # Player Creation Schemas
 class CreatePlayerRequest(BaseModel):
-    full_name: str
-    email: str
-    phone: str
-    age: int
-    address: str
+    full_name: str = Field(..., min_length=1, description="Full name of the player")
+    email: EmailStr = Field(..., description="Valid email address")
+    phone: str = Field(..., description="10-digit phone number")
+    age: int = Field(..., ge=10, le=60, description="Age must be between 10 and 60")
+    address: str = Field(..., min_length=1, description="Player's address")
+    
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        """Validate phone number is exactly 10 digits"""
+        cleaned = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if not cleaned.isdigit() or len(cleaned) != 10:
+            raise ValueError("Phone number must be exactly 10 digits")
+        return cleaned
 
 class CreatePlayerResponse(BaseModel):
     player_profile: PlayerRead

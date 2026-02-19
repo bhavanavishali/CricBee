@@ -131,6 +131,9 @@ def initiate_enrollment(
     if not club:
         raise ValueError("Club not found or access denied")
     
+    # Check if club is verified (minimum 3 players required)
+    if not club.club_is_verified:
+        raise ValueError("Club must have at least 3 players to be verified and enroll in tournaments")
     
     existing_enrollment = db.query(TournamentEnrollment).filter(
         TournamentEnrollment.tournament_id == tournament_id,

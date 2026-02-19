@@ -62,7 +62,7 @@ const TournamentDetails = () => {
       'registration_end': { label: 'Registration Closed', color: 'bg-orange-100 text-orange-800' },
       'tournament_start': { label: 'Tournament Start', color: 'bg-red-100 text-red-800' },
       'tournament_end': { label: 'Tournament End', color: 'bg-green-100 text-green-800' },
-      'completed': { label: 'Completed', color: 'bg-green-100 text-green-800' },
+      'completed': { label: 'Tournament Completed', color: 'bg-green-100 text-green-800' },
       'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-800' }
     };
     return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
@@ -151,13 +151,10 @@ const TournamentDetails = () => {
     
     try {
       // Pass tournament_id as query parameter to get Playing XI data
-      console.log('Fetching club details for club_id:', club.club_id, 'tournament_id:', id);
       const clubDetailsResponse = await getClubDetails(club.club_id, id);
-      console.log('Club details response:', clubDetailsResponse);
       
       // The API now returns players array with Playing XI information
       const players = clubDetailsResponse.players || [];
-      console.log('Players:', players);
       setClubPlayers(players);
     } catch (error) {
       console.error('Failed to load club details:', error);
@@ -346,7 +343,7 @@ const TournamentDetails = () => {
                 <div>
                   <p className="text-sm text-gray-500">Prize Pool</p>
                   <p className="font-semibold text-gray-900">
-                    ₹{tournament.details?.prize_pool ? parseFloat(tournament.details.prize_pool).toLocaleString('en-IN') : tournament.payment?.amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '50,000'}
+                    ₹{tournament.details?.prize_amount ? parseFloat(tournament.details.prize_amount).toLocaleString('en-IN') : tournament.details?.prize_amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '50,000'}
                   </p>
                 </div>
               </div>
@@ -415,7 +412,7 @@ const TournamentDetails = () => {
                 >
                   Fixtures
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveTab('points')}
                   className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
                     activeTab === 'points'
@@ -424,7 +421,7 @@ const TournamentDetails = () => {
                   }`}
                 >
                   Points Table
-                </button>
+                </button> */}
                 <button
                   onClick={() => setActiveTab('teams')}
                   className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
@@ -471,7 +468,7 @@ const TournamentDetails = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Prize Pool:</span>
-                        <span className="font-semibold text-green-600">₹{tournament.payment?.amount ? parseFloat(tournament.payment.amount).toLocaleString('en-IN') : '50,000'}</span>
+                        <span className="font-semibold text-green-600">₹{tournament.details?.prize_amount ? parseFloat(tournament.details.prize_amount).toLocaleString('en-IN') : '50,000'}</span>
                       </div>
                     </div>
                   </div>
@@ -541,47 +538,7 @@ const TournamentDetails = () => {
                 </div>
               )}
 
-              {/* Points Table Tab */}
-              {activeTab === 'points' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Points Table</h2>
-                  {pointsTable.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-600">No points data available yet</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pos</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">M</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pts</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">NRR</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {pointsTable.map((team, index) => (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{team.name}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600">{team.matches}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-green-600 font-semibold">{team.wins}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-red-600">{team.losses}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-blue-600">{team.points}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600">{team.nrr.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
+             
 
               {/* Teams Tab */}
               {activeTab === 'teams' && (

@@ -92,7 +92,7 @@ def get_all_users_except_admin(
             "organization_name": None,
             "club_name": None
         }
-
+        print(user)
         if (user.role == UserRole.ORGANIZER or str(user.role) == "Organizer") and user.organization:
             user_dict["organization_name"] = user.organization.organization_name
 
@@ -102,7 +102,7 @@ def get_all_users_except_admin(
         result.append(UserListItem(**user_dict))
 
     return result, total, stats
-88
+
 
 def update_user_status(db: Session, user_id: int, is_active: bool) -> UserListItem | None:
    

@@ -32,8 +32,9 @@ const ManageMatches = () => {
       'registration_open': { label: 'Registration Open', color: 'bg-green-100 text-green-800' },
       'registration_end': { label: 'Registration Closed', color: 'bg-orange-100 text-orange-800' },
       'tournament_start': { label: 'Tournament Live', color: 'bg-red-100 text-red-800' },
-      'tournament_end': { label: 'Tournament Completed', color: 'bg-gray-100 text-gray-800' },
-      'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-800' }
+      'tournament_end': { label: 'Tournament End', color: 'bg-gray-100 text-gray-800' },
+      'cancelled': { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+      'completed': { label: 'Tournament Completed', color: 'bg-green-100 text-orange-800' },
     };
     return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
   };

@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
-from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentStatus, PaymentStatus
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentStatus, PaymentStatus, TournamentEnrollment
 from app.models.admin.plan_pricing import TournamentPricingPlan
 from app.models.admin.transaction import Transaction
 from app.schemas.organizer.tournament import (
     TournamentCreate,
     TournamentResponse,
+    TournamentUpdate,
     OrganizerTransactionResponse
 )
 from app.services.organizer.payment_service import create_razorpay_order, verify_payment_signature
@@ -417,14 +418,9 @@ def cancel_tournament(
         raise ValueError("Tournament not found or access denied")
     
     
-    if tournament.status == TournamentStatus.CANCELLED.value:
-        raise ValueError("Tournament is already cancelled")
-    
-    
     if not tournament.details:
         raise ValueError("Tournament details not found")
     
-    from app.models.organizer.tournament import TournamentEnrollment
     enrolled_clubs_count = db.query(TournamentEnrollment).filter(
         TournamentEnrollment.tournament_id == tournament_id,
         TournamentEnrollment.payment_status == PaymentStatus.SUCCESS.value
@@ -433,6 +429,8 @@ def cancel_tournament(
     today = date.today()
     registration_end_date = tournament.details.registration_end_date
     
+    if tournament.status == TournamentStatus.CANCELLED.value:
+        raise ValueError("Tournament is already cancelled")
     
     if today > registration_end_date:
         if enrolled_clubs_count > 0:
@@ -469,6 +467,99 @@ def cancel_tournament(
     tournament.payment.updated_at = datetime.now()
     
     db.add(tournament) 
+    db.commit()
+    db.refresh(tournament)
+    
+    return TournamentResponse.model_validate(tournament)
+
+def update_tournament(
+    db: Session,
+    tournament_id: int,
+    tournament_data: TournamentUpdate,
+    organizer_id: int
+) -> TournamentResponse:
+    
+    tournament = db.query(Tournament).options(
+        joinedload(Tournament.details),
+        joinedload(Tournament.payment),
+        joinedload(Tournament.plan),
+        joinedload(Tournament.winner_team)
+    ).filter(
+        Tournament.id == tournament_id,
+        Tournament.organizer_id == organizer_id
+    ).first()
+    
+    if not tournament:
+        raise ValueError("Tournament not found or access denied")
+    
+    editable_statuses = [
+        TournamentStatus.PENDING_PAYMENT.value,
+        TournamentStatus.REGISTRATION_OPEN.value,
+        TournamentStatus.REGISTRATION_END.value
+    ]
+    
+    if tournament.status not in editable_statuses:
+        raise ValueError("Tournament cannot be edited in current status")
+    
+    if tournament.status == TournamentStatus.CANCELLED.value:
+        raise ValueError("Cancelled tournament cannot be edited")
+    
+    has_enrollments = db.query(TournamentEnrollment).filter(
+        TournamentEnrollment.tournament_id == tournament_id,
+        TournamentEnrollment.payment_status == PaymentStatus.SUCCESS.value
+    ).count() > 0
+    
+    if has_enrollments:
+        raise ValueError("Tournament with enrolled clubs cannot be edited")
+    
+    if tournament_data.tournament_name and tournament_data.tournament_name.strip():
+        tournament.tournament_name = tournament_data.tournament_name.strip()
+    
+    if tournament_data.details and tournament.details:
+        details = tournament.details
+        
+        if tournament_data.details.overs is not None:
+            details.overs = tournament_data.details.overs
+        
+        if tournament_data.details.start_date is not None:
+            details.start_date = tournament_data.details.start_date
+        
+        if tournament_data.details.end_date is not None:
+            details.end_date = tournament_data.details.end_date
+        
+        if tournament_data.details.registration_start_date is not None:
+            details.registration_start_date = tournament_data.details.registration_start_date
+        
+        if tournament_data.details.registration_end_date is not None:
+            details.registration_end_date = tournament_data.details.registration_end_date
+        
+        if tournament_data.details.location and tournament_data.details.location.strip():
+            details.location = tournament_data.details.location.strip()
+        
+        if tournament_data.details.venue_details is not None:
+            if tournament_data.details.venue_details.strip():
+                details.venue_details = tournament_data.details.venue_details.strip()
+            else:
+                details.venue_details = None
+        
+        if tournament_data.details.team_range and tournament_data.details.team_range.strip():
+            details.team_range = tournament_data.details.team_range.strip()
+        
+        if tournament_data.details.is_public is not None:
+            details.is_public = tournament_data.details.is_public
+        
+        if tournament_data.details.enrollment_fee is not None:
+            details.enrollment_fee = tournament_data.details.enrollment_fee
+        
+        if tournament_data.details.prize_amount is not None:
+            details.prize_amount = tournament_data.details.prize_amount
+        
+        details.updated_at = datetime.now()
+    
+    tournament.updated_at = datetime.now()
+    
+    _sync_tournament_status(db, tournament)
+    
     db.commit()
     db.refresh(tournament)
     

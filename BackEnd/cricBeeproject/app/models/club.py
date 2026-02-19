@@ -13,7 +13,8 @@ class Club(Base):
     location = Column(String, nullable=False)
     no_of_players = Column(Integer, default=0)
     manager_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    club_image = Column(String, nullable=True) 
+    club_image = Column(String, nullable=True)
+    club_is_verified = Column(Boolean, default=False) 
 
     players = relationship("ClubPlayer", back_populates="club", cascade="all, delete-orphan")
     player_invitations = relationship("ClubPlayerInvitation", back_populates="club", cascade="all, delete-orphan")

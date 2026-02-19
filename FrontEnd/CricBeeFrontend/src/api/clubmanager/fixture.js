@@ -70,3 +70,20 @@ export const getClubPlayers = async () => {
   }
 };
 
+export const removePlayerFromClub = async (clubId, playerId) => {
+  try {
+    const response = await api.delete(`/club-profile/club/${clubId}/players/${playerId}`);
+    return {
+      success: true,
+      message: response.data.message || "Player removed successfully",
+      data: response.data
+    };
+  } catch (error) {
+    console.error('Remove player error:', error);
+    return {
+      success: false,
+      message: error?.response?.data?.detail || error?.message || "Failed to remove player"
+    };
+  }
+};
+
