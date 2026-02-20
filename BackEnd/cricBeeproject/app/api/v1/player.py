@@ -10,7 +10,7 @@ from app.schemas.user import ChangePasswordRequest
 from app.schemas.club_manager import (
     ClubPlayerInvitationResponse, ClubPlayerInvitationListResponse, InvitationResponseRequest
 )
-from app.services.player_service import (
+from app.services.player.player_service import (
     get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo,
     get_player_current_club, leave_club, get_player_dashboard_data
 )

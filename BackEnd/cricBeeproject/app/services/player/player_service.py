@@ -1,4 +1,4 @@
-# app/services/player_service.py
+# app/services/player/player_service.py
 from sqlalchemy.orm import Session, joinedload
 from app.models.player import PlayerProfile
 from app.models.user import User
@@ -230,3 +230,4 @@ def get_player_dashboard_data(db: Session, user_id: int):
         matches=matches,
         stats=stats
     )
+
