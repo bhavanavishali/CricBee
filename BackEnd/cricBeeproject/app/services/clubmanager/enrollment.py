@@ -33,10 +33,6 @@ def get_all_club_manager_ids_for_tournament(db: Session, tournament_id: int) -> 
     all_club_manager_ids = list(set(current_club_manager_ids + removed_club_manager_ids))
     
 
-
-    print(f"===  Club Manager IDs for Tournament {tournament_id} ===")
-    print(f" enrolled club managers: {current_club_manager_ids}")
-
     
     return all_club_manager_ids
 
@@ -131,7 +127,7 @@ def initiate_enrollment(
     if not club:
         raise ValueError("Club not found or access denied")
     
-    # Check if club is verified (minimum 3 players required)
+    
     if not club.club_is_verified:
         raise ValueError("Club must have at least 3 players to be verified and enroll in tournaments")
     

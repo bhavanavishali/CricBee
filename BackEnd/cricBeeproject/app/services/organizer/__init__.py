@@ -1,7 +1,4 @@
-"""
-Organizer services module.
-Contains all services related to organizer functionality.
-"""
+
 
 from . import fixture_service
 from . import match_score_service

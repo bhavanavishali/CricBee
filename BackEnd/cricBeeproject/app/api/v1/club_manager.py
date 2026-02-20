@@ -10,11 +10,18 @@ from app.schemas.club_manager import (
     ClubManagerTransactionResponse, ClubManagerWalletBalanceResponse, ClubManagerTransactionListResponse,
     CreatePlayerRequest, CreatePlayerResponse
 )
-from app.services.club_service import (
+from app.services.clubmanager.club_profile_service import (
     get_profile, create_club, update_club, update_club_image, get_club,
-    search_player_by_cricb_id, invite_player_to_club, get_club_players, remove_player_from_club,
-    get_pending_invitations_for_club, get_dashboard_stats, get_club_manager_transactions, get_club_manager_wallet_balance,
-    create_new_player, refresh_club_player_count
+    get_dashboard_stats, refresh_club_player_count
+)
+from app.services.clubmanager.player_management_service import (
+    search_player_by_cricb_id, get_club_players, remove_player_from_club, create_new_player
+)
+from app.services.clubmanager.invitation_service import (
+    invite_player_to_club, get_pending_invitations_for_club
+)
+from app.services.clubmanager.wallet_service import (
+    get_club_manager_transactions, get_club_manager_wallet_balance
 )
 from app.services.clubmanager.fixture_service import (
     get_club_manager_matches,
@@ -805,8 +812,7 @@ def refresh_player_count_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        logging.error(f"Error refreshing player count: {str(e)}")
-        logging.error(traceback.format_exc())
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to refresh player count: {str(e)}"

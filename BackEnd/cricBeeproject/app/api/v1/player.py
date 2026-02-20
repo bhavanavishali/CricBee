@@ -14,7 +14,7 @@ from app.services.player_service import (
     get_player_profile, create_player_profile, update_player_profile, update_player_profile_photo,
     get_player_current_club, leave_club, get_player_dashboard_data
 )
-from app.services.club_service import (
+from app.services.clubmanager.invitation_service import (
     get_invitations_for_player, accept_club_invitation, reject_club_invitation
 )
 from app.schemas.club_manager import ClubRead

@@ -21,7 +21,7 @@ from app.services.clubmanager.enrollment import (
     get_all_club_manager_ids_for_tournament,
     clear_removed_club_managers_cache
 )
-from app.services.club_service import get_club_by_id
+from app.services.clubmanager.club_profile_service import get_club_by_id
 from app.schemas.club_manager import ClubRead
 from app.schemas.user import UserRead
 from app.services.organizer.tournament_service import (
