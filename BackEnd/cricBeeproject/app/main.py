@@ -29,7 +29,8 @@ from app.api.v1.organizer import router as organizer_router
 from app.api.v1.clubmanager import router as clubmanager_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.players import router as player_router
-from app.api.v1.public import router as public_router
+from app.api.v1.fans import router as fans_router
+from app.api.v1.public import router as public_router  # Backward compatibility (deprecated)
 from app.api.v1.notifications import router as notification_router
 from app.api.v1.chat import router as chat_router
 
@@ -83,7 +84,8 @@ app.include_router(organizer_router)
 app.include_router(clubmanager_router)
 app.include_router(admin_router)
 app.include_router(player_router)
-app.include_router(public_router)
+app.include_router(fans_router)
+app.include_router(public_router)  # Backward compatibility (deprecated)
 app.include_router(chat_router)
 app.include_router(notification_router, prefix="/api/v1")
 

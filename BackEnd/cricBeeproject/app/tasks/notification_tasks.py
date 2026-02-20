@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.notification import Notification, RecipientType
 from app.models.user import User, UserRole
+from app.services.fans.notification_service import create_notification_for_all_fans
 from typing import List
 
 celery_app = Celery('cricbee')
@@ -30,19 +31,13 @@ def send_tournament_cancellation_notification(
                 )
                 db.add(notification)
         
-      
-        fans = db.query(User).filter(User.role == UserRole.FAN).all()
-        for fan in fans:
-            notification = Notification(
-                title=title,
-                description=description,
-                recipient_type=RecipientType.FAN,
-                recipient_id=fan.id,
-                tournament_id=tournament_id
-            )
-            db.add(notification)
-        
-        db.commit()
+        # Send notifications to all fans using fan service
+        create_notification_for_all_fans(
+            db=db,
+            title=title,
+            description=description,
+            tournament_id=tournament_id
+        )
         
     except Exception as e:
         db.rollback()
