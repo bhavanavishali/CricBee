@@ -20,7 +20,7 @@ def get_club(db: Session, user_id: int) -> Club | None:
     return db.query(Club).filter(Club.manager_id == user_id).first()
 
 def get_club_by_id(db: Session, club_id: int) -> Club | None:
-    #Get club by ID (for organizers/admins to view club details)"""
+    
     return db.query(Club).options(
         joinedload(Club.manager)
     ).filter(Club.id == club_id).first()
@@ -30,12 +30,12 @@ def create_club(db: Session, payload: ClubCreate, user_id: int) -> Club:
     if existing_club:
         raise ValueError("Club already exists for this user")
     
-    # Check if short_name already exists
+    
     existing_short_name = db.query(Club).filter(Club.short_name == payload.short_name).first()
     if existing_short_name:
         raise ValueError(f"Club with short name '{payload.short_name}' already exists. Please choose a different short name.")
     
-    # Check if club_name already exists
+    
     existing_club_name = db.query(Club).filter(Club.club_name == payload.club_name).first()
     if existing_club_name:
         raise ValueError(f"Club with name '{payload.club_name}' already exists. Please choose a different club name.")
@@ -56,7 +56,7 @@ def create_club(db: Session, payload: ClubCreate, user_id: int) -> Club:
         db.refresh(club)
     except IntegrityError as e:
         db.rollback()
-        # Check which constraint was violated
+        
         error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
         if 'short_name' in error_msg.lower():
             raise ValueError(f"Club with short name '{payload.short_name}' already exists. Please choose a different short name.")
@@ -76,7 +76,7 @@ def update_club(db: Session, club_id: int, payload: ClubUpdate, user_id: int) ->
     
     update_data = payload.dict(exclude_unset=True)
     
-    # Check for unique constraint violations before updating
+    
     if 'short_name' in update_data:
         existing_short_name = db.query(Club).filter(
             Club.short_name == update_data['short_name'],
@@ -101,7 +101,7 @@ def update_club(db: Session, club_id: int, payload: ClubUpdate, user_id: int) ->
         db.refresh(club)
     except IntegrityError as e:
         db.rollback()
-        # Check which constraint was violated
+        
         error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
         if 'short_name' in error_msg.lower():
             raise ValueError(f"Club with short name '{update_data.get('short_name', '')}' already exists. Please choose a different short name.")
@@ -125,11 +125,11 @@ def update_club_image(
     if not club:
         raise ValueError("Club not found or access denied")
 
-    # Upload to S3
+   
     folder = f"{settings.aws_s3_organization_folder}/clubs/{user_id}"
     image_url = upload_file_to_s3(uploaded_file, folder=folder)
     
-    # Update club record
+    
     club.club_image = image_url
     db.commit()
     db.refresh(club)
@@ -147,7 +147,7 @@ def get_profile(db: Session, user_id: int) -> ClubProfileResponse:
     )
 
 
-# Player management functions
+
 
 def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -> dict:
    
@@ -162,7 +162,7 @@ def search_player_by_cricb_id(db: Session, cricb_id: str, club_id: int = None) -
     if not player_profile:
         raise ValueError("Player not found with this CricB ID")
    
-    # Check if player is already in ANY club
+    
     existing_club_player = db.query(ClubPlayer).options(
         joinedload(ClubPlayer.club)
     ).filter(ClubPlayer.player_id == player_profile.id).first()

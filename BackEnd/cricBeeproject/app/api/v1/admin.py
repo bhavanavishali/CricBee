@@ -11,7 +11,7 @@ from app.schemas.admin.plan_pricing import (
     TournamentPricingPlanResponse
 )
 from app.schemas.admin.transaction import TransactionResponse, TransactionListResponse, AdminWalletResponse, FinancialStatsResponse
-from app.services.admin_service import get_all_users_except_admin, update_user_status
+from app.services.admin import get_all_users_except_admin, update_user_status
 from app.services.admin.plan_pricing import (
     create_tournament_pricing_plan,
     get_all_tournament_pricing_plans,
