@@ -23,21 +23,15 @@ from app.models.organizer.point_table import PointTable
 from app.models.admin.transaction import AdminWallet, Transaction
 from app.models.chat import ChatMessage
 
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.auth import router as auth_router
 from app.api.v1.organizer import router as organizer_router
 from app.api.v1.club_manager import router as club_router
 from app.api.v1.clubmanager import router as clubmanager_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.player import router as player_router
-from app.api.v1.organizer.tournament import router as tournament_router
-from app.api.v1.organizer.fixture import router as fixture_router
-from app.api.v1.organizer.match_score import router as match_score_router
-from app.api.v1.organizer.point_table_final import router as point_table_router
-from app.api.v1.organizer.round_completion import router as round_completion_router
-from app.api.v1.organizer.round_progression import router as round_progression_router
 from app.api.v1.public import router as public_router
 from app.api.v1.notifications import router as notification_router
-from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.chat import router as chat_router
 
 Base.metadata.create_all(bind=engine)
@@ -91,12 +85,6 @@ app.include_router(club_router)
 app.include_router(clubmanager_router)
 app.include_router(admin_router)
 app.include_router(player_router)
-app.include_router(tournament_router)
-app.include_router(fixture_router)
-app.include_router(match_score_router)
-app.include_router(point_table_router)
-app.include_router(round_completion_router)
-app.include_router(round_progression_router)
 app.include_router(public_router)
 app.include_router(chat_router)
 app.include_router(notification_router, prefix="/api/v1")
