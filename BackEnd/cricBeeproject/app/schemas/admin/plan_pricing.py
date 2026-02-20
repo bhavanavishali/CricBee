@@ -8,7 +8,7 @@ class TournamentPricingPlanCreate(BaseModel):
     plan_name: str
     plan_range: str
     amount: Decimal
-    status: str = "inactive"  # "active" or "inactive"
+    status: str = "inactive"  
 
 class TournamentPricingPlanUpdate(BaseModel):
     plan_name: Optional[str] = None
@@ -17,7 +17,7 @@ class TournamentPricingPlanUpdate(BaseModel):
     status: Optional[str] = None
 
 class TournamentPricingPlanStatusUpdate(BaseModel):
-    status: str  # "active" or "inactive"
+    status: str  
 
 class TournamentPricingPlanResponse(BaseModel):
     id: int

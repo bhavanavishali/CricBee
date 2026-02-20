@@ -7,7 +7,7 @@ class TransactionResponse(BaseModel):
     id: int
     transaction_id: str
     transaction_type: str
-    transaction_direction: str  # debit or credit
+    transaction_direction: str  
     amount: Decimal
     status: str
     tournament_id: Optional[int] = None
