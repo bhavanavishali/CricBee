@@ -1,4 +1,4 @@
-# api/v1/endpoints/player_profile.py
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from app.db.session import get_db

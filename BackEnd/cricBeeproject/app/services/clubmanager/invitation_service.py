@@ -9,7 +9,7 @@ from app.models.club import Club
 from app.models.player import PlayerProfile
 from app.models.club_player import ClubPlayer
 from app.models.club_player_invitation import ClubPlayerInvitation, InvitationStatus
-from app.services.clubmanager.player_management_service import add_player_to_club
+from app.services.player.player_management_service import add_player_to_club
 
 
 def invite_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayerInvitation:

@@ -13,7 +13,7 @@ from app.schemas.club_manager import (
     CreatePlayerRequest, CreatePlayerResponse, ClubRead
 )
 from app.services.clubmanager.club_profile_service import get_club
-from app.services.clubmanager.player_management_service import (
+from app.services.player.player_management_service import (
     search_player_by_cricb_id, get_club_players, remove_player_from_club, create_new_player
 )
 from app.services.clubmanager.invitation_service import invite_player_to_club
