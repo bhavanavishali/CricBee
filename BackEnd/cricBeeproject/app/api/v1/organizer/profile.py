@@ -5,7 +5,7 @@ from app.db.session import get_db
 from app.models.user import UserRole
 from app.services.auth_service import *
 from app.schemas.organizer import (OrganizationCreate, OrganizationUpdate, OrganizationRead, ProfileResponse, ProfileUpdate)
-from app.services.organization_service import (
+from app.services.organizer.organization_service import (
     get_profile,
     create_organization,
     update_organization,
