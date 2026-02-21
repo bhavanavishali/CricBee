@@ -223,7 +223,6 @@ def store_password_reset_token(email: str, token: str, expire_hours: int = 1) ->
     try:
         redis_client = get_redis()
         
-        # Test Redis connection
         redis_client.ping()
         
         token_key = f"password_reset:{token}"
