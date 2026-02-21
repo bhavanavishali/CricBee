@@ -149,7 +149,7 @@ const TournamentFixtures = () => {
       console.log('Enrolled clubs loaded:', enrolledClubsList.length, 'clubs');
       
       // Load rounds
-      const roundsData = await getTournamentRounds(tournamentId);
+      let roundsData = await getTournamentRounds(tournamentId);
       setRounds(roundsData);
       
       // If league mode and no rounds exist, initialize league structure
