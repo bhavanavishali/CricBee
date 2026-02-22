@@ -1,4 +1,3 @@
-
 import os
 import sys
 from sqlalchemy import create_engine
@@ -7,12 +6,22 @@ from passlib.context import CryptContext
 from app.core.config import settings  
 from app.db.base import Base  
 from app.db.session import engine 
-from app.models.user import User, UserRole
+
+from app.models.player import PlayerProfile  
+from app.models.club import Club  
+from app.models.club_player import ClubPlayer  
+from app.models.club_player_invitation import ClubPlayerInvitation
 from app.models.organizer.organization import OrganizationDetails
-from app.models.club import Club
-from app.models.player import PlayerProfile
-from app.models.admin.transaction import AdminWallet
-from app.models.organizer.tournament import Tournament
+from app.models.user import User, UserRole
+from app.models.admin.plan_pricing import TournamentPricingPlan
+from app.models.organizer.fixture_mode import FixtureMode
+from app.models.notification import Notification
+from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentPayment, TournamentEnrollment
+from app.models.organizer.match_score import MatchScore, BallByBall, PlayerMatchStats
+from app.models.organizer.fixture import FixtureRound, Match, PlayingXI
+from app.models.organizer.point_table import PointTable
+from app.models.admin.transaction import AdminWallet, Transaction
+from app.models.chat import ChatMessage
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
