@@ -1,3 +1,4 @@
+
 import os
 import sys
 from sqlalchemy import create_engine
@@ -7,7 +8,11 @@ from app.core.config import settings
 from app.db.base import Base  
 from app.db.session import engine 
 from app.models.user import User, UserRole
-from app.utils.hashing import hash_password  
+from app.models.organizer.organization import OrganizationDetails
+from app.models.club import Club
+from app.models.player import PlayerProfile
+from app.models.admin.transaction import AdminWallet
+from app.models.organizer.tournament import Tournament
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
