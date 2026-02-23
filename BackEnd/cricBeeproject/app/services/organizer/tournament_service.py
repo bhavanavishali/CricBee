@@ -504,21 +504,48 @@ def update_tournament(
     if tournament.status == TournamentStatus.CANCELLED.value:
         raise ValueError("Cancelled tournament cannot be edited")
     
-    has_enrollments = db.query(TournamentEnrollment).filter(
-    TournamentEnrollment.tournament_id == tournament_id,
-    TournamentEnrollment.payment_status == PaymentStatus.SUCCESS.value
-).count() > 0
-
-    if has_enrollments:
+    if tournament_data.tournament_name and tournament_data.tournament_name.strip():
+        tournament.tournament_name = tournament_data.tournament_name.strip()
+    
+    if tournament_data.details and tournament.details:
+        details = tournament.details
         
-        if tournament_data.details:
-            if tournament_data.details.enrollment_fee is not None:
-                raise ValueError("Cannot change enrollment fee when clubs are enrolled")
-            if tournament_data.details.team_range is not None:
-                raise ValueError("Cannot change team range when clubs are enrolled")
-            if tournament_data.details.overs is not None:
-                raise ValueError("Cannot change overs format when clubs are enrolled")
-            
+        if tournament_data.details.overs is not None:
+            details.overs = tournament_data.details.overs
+        
+        if tournament_data.details.start_date is not None:
+            details.start_date = tournament_data.details.start_date
+        
+        if tournament_data.details.end_date is not None:
+            details.end_date = tournament_data.details.end_date
+        
+        if tournament_data.details.registration_start_date is not None:
+            details.registration_start_date = tournament_data.details.registration_start_date
+        
+        if tournament_data.details.registration_end_date is not None:
+            details.registration_end_date = tournament_data.details.registration_end_date
+        
+        if tournament_data.details.location and tournament_data.details.location.strip():
+            details.location = tournament_data.details.location.strip()
+        
+        if tournament_data.details.venue_details is not None:
+            if tournament_data.details.venue_details.strip():
+                details.venue_details = tournament_data.details.venue_details.strip()
+            else:
+                details.venue_details = None
+        
+        if tournament_data.details.team_range and tournament_data.details.team_range.strip():
+            details.team_range = tournament_data.details.team_range.strip()
+        
+        if tournament_data.details.is_public is not None:
+            details.is_public = tournament_data.details.is_public
+        
+        if tournament_data.details.enrollment_fee is not None:
+            details.enrollment_fee = tournament_data.details.enrollment_fee
+        
+        if tournament_data.details.prize_amount is not None:
+            details.prize_amount = tournament_data.details.prize_amount
+        
         details.updated_at = datetime.now()
     
     tournament.updated_at = datetime.now()
