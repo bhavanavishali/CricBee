@@ -238,7 +238,7 @@ const TournamentList = () => {
 
                       {/* Action Buttons */}
                       <div className="flex items-center space-x-3 flex-shrink-0">
-                        <button
+                        {/* <button
                           onClick={() => {
                             
                             console.log('View tournament:', tournament.id);
@@ -248,7 +248,7 @@ const TournamentList = () => {
                           title="View Tournament"
                         >
                           <Eye size={20} />
-                        </button>
+                        </button> */}
                         {canEdit(tournament.status) && (
                           <button
                             onClick={() => handleEditTournament(tournament)}

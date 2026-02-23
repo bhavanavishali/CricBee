@@ -67,7 +67,7 @@ else:
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-        "https://api.cricb.shop",
+        
         "https://cricbee.shop",
         
     ]
@@ -87,7 +87,7 @@ app.include_router(clubmanager_router)
 app.include_router(admin_router)
 app.include_router(player_router)
 app.include_router(fans_router)
-app.include_router(public_router)  # Backward compatibility (deprecated)
+app.include_router(public_router)  
 app.include_router(chat_router)
 app.include_router(notification_router, prefix="/api/v1")
 
