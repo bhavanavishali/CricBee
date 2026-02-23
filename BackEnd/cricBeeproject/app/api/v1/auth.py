@@ -220,20 +220,20 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
         try:
             user_id = int(user_id_str)
         except (ValueError, TypeError):
-            logger.error(f"Invalid user_id format in refresh token: {user_id_str}")
+           
             response.delete_cookie("access_token", path="/")
             response.delete_cookie("refresh_token", path="/")
             raise HTTPException(status_code=401, detail="Invalid refresh token")
         
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            logger.warning(f"User {user_id} not found during token refresh")
+            
             response.delete_cookie("access_token", path="/")
             response.delete_cookie("refresh_token", path="/")
             raise HTTPException(status_code=401, detail="User no longer active")
         
         if not user.is_active:
-            logger.warning(f"User {user_id} is inactive during token refresh")
+            
             response.delete_cookie("access_token", path="/")
             response.delete_cookie("refresh_token", path="/")
             raise HTTPException(status_code=401, detail="User account is inactive")
@@ -269,12 +269,12 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
         return user
     
     except JWTError as e:
-        logger.warning(f"JWT error during token refresh: {str(e)}")
+        
         response.delete_cookie("access_token", path="/")
         response.delete_cookie("refresh_token", path="/")
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
     except Exception as e:
-        logger.error(f"Unexpected error during token refresh: {str(e)}", exc_info=True)
+        
         response.delete_cookie("access_token", path="/")
         response.delete_cookie("refresh_token", path="/")
         raise HTTPException(status_code=401, detail="Token refresh failed")
@@ -326,8 +326,9 @@ async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(
             detail="Failed to generate reset token. Please try again later."
         )
     
- 
-    frontend_url = getattr(settings, "frontend_url", "http://localhost:5173")
+    import os
+    
+    frontend_url = os.getenv("FRONTEND_URL")
     email_sent = await send_password_reset_email(
         payload.email,
         reset_token,

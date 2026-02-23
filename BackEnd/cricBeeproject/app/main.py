@@ -41,20 +41,7 @@ import os
 
 load_dotenv()
 
-# Custom exception handler for validation errors
-# @app.exception_handler(RequestValidationError)
-# async def validation_exception_handler(request: Request, exc: RequestValidationError):
-#     logging.error(f"Validation error on {request.method} {request.url}")
-#     logging.error(f"Validation errors: {exc.errors()}")
-#     logging.error(f"Request body: {await request.body()}")
-    
-#     return JSONResponse(
-#         status_code=status.HTTP_400_BAD_REQUEST,
-#         content={
-#             "detail": exc.errors(),
-#             "body": exc.body
-#         }
-#     )
+
 
 
 cors_origins_env = os.getenv("CORS_ORIGINS", "")

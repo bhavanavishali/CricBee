@@ -85,7 +85,7 @@ def create_tournament(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Create tournament and initiate payment
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
