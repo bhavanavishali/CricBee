@@ -24,9 +24,9 @@ export const useUserStatusCheck = () => {
         case "player":
           return "/player-profile/";
         case "fan":
-          return "/public/tournaments"; // Public endpoint that works for fans
+          return "/api/v1/fans/tournaments/";
         default:
-          return "/public/tournaments";
+          return "/api/v1/fans/tournaments/";
       }
     };
 
