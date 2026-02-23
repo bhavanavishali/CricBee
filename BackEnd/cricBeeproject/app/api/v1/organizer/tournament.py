@@ -97,14 +97,14 @@ def create_tournament(
         result = create_tournament_with_payment(db, tournament_data, current_user.id)
         return result
     except ValueError as e:
-        # ValueError means a business logic error (validation, missing data, etc.)
+        
         error_msg = str(e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error_msg
         )
     except Exception as e:
-        # Log the full error for debugging
+        
         import logging
         import traceback
         error_trace = traceback.format_exc()
@@ -114,7 +114,7 @@ def create_tournament(
         logging.error(f"Error creating tournament - Type: {error_type}, Message: {error_message}")
         logging.error(f"Full traceback:\n{error_trace}")
         
-        # Provide more helpful error message based on error type
+        
         if "Razorpay" in error_message or "razorpay" in error_message.lower() or "payment gateway" in error_message.lower():
             error_detail = "Payment gateway error. Please ensure Razorpay credentials are configured correctly."
         elif "database" in error_message.lower() or "sql" in error_message.lower() or "sqlalchemy" in error_type.lower():
@@ -147,7 +147,7 @@ def verify_payment(
             payment_data.razorpay_signature
         )
         
-        # Verify organizer owns this tournament
+        
         if tournament.organizer_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -181,7 +181,7 @@ def get_wallet_balance(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    #Get organizer wallet balance calculated from transactions
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(
@@ -248,7 +248,7 @@ def cancel_tournament_endpoint(
             detail=str(e)
         )
 
-@router.put("/{tournament_id}/update", response_model=TournamentResponse)
+@router.patch("/{tournament_id}/update", response_model=TournamentResponse)
 def update_tournament_endpoint(
     tournament_id: int,
     tournament_data: TournamentUpdate,
