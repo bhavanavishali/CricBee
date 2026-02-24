@@ -31,7 +31,7 @@ export default function Home() {
   useEffect(() => {
     loadTournaments()
     loadLiveMatches()
-    // Refresh live matches every 5 seconds
+    
     const interval = setInterval(loadLiveMatches, 5000)
     return () => clearInterval(interval)
   }, [])
@@ -39,7 +39,7 @@ export default function Home() {
   const loadTournaments = async () => {
     try {
       setLoadingTournaments(true)
-      // Get ongoing and upcoming tournaments
+      //
       const data = await getPublicTournaments()
       // Filter to show only ongoing and upcoming, limit to 4
       const filtered = data
@@ -307,36 +307,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CricB by the Numbers */}
-      <section className="py-20 px-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">CricB by the Numbers</h2>
-            <p className="text-lg text-gray-600">
-              Growing the cricket community across India
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-teal-600 mb-2">1,250</div>
-              <p className="text-gray-600 font-medium">Total Tournaments Hosted</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-600 mb-2">450</div>
-              <p className="text-gray-600 font-medium">Total Clubs Registered</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-orange-600 mb-2">15,000</div>
-              <p className="text-gray-600 font-medium">Total Players with CricB</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-purple-600 mb-2">24+</div>
-              <p className="text-gray-600 font-medium">Live Matches / Week</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Active & Upcoming Tournaments */}
       <section id="tournaments" className="py-20 px-6 bg-white">
@@ -348,14 +319,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex justify-center gap-4 mb-8">
-            <button className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-              All Status
-            </button>
-            <button className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-              All Locations
-            </button>
-          </div>
+         
 
           {loadingTournaments ? (
             <div className="text-center py-12">
@@ -450,10 +414,7 @@ export default function Home() {
               Create Your Tournament
             </button>
           </div>
-          <div className="bg-slate-800 rounded-xl p-8 text-center">
-            <div className="text-6xl font-bold text-white mb-2">1,750+</div>
-            <p className="text-xl text-gray-300">Tournaments Hosted</p>
-          </div>
+          
         </div>
       </section>
 
@@ -483,72 +444,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Players Section */}
-      <section className="py-20 px-6 bg-orange-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Players, Showcase Your Cricketing Journey</h2>
-            <p className="text-lg text-gray-600">
-              Get verified, track your performance, and connect with teams across India with your unique CricB Player ID.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="grid grid-cols-2 gap-6">
-              {[
-                { title: "Activate KYC Verification", desc: "Verify identity to increase selection chances." },
-                { title: "Unique CricB Player ID", desc: "Get a universal player profile across CricB." },
-                { title: "Join Teams & Clubs", desc: "Connect with clubs to participate in tournaments." },
-                { title: "Track Performance Stats", desc: "Match-by-match analytics for improvement." },
-              ].map((feature, index) => (
-                <div key={index} className="bg-white rounded-lg p-6 shadow-sm">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-3">
-                    <CheckCircle className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <h3 className="font-semibold mb-2 text-gray-900">{feature.title}</h3>
-                  <p className="text-sm text-gray-600">{feature.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-white rounded-xl p-8 shadow-lg">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-orange-600">RK</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl text-gray-900">Rohit Kumar</h3>
-                  <p className="text-gray-600">Player Profile</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-sm text-gray-600">Matches</p>
-                  <p className="text-2xl font-bold text-gray-900">1,240</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Runs</p>
-                  <p className="text-2xl font-bold text-gray-900">9,540</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Wickets</p>
-                  <p className="text-2xl font-bold text-gray-900">152</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Strike Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">142.3</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate("/signup")}
-                className="w-full py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
-              >
-                Sign Up as Player
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Fan Experience Section */}
       <section className="py-20 px-6 bg-white">
@@ -676,39 +572,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Latest Cricket Updates */}
-      <section className="py-20 px-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Latest Cricket Updates</h2>
-            <p className="text-lg text-gray-600">
-              Stay updated with the cricket community
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[
-              "Organizer X announced Summer Cup 2025",
-              "Arook Bats wins Winter League Final",
-              "New Player PKC Verified",
-            ].map((update, index) => (
-              <div key={index} className="bg-white rounded-lg p-6 shadow-sm flex items-start gap-4">
-                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Trophy className="w-5 h-5 text-teal-600" />
-                </div>
-                <p className="text-gray-700 font-medium">{update}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center">
-            <button className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold flex items-center gap-2 mx-auto">
-              Go to News Feed
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-12 px-6">

@@ -637,13 +637,7 @@ const LiveScoring = () => {
                       <div className="text-3xl font-bold text-gray-900">
                         {battingScore.runs}/{battingScore.wickets}
                       </div>
-                      {/* <div className="text-xs text-gray-600 mt-1">
-                        {scoreboard.current_over && scoreboard.current_ball ? (
-                          <span>Over: {scoreboard.current_over}.{scoreboard.current_ball}</span>
-                        ) : (
-                          <span>({formatOvers(battingScore.overs)} overs)</span>
-                        )}
-                      </div> */}
+                 
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-gray-600 mb-1">{scoreboard.bowling_team_name} - Bowling</div>
@@ -920,7 +914,7 @@ const LiveScoring = () => {
                  scoreboard.batting_score.balls > 0 && scoreboard.bowling_score.balls > 0 && (
                   <div className="bg-white rounded-lg shadow-sm p-3">
                     <h3 className="text-sm font-bold text-gray-900 mb-2">Complete Match</h3>
-                    <p className="text-xs text-gray-600 mb-2">Click to complete match and determine winner</p>
+                    {/* <p className="text-xs text-gray-600 mb-2">Click to complete match and determine winner</p> */}
                     <button
                       onClick={handleCompleteMatch}
                       disabled={updating}
