@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getEnrolledClubs, getMyTournaments, getClubDetails, removeClubFromTournament, cancelTournament } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft, Trophy, MapPin, Calendar, Users, Search, Filter, Eye, CheckCircle, Clock, RefreshCw, X, Mail, Phone, User as UserIcon, DollarSign } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const EnrolledClubs = () => {
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ const EnrolledClubs = () => {
       setClubDetails(details);
     } catch (error) {
       console.error('Failed to load club details:', error);
-      alert('Failed to load club details. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load club details. Please try again.' });
     } finally {
       setLoadingClubDetails(false);
     }
@@ -116,10 +117,10 @@ const EnrolledClubs = () => {
       setShowRemoveConfirm(false);
       setClubToRemove(null);
       
-      alert('Club removed successfully and enrollment fee refunded.');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Club removed successfully and enrollment fee refunded.' });
     } catch (error) {
       console.error('Failed to remove club:', error);
-      alert(error.response?.data?.detail || 'Failed to remove club. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to remove club. Please try again.' });
     } finally {
       setRemoving(false);
     }
@@ -147,13 +148,13 @@ const EnrolledClubs = () => {
       setShowCancelConfirm(false);
       // Reload data
       await loadTournamentAndClubs();
-      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+      await Swal.fire({ icon: 'success', title: 'Success!', text: 'Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.' });
       // Navigate back to tournament enrollments
       navigate('/organizer/tournament-enrollments');
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
     } finally {
       setCancelling(false);
     }

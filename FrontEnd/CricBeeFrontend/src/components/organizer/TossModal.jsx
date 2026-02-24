@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, RotateCcw, Users, Target, Save } from 'lucide-react';
 import { updateToss, getScoreboard } from '@/api/organizer/matchScore';
+import Swal from 'sweetalert2';
 
 const TossModal = ({ isOpen, onClose, match, onTossSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -60,7 +61,7 @@ const TossModal = ({ isOpen, onClose, match, onTossSaved }) => {
 
   const handleSave = async () => {
     if (!tossWinnerId || !tossDecision) {
-      alert('Please complete all selections');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please complete all selections' });
       return;
     }
 
@@ -70,12 +71,12 @@ const TossModal = ({ isOpen, onClose, match, onTossSaved }) => {
         toss_winner_id: parseInt(tossWinnerId),
         toss_decision: tossDecision
       });
-      alert('Toss saved successfully! You can now start the match.');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Toss saved successfully! You can now start the match.' });
       onTossSaved?.();
       onClose();
     } catch (error) {
       console.error('Failed to save toss:', error);
-      alert(error.response?.data?.detail || 'Failed to save toss');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to save toss' });
     } finally {
       setSaving(false);
     }

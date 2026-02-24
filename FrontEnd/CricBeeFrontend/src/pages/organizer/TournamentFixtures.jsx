@@ -20,6 +20,7 @@ import { saveQualifiedTeams, getQualifiedTeams as getQualifiedTeamsForRound, com
 import Layout from '@/components/layouts/Layout';
 import TossModal from '@/components/organizer/TossModal';
 import { ArrowLeft, Plus, Calendar, Clock, MapPin, Users, Trophy, X, Check, Globe, EyeOff, RotateCcw, Play, Lock, Edit2, CheckCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const TournamentFixtures = () => {
   const navigate = useNavigate();
@@ -120,7 +121,7 @@ const TournamentFixtures = () => {
             setTournament(updatedTournament);
           } catch (error) {
             console.error('Failed to set fixture mode:', error);
-            alert('Failed to set fixture mode. Please try again.');
+            Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to set fixture mode. Please try again.' });
             return;
           }
         } else {
@@ -133,7 +134,7 @@ const TournamentFixtures = () => {
             setTournament(updatedTournament);
           } catch (error) {
             console.error('Failed to set fixture mode:', error);
-            alert('Failed to set fixture mode. Please try again.');
+            Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to set fixture mode. Please try again.' });
             return;
           }
         }
@@ -176,7 +177,7 @@ const TournamentFixtures = () => {
                 console.error('Failed to auto-generate league matches:', error);
                 // Don't show alert if matches already exist (backend returns existing matches)
                 if (!error.response?.data?.detail?.includes('already exist')) {
-                  alert(error.response?.data?.detail || 'Failed to auto-generate league matches');
+                  Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to auto-generate league matches' });
                 }
               } finally {
                 setGeneratingMatches(false);
@@ -205,7 +206,7 @@ const TournamentFixtures = () => {
               console.error('Failed to auto-generate league matches:', error);
               // Don't show alert if matches already exist (backend returns existing matches)
               if (!error.response?.data?.detail?.includes('already exist')) {
-                alert(error.response?.data?.detail || 'Failed to auto-generate league matches');
+                Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to auto-generate league matches' });
               }
             } finally {
               setGeneratingMatches(false);
@@ -235,7 +236,7 @@ const TournamentFixtures = () => {
       }
     } catch (error) {
       console.error('Failed to load data:', error);
-      alert('Failed to load tournament data');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load tournament data' });
     } finally {
       setLoading(false);
     }
@@ -248,7 +249,7 @@ const TournamentFixtures = () => {
       return newRounds; // Return rounds so they can be used immediately
     } catch (error) {
       console.error('Failed to initialize league fixtures:', error);
-      alert(error.response?.data?.detail || 'Failed to initialize league fixtures');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to initialize league fixtures' });
       return null;
     } finally {
       setInitializingLeague(false);
@@ -279,10 +280,10 @@ const TournamentFixtures = () => {
       setRoundForm({ round_name: '', number_of_matches: 1 });
       setShowRoundForm(false);
       await loadData();
-      alert('Round created successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Round created successfully!' });
     } catch (error) {
       console.error('Failed to create round:', error);
-      alert(error.response?.data?.detail || 'Failed to create round');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to create round' });
     } finally {
       setCreatingRound(false);
     }
@@ -319,7 +320,7 @@ const TournamentFixtures = () => {
   const handleCreateMatch = async (e) => {
     e.preventDefault();
     if (matchForm.team_a_id === matchForm.team_b_id) {
-      alert('Team A and Team B cannot be the same');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Team A and Team B cannot be the same' });
       return;
     }
     try {
@@ -345,10 +346,10 @@ const TournamentFixtures = () => {
       });
       setShowMatchForm(false);
       await loadRoundMatches(selectedRound.id);
-      alert('Match created successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Match created successfully!' });
     } catch (error) {
       console.error('Failed to create match:', error);
-      alert(error.response?.data?.detail || 'Failed to create match');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to create match' });
     } finally {
       setCreatingMatch(false);
     }
@@ -367,10 +368,10 @@ const TournamentFixtures = () => {
           setGeneratingMatches(true);
           await generateLeagueMatches(round.id, tournamentId);
           await loadRoundMatches(round.id);
-          alert('League matches generated successfully! Please assign date and venue for each match.');
+          Swal.fire({ icon: 'success', title: 'Success!', text: 'League matches generated successfully! Please assign date and venue for each match.' });
         } catch (error) {
           console.error('Failed to generate league matches:', error);
-          alert(error.response?.data?.detail || 'Failed to generate league matches');
+          Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to generate league matches' });
         } finally {
           setGeneratingMatches(false);
         }
@@ -413,17 +414,17 @@ const TournamentFixtures = () => {
             : match
         )
       );
-      alert(updatedMatch.is_fixture_published ? 'Match published successfully!' : 'Match unpublished successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: updatedMatch.is_fixture_published ? 'Match published successfully!' : 'Match unpublished successfully!' });
     } catch (error) {
       console.error('Failed to toggle publish status:', error);
-      alert(error.response?.data?.detail || 'Failed to toggle publish status');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to toggle publish status' });
     }
   };
 
   const handleOpenToss = (match) => {
     // Check preconditions: match must be published and status should be "toss_pending"
     if (!match.is_fixture_published) {
-      alert('Please publish the match before conducting the toss.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please publish the match before conducting the toss.' });
       return;
     }
     if (match.match_status && match.match_status !== 'toss_pending' && match.match_status !== 'upcoming') {
@@ -433,7 +434,7 @@ const TournamentFixtures = () => {
         setShowTossModal(true);
         return;
       } else {
-        alert('Match status does not allow toss at this time.');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Match status does not allow toss at this time.' });
         return;
       }
     }
@@ -478,10 +479,10 @@ const TournamentFixtures = () => {
       setEditingMatch(null);
       setEditMatchForm({ match_date: '', match_time: '', venue: '' });
       await loadRoundMatches(selectedRound.id);
-      alert('Match details updated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Match details updated successfully!' });
     } catch (error) {
       console.error('Failed to update match:', error);
-      alert(error.response?.data?.detail || 'Failed to update match details');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to update match details' });
     } finally {
       setUpdatingMatch(false);
     }
@@ -546,7 +547,7 @@ const TournamentFixtures = () => {
   // Submit qualified teams
   const handleSubmitQualifiedTeams = async () => {
     if (selectedQualifiedTeams.length === 0) {
-      alert('Please select at least one team to qualify for the next round');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select at least one team to qualify for the next round' });
       return;
     }
 
@@ -558,7 +559,7 @@ const TournamentFixtures = () => {
       if (fromRound === 'Round 3') {
         // For Round 3, only one team should be selected as the winner
         if (selectedQualifiedTeams.length !== 1) {
-          alert('Please select exactly one team as the tournament winner');
+          Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select exactly one team as the tournament winner' });
           setSubmittingQualifiedTeams(false);
           return;
         }
@@ -592,12 +593,12 @@ const TournamentFixtures = () => {
           selectedQualifiedTeams
         );
         
-        alert(`Successfully saved ${selectedQualifiedTeams.length} qualified teams for ${toRound}`);
+        Swal.fire({ icon: 'success', title: 'Success!', text: `Successfully saved ${selectedQualifiedTeams.length} qualified teams for ${toRound}` });
         setShowRoundCompleteModal(false);
       }
     } catch (error) {
       console.error('Failed to save qualified teams:', error);
-      alert(error.response?.data?.detail || 'Failed to save qualified teams');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to save qualified teams' });
     } finally {
       setSubmittingQualifiedTeams(false);
     }

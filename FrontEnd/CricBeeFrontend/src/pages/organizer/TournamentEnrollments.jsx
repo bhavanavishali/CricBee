@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
 import { Trophy, Users, MapPin, Calendar, ArrowLeft, Eye, X, AlertCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const TournamentEnrollments = () => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ const TournamentEnrollments = () => {
       if (enrolledClubsWithPayment.length > 0) {
         // Show error popup if clubs are still enrolled
         setShowCancelConfirm(null);
-        alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
+        Swal.fire({ icon: 'warning', title: 'Warning', text: `Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.` });
         return;
       }
       
@@ -106,11 +107,11 @@ const TournamentEnrollments = () => {
       // Reload tournaments to reflect the cancellation
       await loadTournaments();
       setCancellableTournaments(new Set());
-      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.' });
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
     } finally {
       setCancellingId(null);
     }

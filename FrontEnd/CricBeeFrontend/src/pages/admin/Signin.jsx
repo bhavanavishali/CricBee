@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser, setLoading } from "@/store/slices/authSlice";
 import { signIn } from "@/api/authService";
+import Swal from "sweetalert2";
 
 export default function AdminSignInPage() {
   const navigate = useNavigate();
@@ -63,16 +64,16 @@ export default function AdminSignInPage() {
         if (response.user.role === "admin" || response.user.is_superuser) {
           navigate("/admin/dashboard", { replace: true });
         } else {
-          alert("Access denied. Admin privileges required.");
+          Swal.fire({ icon: 'warning', title: 'Access Denied', text: 'Admin privileges required.' });
           dispatch(setLoading(false));
         }
       } else {
-        alert(response?.message || "Invalid admin credentials");
+        Swal.fire({ icon: 'error', title: 'Error!', text: response?.message || "Invalid admin credentials" });
         dispatch(setLoading(false));
       }
     } catch (err) {
       console.error("Admin sign in error:", err);
-      alert(err.message || "Admin sign in failed. Please try again.");
+      Swal.fire({ icon: 'error', title: 'Error!', text: err.message || "Admin sign in failed. Please try again." });
       dispatch(setLoading(false));
     }
   };

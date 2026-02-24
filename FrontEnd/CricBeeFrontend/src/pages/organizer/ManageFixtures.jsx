@@ -4,6 +4,7 @@ import { getMyTournaments } from '@/api/organizer/tournament';
 import { checkCanCreateFixture, setTournamentFixtureMode } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
 import { Trophy, Calendar, MapPin, Users, ArrowLeft, Settings, AlertCircle, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const ManageFixtures = () => {
   const navigate = useNavigate();
@@ -102,7 +103,7 @@ const ManageFixtures = () => {
         setShowFixtureTypeModal(true);
       }
     } else {
-      alert(status?.message || 'Fixture creation is not available for this tournament');
+      Swal.fire({ icon: 'info', title: 'Info', text: status?.message || 'Fixture creation is not available for this tournament' });
     }
   };
 
@@ -131,7 +132,7 @@ const ManageFixtures = () => {
       }
     } catch (error) {
       console.error('Failed to set fixture mode:', error);
-      alert(error.response?.data?.detail || 'Failed to set fixture mode. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to set fixture mode. Please try again.' });
       return;
     }
     

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/layouts/Layout';
 import { Users, CheckCircle, ArrowLeft, Save, Crown, Award } from 'lucide-react';
 import { getClubPlayersForMatch, setPlayingXI, getPlayingXI } from '@/api/clubmanager/fixture';
+import Swal from 'sweetalert2';
 
 export default function PlayingXISelection() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function PlayingXISelection() {
       setPlayers(response.players || []);
     } catch (error) {
       console.error('Failed to load players:', error);
-      alert('Failed to load players. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load players. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export default function PlayingXISelection() {
 
   const handleSave = async () => {
     if (selectedPlayers.size === 0) {
-      alert('Please select at least one player for Playing XI');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select at least one player for Playing XI' });
       return;
     }
 
@@ -108,11 +109,11 @@ export default function PlayingXISelection() {
       setSaving(true);
       const playerIds = Array.from(selectedPlayers);
       await setPlayingXI(matchId, playerIds, captainId, viceCaptainId);
-      alert(`Playing XI saved successfully! ${selectedPlayers.size} player(s) selected.`);
+      await Swal.fire({ icon: 'success', title: 'Success!', text: `Playing XI saved successfully! ${selectedPlayers.size} player(s) selected.` });
       navigate('/clubmanager/fixtures');
     } catch (error) {
       console.error('Failed to save Playing XI:', error);
-      alert(error.response?.data?.detail || 'Failed to save Playing XI. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to save Playing XI. Please try again.' });
     } finally {
       setSaving(false);
     }

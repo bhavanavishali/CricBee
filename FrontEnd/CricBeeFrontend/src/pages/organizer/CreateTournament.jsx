@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createTournament, getPricingPlans, verifyPayment } from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const CreateTournament = () => {
   const navigate = useNavigate();
@@ -193,7 +194,7 @@ const CreateTournament = () => {
         : parseFloat(formData.details.enrollment_fee) || 0;
       
       if (enrollmentFee < 1) {
-        alert('Enrollment fee must be at least ₹1.00');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Enrollment fee must be at least ₹1.00' });
         setLoading(false);
         return;
       }
@@ -217,9 +218,9 @@ const CreateTournament = () => {
         
         // Provide more helpful error message
         if (errorMessage.includes('timeout') || errorMessage.includes('connection')) {
-          alert('Payment gateway is taking too long to load. This might be due to:\n\n1. Slow internet connection\n2. Network firewall blocking Razorpay\n3. Ad blocker blocking the script\n\nPlease:\n- Check your internet connection\n- Disable ad blockers\n- Refresh the page and try again');
+          Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway is taking too long to load. This might be due to: 1. Slow internet connection, 2. Network firewall blocking Razorpay, 3. Ad blocker blocking the script. Please check your internet connection, disable ad blockers, and refresh the page.' });
         } else {
-          alert(`Failed to load payment gateway: ${errorMessage}\n\nPlease refresh the page and try again.`);
+          Swal.fire({ icon: 'error', title: 'Error!', text: `Failed to load payment gateway: ${errorMessage}. Please refresh the page and try again.` });
         }
         
         setLoading(false);
@@ -228,14 +229,14 @@ const CreateTournament = () => {
       
       // Double check Razorpay is available and is a constructor
       if (!window.Razorpay) {
-        alert('Payment gateway not loaded. Please refresh the page and try again.');
+        Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway not loaded. Please refresh the page and try again.' });
         console.error('Razorpay not found in window object');
         setLoading(false);
         return;
       }
       
       if (typeof window.Razorpay !== 'function') {
-        alert('Payment gateway not properly initialized. Please refresh the page and try again.');
+        Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway not properly initialized. Please refresh the page and try again.' });
         console.error('Razorpay is not a constructor:', typeof window.Razorpay, window.Razorpay);
         setLoading(false);
         return;
@@ -260,10 +261,10 @@ const CreateTournament = () => {
               razorpay_signature: response.razorpay_signature
             });
             
-            alert('Payment successful! Tournament created.');
+            await Swal.fire({ icon: 'success', title: 'Success!', text: 'Payment successful! Tournament created.' });
             navigate('/organizer/dashboard');
           } catch (error) {
-            alert('Payment verification failed. Please contact support.');
+            Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment verification failed. Please contact support.' });
             console.error('Payment verification error:', error);
           } finally {
             setLoading(false);
@@ -291,11 +292,11 @@ const CreateTournament = () => {
         razorpay.open();
         razorpay.on('payment.failed', function (response) {
           setLoading(false);
-          alert(`Payment failed: ${response.error.description || 'Please try again.'}`);
+          Swal.fire({ icon: 'error', title: 'Error!', text: `Payment failed: ${response.error.description || 'Please try again.'}` });
           console.error('Payment failed:', response.error);
         });
       } catch (error) {
-        alert(`Failed to initialize payment: ${error.message || 'Please try again.'}`);
+        Swal.fire({ icon: 'error', title: 'Error!', text: `Failed to initialize payment: ${error.message || 'Please try again.'}` });
         console.error('Razorpay initialization error:', error);
         console.error('Razorpay type:', typeof window.Razorpay);
         console.error('Window.Razorpay:', window.Razorpay);
@@ -322,7 +323,7 @@ const CreateTournament = () => {
       });
       
       // Display user-friendly error message
-      alert(`Tournament Creation Error:\n\n${errorMessage}\n\nPlease check:\n- All required fields are filled\n- Razorpay credentials are configured\n- Network connection is stable`);
+      Swal.fire({ icon: 'error', title: 'Error!', text: `Tournament Creation Error: ${errorMessage}. Please check: All required fields are filled, Razorpay credentials are configured, Network connection is stable.` });
       setLoading(false);
     }
   };

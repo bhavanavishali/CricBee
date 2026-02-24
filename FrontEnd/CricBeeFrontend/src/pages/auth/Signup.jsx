@@ -56,13 +56,13 @@
 
 //     // Validation checks
 //     if (formData.password !== formData.confirmPassword) {
-//       alert("Passwords do not match.")
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Passwords do not match.' })
 //       setLoading(false)
 //       return
 //     }
 
 //     if (!formData.role) {
-//       alert("Please select a role.")
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a role.' })
 //       setLoading(false)
 //       return
 //     }
@@ -88,13 +88,13 @@
 //         setShowOTPModal(true)
 //         // Start resend timer (60 seconds)
 //         startResendTimer()
-//         alert(response.message || "Signup successful! Please check your email for OTP.")
+//         Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Signup successful! Please check your email for OTP." })
 //       } else {
-//         alert(response.message || "Signup failed. Please try again.")
+//         Swal.fire({ icon: 'error', title: 'Error!', text: response.message || "Signup failed. Please try again." })
 //       }
 //     } catch (err) {
 //       console.error("Signup Error:", err)
-//       alert("Signup failed. Please try again.")
+//       Swal.fire({ icon: 'error', title: 'Error!', text: "Signup failed. Please try again." })
 //     } finally {
 //       setLoading(false)
 //     }
@@ -115,7 +115,7 @@
 //       const response = await verifyOTP(userEmail, otp)
 
 //       if (response.success) {
-//         alert(response.message || "Email verified successfully! You can now sign in.")
+//         await Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Email verified successfully! You can now sign in." })
 //         setShowOTPModal(false)
 //         // Redirect to sign-in page
 //         window.location.href = "/signin"
@@ -140,7 +140,7 @@
 //       const response = await resendOTP(userEmail)
 
 //       if (response.success) {
-//         alert(response.message || "OTP has been resent to your email!")
+//         Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "OTP has been resent to your email!" })
 //         setOtp("")
 //         startResendTimer()
 //       } else {
@@ -496,19 +496,19 @@
 
 //     // Validation checks
 //     if (formData.password !== formData.confirmPassword) {
-//       alert("Passwords do not match.")
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Passwords do not match.' })
 //       setLoading(false)
 //       return
 //     }
 
 //     if (!formData.role) {
-//       alert("Please select a role.")
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a role.' })
 //       setLoading(false)
 //       return
 //     }
 
 //     if (!agreeToTerms) {
-//       alert("Please agree to the Terms and Conditions.")
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please agree to the Terms and Conditions.' })
 //       setLoading(false)
 //       return
 //     }
@@ -534,13 +534,13 @@
 //         setShowOTPModal(true)
 //         // Start resend timer (60 seconds)
 //         startResendTimer()
-//         alert(response.message || "Signup successful! Please check your email for OTP.")
+//         Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Signup successful! Please check your email for OTP." })
 //       } else {
-//         alert(response.message || "Signup failed. Please try again.")
+//         Swal.fire({ icon: 'error', title: 'Error!', text: response.message || "Signup failed. Please try again." })
 //       }
 //     } catch (err) {
 //       console.error("Signup Error:", err)
-//       alert("Signup failed. Please try again.")
+//       Swal.fire({ icon: 'error', title: 'Error!', text: "Signup failed. Please try again." })
 //     } finally {
 //       setLoading(false)
 //     }
@@ -561,7 +561,7 @@
 //       const response = await verifyOTP(userEmail, otp)
 
 //       if (response.success) {
-//         alert(response.message || "Email verified successfully! You can now sign in.")
+//         await Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Email verified successfully! You can now sign in." })
 //         setShowOTPModal(false)
 //         // Redirect to sign-in page
 //         navigate("/signin")
@@ -586,7 +586,7 @@
 //       const response = await resendOTP(userEmail)
 
 //       if (response.success) {
-//         alert(response.message || "OTP has been resent to your email!")
+//         Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "OTP has been resent to your email!" })
 //         setOtp("")
 //         startResendTimer()
 //       } else {
@@ -906,6 +906,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { signUp, verifyOTP, resendOTP } from "@/api/shared/authService"
 import { X, ArrowLeft, ChevronDown } from "lucide-react"
+import Swal from "sweetalert2"
 
 export default function SignUpPage() {
   const navigate = useNavigate()
@@ -961,19 +962,19 @@ export default function SignUpPage() {
 
     // Validation checks
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match.")
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Passwords do not match.' })
       setLoading(false)
       return
     }
 
     if (!formData.role) {
-      alert("Please select a role.")
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a role.' })
       setLoading(false)
       return
     }
 
     if (!agreeToTerms) {
-      alert("Please agree to the Terms and Conditions.")
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please agree to the Terms and Conditions.' })
       setLoading(false)
       return
     }
@@ -999,13 +1000,13 @@ export default function SignUpPage() {
         setShowOTPModal(true)
         // Start resend timer (60 seconds)
         startResendTimer()
-        alert(response.message || "Signup successful! Please check your email for OTP.")
+        Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Signup successful! Please check your email for OTP." })
       } else {
-        alert(response.message || "Signup failed. Please try again.")
+        Swal.fire({ icon: 'error', title: 'Error!', text: response.message || "Signup failed. Please try again." })
       }
     } catch (err) {
       console.error("Signup Error:", err)
-      alert("Signup failed. Please try again.")
+      Swal.fire({ icon: 'error', title: 'Error!', text: "Signup failed. Please try again." })
     } finally {
       setLoading(false)
     }
@@ -1026,7 +1027,7 @@ export default function SignUpPage() {
       const response = await verifyOTP(userEmail, otp)
 
       if (response.success) {
-        alert(response.message || "Email verified successfully! You can now sign in.")
+        await Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "Email verified successfully! You can now sign in." })
         setShowOTPModal(false)
         // Redirect to sign-in page
         navigate("/signin")
@@ -1051,7 +1052,7 @@ export default function SignUpPage() {
       const response = await resendOTP(userEmail)
 
       if (response.success) {
-        alert(response.message || "OTP has been resent to your email!")
+        Swal.fire({ icon: 'success', title: 'Success!', text: response.message || "OTP has been resent to your email!" })
         setOtp("")
         startResendTimer()
       } else {

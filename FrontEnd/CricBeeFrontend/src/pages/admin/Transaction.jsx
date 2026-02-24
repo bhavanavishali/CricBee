@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/layouts/Layout';
 import { getTransactions, getWalletBalance, getFinancialStats, downloadFinancialReport } from '@/api/adminService';
 import { DollarSign, Calendar, CheckCircle, XCircle, Clock, Wallet, TrendingUp, TrendingDown, Download, X } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -77,11 +78,11 @@ export default function Transactions() {
       if (result.success) {
         setShowReportModal(false);
       } else {
-        alert(result.message || 'Failed to download report');
+        Swal.fire({ icon: 'error', title: 'Error!', text: result.message || 'Failed to download report' });
       }
     } catch (error) {
       console.error('Failed to download report:', error);
-      alert('Failed to download report');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to download report' });
     } finally {
       setDownloading(false);
     }

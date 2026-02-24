@@ -4,6 +4,7 @@ import { getMyTournaments, cancelTournament, getEnrolledClubs } from '@/api/orga
 import Layout from '@/components/layouts/Layout';
 import EditTournamentModal from '@/components/organizer/EditTournamentModal';
 import { Trophy, Users, Calendar, DollarSign, Eye, Edit, ArrowLeft, X, Ban } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const TournamentList = () => {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ const TournamentList = () => {
     try {
       // Validate notification form
       if (!notificationForm.title.trim() || !notificationForm.description.trim()) {
-        alert('Please enter both notification title and description.');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please enter both notification title and description.' });
         return;
       }
 
@@ -90,7 +91,7 @@ const TournamentList = () => {
       if (enrolledClubsWithPayment.length > 0) {
         // Show error popup if clubs are still enrolled
         setShowCancelConfirm(null);
-        alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
+        Swal.fire({ icon: 'warning', title: 'Warning', text: `Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.` });
         return;
       }
       
@@ -104,11 +105,11 @@ const TournamentList = () => {
       setNotificationForm({ title: '', description: '' });
       // Reload tournaments to reflect the cancellation
       await loadTournaments();
-      alert('Tournament cancelled successfully. Notifications have been sent to all users.');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Tournament cancelled successfully. Notifications have been sent to all users.' });
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
     } finally {
       setCancellingId(null);
     }

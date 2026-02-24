@@ -17,6 +17,7 @@ import {
 } from '@/api/organizer/matchScore';
 import { createMatch } from '@/api/organizer/fixture';
 import { getTournamentRounds } from '@/api/organizer/fixture';
+import Swal from 'sweetalert2';
 
 const LiveScoring = () => {
   const { matchId } = useParams();
@@ -107,7 +108,7 @@ const LiveScoring = () => {
       loadScoreboard();
     } catch (error) {
       console.error('Failed to start match:', error);
-      alert(error.response?.data?.detail || 'Failed to start match');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to start match' });
     } finally {
       setUpdating(false);
     }
@@ -115,20 +116,20 @@ const LiveScoring = () => {
 
   const handleScoreUpdate = async () => {
     if (!scoreboard || !scoreboard.batting_score) {
-      alert('Match score not initialized');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Match score not initialized' });
       return;
     }
     
     // Validation: Check if both batsmen are selected
     if (!scoreboard.current_batsman_id || !scoreboard.current_non_striker_id) {
-      alert('Please ensure both striker and non-striker are selected before scoring.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please ensure both striker and non-striker are selected before scoring.' });
       return;
     }
     
     // Validation: Check if bowler is selected (either current or newly selected)
     const bowlerId = selectedBowlerId || scoreboard.current_bowler_id;
     if (!bowlerId) {
-      alert('Please select a bowler before scoring. Select bowler when prompted after over completion.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a bowler before scoring. Select bowler when prompted after over completion.' });
       setShowBowlerSelection(true);
       await loadAvailableBowlers();
       return;
@@ -136,7 +137,7 @@ const LiveScoring = () => {
     
     // Validation: Check if runs/extras/wicket is selected
     if (!selectedRuns && selectedRuns !== 0 && !selectedExtras && !showWicketDialog && !customRuns) {
-      alert('Please select runs (0-6), extras, or enter custom runs before updating score');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select runs (0-6), extras, or enter custom runs before updating score' });
       return;
     }
     
@@ -144,7 +145,7 @@ const LiveScoring = () => {
     if (customRuns) {
       const customRunsNum = parseInt(customRuns);
       if (isNaN(customRunsNum) || customRunsNum < 0 || customRunsNum > 6) {
-        alert('Custom runs must be a number between 0 and 6');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Custom runs must be a number between 0 and 6' });
         return;
       }
     }
@@ -152,11 +153,11 @@ const LiveScoring = () => {
     // Validation: Wicket requires type and dismissed batsman
     if (showWicketDialog) {
       if (!wicketData.wicket_type) {
-        alert('Please select wicket type');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select wicket type' });
         return;
       }
       if (!wicketData.dismissed_batsman_id) {
-        alert('Please select the dismissed batsman');
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select the dismissed batsman' });
         return;
       }
     }
@@ -209,7 +210,7 @@ const LiveScoring = () => {
     } catch (error) {
       console.error('Failed to update score:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to update score';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
       console.error('Error details:', error);
     } finally {
       setUpdating(false);
@@ -257,7 +258,7 @@ const LiveScoring = () => {
       })));
     } catch (error) {
       console.error('Failed to load available batsmen:', error);
-      alert('Failed to load available batsmen. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load available batsmen. Please try again.' });
     }
   };
 
@@ -268,7 +269,7 @@ const LiveScoring = () => {
       // Always validate bowler selection first
       const validation = await validateBowler(matchId, bowlerId);
       if (!validation.valid) {
-        alert(validation.message);
+        Swal.fire({ icon: 'warning', title: 'Warning', text: validation.message });
         setUpdating(false);
         return;
       }
@@ -291,7 +292,7 @@ const LiveScoring = () => {
       }
     } catch (error) {
       console.error('Failed to select bowler:', error);
-      alert(error.response?.data?.detail || 'Failed to select bowler');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to select bowler' });
     } finally {
       setUpdating(false);
     }
@@ -319,7 +320,7 @@ const LiveScoring = () => {
       await loadScoreboard();
     } catch (error) {
       console.error('Failed to set batsmen:', error);
-      alert(error.response?.data?.detail || 'Failed to set batsmen');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to set batsmen' });
     } finally {
       setUpdating(false);
     }
@@ -361,7 +362,7 @@ const LiveScoring = () => {
       }
     } catch (error) {
       console.error('Failed to end innings:', error);
-      alert(error.response?.data?.detail || 'Failed to end innings');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to end innings' });
     } finally {
       setUpdating(false);
     }
@@ -388,13 +389,13 @@ const LiveScoring = () => {
         });
         setShowWinnerModal(true);
       } else {
-        alert('Match completed. Result: ' + (result.match_result || 'Match Tied'));
+        Swal.fire({ icon: 'info', title: 'Info', text: `Match completed. Result: ${result.match_result || 'Match Tied'}` });
       }
       
       await loadScoreboard();
     } catch (error) {
       console.error('Failed to complete match:', error);
-      alert(error.response?.data?.detail || 'Failed to complete match');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to complete match' });
     } finally {
       setUpdating(false);
     }
@@ -1110,7 +1111,7 @@ const LiveScoring = () => {
                   if (selectedStrikerId && selectedNonStrikerId) {
                     handleSetBatsmen(selectedStrikerId, selectedNonStrikerId);
                   } else {
-                    alert('Please select both striker and non-striker');
+                    Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select both striker and non-striker' });
                   }
                 }}
                 disabled={!selectedStrikerId || !selectedNonStrikerId || updating}
@@ -1189,21 +1190,21 @@ const LiveScoring = () => {
                           });
                         } else {
                           setShowWinnerModal(false);
-                          alert('Next round not found. Please navigate to Tournament Fixtures page to manually add the winner.');
-                          navigate(`/organizer/tournaments/${tournamentId}/fixtures`);
+                        await Swal.fire({ icon: 'warning', title: 'Warning', text: 'Next round not found. Please navigate to Tournament Fixtures page to manually add the winner.' });
+                        navigate(`/organizer/tournaments/${tournamentId}/fixtures`);
                         }
                       } else {
                         setShowWinnerModal(false);
-                        alert('Please navigate to Tournament Fixtures page to add the winner to the next round.');
+                        Swal.fire({ icon: 'info', title: 'Info', text: 'Please navigate to Tournament Fixtures page to add the winner to the next round.' });
                       }
                     } catch (error) {
                       console.error('Failed to get match details:', error);
                       setShowWinnerModal(false);
-                      alert('Please navigate to Tournament Fixtures page to add the winner to the next round.');
+                      Swal.fire({ icon: 'info', title: 'Info', text: 'Please navigate to Tournament Fixtures page to add the winner to the next round.' });
                     }
                   } catch (error) {
                     console.error('Failed to handle winner:', error);
-                    alert('An error occurred. Please navigate to Tournament Fixtures page to add the winner.');
+                    Swal.fire({ icon: 'error', title: 'Error!', text: 'An error occurred. Please navigate to Tournament Fixtures page to add the winner.' });
                   } finally {
                     setUpdating(false);
                   }

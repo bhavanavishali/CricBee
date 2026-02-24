@@ -63,7 +63,7 @@
 //     e.preventDefault();
     
 //     if (!formData.role) {
-//       alert("Please select a role before signing in.");
+//       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a role before signing in.' });
 //       return;
 //     }
     
@@ -96,11 +96,11 @@
 //         console.log("Redirecting to:", redirectPath);
 //         navigate(redirectPath, { replace: true });
 //       } else {
-//         alert(response?.message || "Invalid credentials");
+//         Swal.fire({ icon: 'error', title: 'Error!', text: response?.message || "Invalid credentials" });
 //       }
 //     } catch (err) {
 //       console.error("Sign in error:", err);
-//       alert(err.message || "Sign in failed. Please try again.");
+//       Swal.fire({ icon: 'error', title: 'Error!', text: err.message || "Sign in failed. Please try again." });
 //     } finally {
 //       dispatch(setLoading(false));
 //     }
@@ -287,14 +287,14 @@
 //           console.log("Redirecting to:", redirectPath, "based on role:", userRole)
 //           navigate(redirectPath, { replace: true })
 //         } else {
-//           alert("Sign in successful, but user data not received.")
+//           Swal.fire({ icon: 'warning', title: 'Warning', text: 'Sign in successful, but user data not received.' })
 //         }
 //       } else {
-//         alert(response?.message || "Invalid credentials")
+//         Swal.fire({ icon: 'error', title: 'Error!', text: response?.message || "Invalid credentials" })
 //       }
 //     } catch (err) {
 //       console.error("Sign in error:", err)
-//       alert(err.message || "Sign in failed. Please try again.")
+//       Swal.fire({ icon: 'error', title: 'Error!', text: err.message || "Sign in failed. Please try again." })
 //     } finally {
 //       dispatch(setLoading(false))
 //     }
@@ -374,7 +374,7 @@
 //                   type="button"
 //                   onClick={() => {
 //                     // Add forgot password functionality here
-//                     alert("Forgot password functionality coming soon!")
+//                     Swal.fire({ icon: 'info', title: 'Info', text: 'Forgot password functionality coming soon!' })
 //                   }}
 //                   className="text-sm text-teal-600 hover:text-teal-700 font-medium"
 //                 >

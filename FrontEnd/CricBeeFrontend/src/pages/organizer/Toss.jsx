@@ -4,6 +4,7 @@ import { RotateCcw, X, Save } from 'lucide-react';
 import Layout from '@/components/layouts/Layout';
 import { updateToss, getScoreboard } from '@/api/organizer/matchScore';
 import { getTournamentMatches, getRoundMatches } from '@/api/organizer/fixture';
+import Swal from 'sweetalert2';
 
 const Toss = () => {
   const { matchId } = useParams();
@@ -73,7 +74,7 @@ const Toss = () => {
       }
     } catch (error) {
       console.error('Failed to load match:', error);
-      alert('Failed to load match details. Please go back and try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load match details. Please go back and try again.' });
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ const Toss = () => {
 
   const handleSave = async () => {
     if (!tossWinnerId || !tossDecision) {
-      alert('Please select toss winner and decision');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select toss winner and decision' });
       return;
     }
 
@@ -105,11 +106,11 @@ const Toss = () => {
         toss_winner_id: parseInt(tossWinnerId),
         toss_decision: tossDecision
       });
-      alert('Toss saved successfully!');
+      await Swal.fire({ icon: 'success', title: 'Success!', text: 'Toss saved successfully!' });
       navigate(-1); // Go back to previous page
     } catch (error) {
       console.error('Failed to save toss:', error);
-      alert(error.response?.data?.detail || 'Failed to save toss');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to save toss' });
     } finally {
       setSaving(false);
     }

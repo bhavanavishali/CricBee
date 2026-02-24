@@ -16,6 +16,7 @@ import {
 } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft, Plus, Edit2, Check, X, Trophy, Calendar, Clock, MapPin, Globe, EyeOff, Sparkles } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const FixtureSetup = () => {
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ const FixtureSetup = () => {
       }
     } catch (error) {
       console.error('Failed to load data:', error);
-      alert('Failed to load tournament data');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load tournament data' });
     } finally {
       setLoading(false);
     }
@@ -149,10 +150,10 @@ const FixtureSetup = () => {
       await updateRoundName(roundId, editRoundName);
       setEditingRound(null);
       await loadData();
-      alert('Round name updated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Round name updated successfully!' });
     } catch (error) {
       console.error('Failed to update round name:', error);
-      alert(error.response?.data?.detail || 'Failed to update round name');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to update round name' });
     } finally {
       setUpdatingRoundName(false);
     }
@@ -165,17 +166,17 @@ const FixtureSetup = () => {
 
   const handleGenerateLeagueMatches = async () => {
     if (!selectedRound || selectedRound.round_no !== 1) {
-      alert('League matches can only be generated for Round 1');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'League matches can only be generated for Round 1' });
       return;
     }
 
     try {
       await generateLeagueMatches(selectedRound.id, tournamentId);
       await loadRoundMatches(selectedRound.id);
-      alert('League matches generated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'League matches generated successfully!' });
     } catch (error) {
       console.error('Failed to generate league matches:', error);
-      alert(error.response?.data?.detail || 'Failed to generate league matches');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to generate league matches' });
     }
   };
 
@@ -188,10 +189,10 @@ const FixtureSetup = () => {
       if (round2) {
         setSelectedRound(round2);
       }
-      alert('Semi-final matches generated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Semi-final matches generated successfully!' });
     } catch (error) {
       console.error('Failed to generate semi-finals:', error);
-      alert(error.response?.data?.detail || 'Failed to generate semi-finals');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to generate semi-finals' });
     }
   };
 
@@ -204,17 +205,17 @@ const FixtureSetup = () => {
       if (round3) {
         setSelectedRound(round3);
       }
-      alert('Final match generated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Final match generated successfully!' });
     } catch (error) {
       console.error('Failed to generate final:', error);
-      alert(error.response?.data?.detail || 'Failed to generate final');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to generate final' });
     }
   };
 
   const handleCreateMatch = async (e) => {
     e.preventDefault();
     if (matchForm.team_a_id === matchForm.team_b_id) {
-      alert('Team A and Team B cannot be the same');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Team A and Team B cannot be the same' });
       return;
     }
     
@@ -241,10 +242,10 @@ const FixtureSetup = () => {
       });
       setShowMatchForm(false);
       await loadRoundMatches(selectedRound.id);
-      alert('Match created successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Match created successfully!' });
     } catch (error) {
       console.error('Failed to create match:', error);
-      alert(error.response?.data?.detail || 'Failed to create match');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to create match' });
     } finally {
       setCreatingMatch(false);
     }
@@ -270,10 +271,10 @@ const FixtureSetup = () => {
       setEditingMatch(null);
       setEditMatchForm({ match_date: '', match_time: '', venue: '' });
       await loadRoundMatches(selectedRound.id);
-      alert('Match details updated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Match details updated successfully!' });
     } catch (error) {
       console.error('Failed to update match:', error);
-      alert(error.response?.data?.detail || 'Failed to update match details');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to update match details' });
     } finally {
       setUpdatingMatch(false);
     }
@@ -289,10 +290,10 @@ const FixtureSetup = () => {
             : match
         )
       );
-      alert(updatedMatch.is_fixture_published ? 'Match published!' : 'Match unpublished!');
+      Swal.fire({ icon: 'success', title: 'Success!', text: updatedMatch.is_fixture_published ? 'Match published!' : 'Match unpublished!' });
     } catch (error) {
       console.error('Failed to toggle publish status:', error);
-      alert(error.response?.data?.detail || 'Failed to toggle publish status');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to toggle publish status' });
     }
   };
 

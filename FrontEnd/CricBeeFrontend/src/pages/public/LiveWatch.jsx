@@ -8,6 +8,7 @@ import { getPublicTournamentDetails } from '@/api/public';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { getChatMessages, sendChatMessage } from '@/api/chat';
 import websocketService from '@/services/websocketService';
+import Swal from 'sweetalert2';
 
 const LiveWatch = () => {
   const params = useParams();
@@ -229,7 +230,7 @@ const LiveWatch = () => {
     }
     
     if (!user) {
-      alert('Please login to send messages');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please login to send messages' });
       return;
     }
 
@@ -254,7 +255,7 @@ const LiveWatch = () => {
         tournament: tournament?.matches,
         routeId: id
       });
-      alert('Match not found. Please wait for the page to load completely.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Match not found. Please wait for the page to load completely.' });
       return;
     }
 
@@ -270,7 +271,7 @@ const LiveWatch = () => {
       setNewMessage('');
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to send message. Please try again.' });
     }
   };
 

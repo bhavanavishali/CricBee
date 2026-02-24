@@ -4,6 +4,7 @@ import Layout from '@/components/layouts/Layout';
 import { getEligibleTournaments, initiateTournamentEnrollment } from '@/api/clubService';
 import { getClubProfile } from '@/api/clubService';
 import { Trophy, Calendar, MapPin, Users, ArrowLeft, Clock, DollarSign, CheckCircle, Ban } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 export default function ClubManagerTournamentList() {
   const navigate = useNavigate();
@@ -90,12 +91,12 @@ export default function ClubManagerTournamentList() {
 
   const handleEnroll = async (tournament) => {
     if (tournament.is_blocked) {
-      alert('This tournament has been blocked by the admin and is not available for enrollment.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'This tournament has been blocked by the admin and is not available for enrollment.' });
       return;
     }
 
     if (!clubId) {
-      alert('Club profile not found. Please create a club first.');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Club profile not found. Please create a club first.' });
       return;
     }
 
@@ -105,7 +106,7 @@ export default function ClubManagerTournamentList() {
       
       // Check if Razorpay order was created
       if (!result.razorpay_order) {
-        alert('Payment setup failed. Please contact support.');
+        Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment setup failed. Please contact support.' });
         return;
       }
 
@@ -120,7 +121,7 @@ export default function ClubManagerTournamentList() {
       });
     } catch (error) {
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to initiate enrollment. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
       console.error('Enrollment error:', error);
     } finally {
       setEnrollingId(null);

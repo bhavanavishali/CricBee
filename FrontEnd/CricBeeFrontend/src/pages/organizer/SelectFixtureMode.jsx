@@ -4,6 +4,7 @@ import { getMyTournaments } from '@/api/organizer/tournament';
 import { getFixtureModes, setTournamentFixtureMode } from '@/api/organizer/fixture';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft, CheckCircle, List, Trophy } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const SelectFixtureMode = () => {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ const SelectFixtureMode = () => {
       }
     } catch (error) {
       console.error('Failed to load data:', error);
-      alert('Failed to load fixture modes');
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load fixture modes' });
     } finally {
       setLoading(false);
     }
@@ -46,19 +47,19 @@ const SelectFixtureMode = () => {
 
   const handleSave = async () => {
     if (!selectedMode) {
-      alert('Please select a fixture mode');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a fixture mode' });
       return;
     }
 
     try {
       setSaving(true);
       await setTournamentFixtureMode(tournamentId, selectedMode);
-      alert('Fixture mode saved successfully!');
+      await Swal.fire({ icon: 'success', title: 'Success!', text: 'Fixture mode saved successfully!' });
       // Redirect to fixture setup page
       navigate(`/organizer/tournaments/${tournamentId}/fixtures`);
     } catch (error) {
       console.error('Failed to save fixture mode:', error);
-      alert(error.response?.data?.detail || 'Failed to save fixture mode');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to save fixture mode' });
     } finally {
       setSaving(false);
     }

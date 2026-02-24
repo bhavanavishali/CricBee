@@ -19,6 +19,7 @@ import {
   RefreshCw,
   FileText
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 export default function FinanceReport() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function FinanceReport() {
       setReportData(data);
     } catch (error) {
       console.error('Failed to load finance report:', error);
-      alert(error.response?.data?.detail || 'Failed to load finance report');
+      Swal.fire({ icon: 'error', title: 'Error!', text: error.response?.data?.detail || 'Failed to load finance report' });
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ export default function FinanceReport() {
 
   const handleCustomDateFilter = () => {
     if (!startDate || !endDate) {
-      alert('Please select both start and end dates');
+      Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select both start and end dates' });
       return;
     }
     loadReport('custom');
@@ -67,7 +68,7 @@ export default function FinanceReport() {
 
   const downloadCSV = () => {
     if (!reportData || !reportData.transactions || reportData.transactions.length === 0) {
-      alert('No data to export');
+      Swal.fire({ icon: 'info', title: 'Info', text: 'No data to export' });
       return;
     }
 
@@ -129,7 +130,7 @@ export default function FinanceReport() {
 
   const downloadPDF = () => {
     if (!reportData || !reportData.transactions || reportData.transactions.length === 0) {
-      alert('No data to export');
+      Swal.fire({ icon: 'info', title: 'Info', text: 'No data to export' });
       return;
     }
 

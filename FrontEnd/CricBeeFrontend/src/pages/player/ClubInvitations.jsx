@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle, XCircle, Clock, Building2, MapPin, Calendar } from 'lucide-react';
 import { getPlayerInvitations, acceptInvitation, rejectInvitation } from '@/api/player/playerService';
+import Swal from 'sweetalert2';
 
 const ClubInvitations = () => {
   const [invitations, setInvitations] = useState([]);
@@ -30,7 +31,7 @@ const ClubInvitations = () => {
     if (result.success) {
       await fetchInvitations(); // Refresh the list
     } else {
-      alert(result.message || 'Failed to accept invitation');
+      Swal.fire({ icon: 'error', title: 'Error!', text: result.message || 'Failed to accept invitation' });
     }
     setProcessing(null);
   };
@@ -44,7 +45,7 @@ const ClubInvitations = () => {
     if (result.success) {
       await fetchInvitations(); // Refresh the list
     } else {
-      alert(result.message || 'Failed to reject invitation');
+      Swal.fire({ icon: 'error', title: 'Error!', text: result.message || 'Failed to reject invitation' });
     }
     setProcessing(null);
   };

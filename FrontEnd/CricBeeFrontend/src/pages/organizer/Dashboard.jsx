@@ -21,6 +21,7 @@ import { clearUser } from '@/store/slices/authSlice';
 import api from '@/api';
 import Layout from '@/components/layouts/Layout'
 import { getMyTournaments, getMyTransactions, cancelTournament, getEnrolledClubs } from '@/api/organizer/tournament'
+import Swal from 'sweetalert2';
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate()
@@ -104,7 +105,7 @@ export default function OrganizerDashboard() {
       
       if (enrolledClubsWithPayment.length > 0) {
         setShowCancelConfirm(null);
-        alert(`Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.`);
+        Swal.fire({ icon: 'warning', title: 'Warning', text: `Please remove and refund all enrolled clubs before cancelling the tournament. ${enrolledClubsWithPayment.length} club(s) still enrolled.` });
         return;
       }
       
@@ -113,11 +114,11 @@ export default function OrganizerDashboard() {
       setShowCancelConfirm(null);
       await loadTournaments();
       await loadTransactions();
-      alert('Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.');
+      Swal.fire({ icon: 'success', title: 'Success!', text: 'Tournament cancelled successfully. The tournament creation fee has been refunded to your wallet.' });
     } catch (error) {
       console.error('Failed to cancel tournament:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to cancel tournament. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
     } finally {
       setCancellingId(null);
     }
