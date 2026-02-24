@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '@/api';
 import { ArrowLeft, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 const PointsTable = () => {
@@ -19,13 +19,7 @@ const PointsTable = () => {
   const fetchPointsTable = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(
-        `http://localhost:8000/point_table/tournament/${tournamentId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const response = await api.get(`/point_table/tournament/${tournamentId}`);
       setPointsTable(response.data);
       setError(null);
     } catch (err) {
@@ -38,13 +32,7 @@ const PointsTable = () => {
 
   const fetchTournamentDetails = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(
-        `http://localhost:8000/tournaments/${tournamentId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const response = await api.get(`/tournaments/${tournamentId}`);
       setTournamentName(response.data.tournament_name);
     } catch (err) {
       console.error('Error fetching tournament details:', err);

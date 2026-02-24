@@ -35,6 +35,8 @@ from app.api.v1.notifications import router as notification_router
 from app.api.v1.chat import router as chat_router
 
 Base.metadata.create_all(bind=engine)
+
+
 app = FastAPI()
 from dotenv import load_dotenv
 import os
@@ -54,9 +56,10 @@ else:
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-        
         "https://cricbee.shop",
-        
+        "https://www.cricbee.shop",
+        "https://cricb.shop",
+        "https://www.cricb.shop",
     ]
 
 app.add_middleware(

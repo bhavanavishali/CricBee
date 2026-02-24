@@ -1,13 +1,8 @@
-import axios from 'axios';
+import api from '@/api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
-
-// Get points table for a tournament
 export const getPointTable = async (tournamentId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/point_table/tournament/${tournamentId}`, {
-      withCredentials: true,
-    });
+    const response = await api.get(`/point_table/tournament/${tournamentId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching points table:', error);
@@ -15,12 +10,9 @@ export const getPointTable = async (tournamentId) => {
   }
 };
 
-// Initialize points table for a tournament
 export const initializePointTable = async (tournamentId) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/point_table/tournament/${tournamentId}/initialize`, {}, {
-      withCredentials: true,
-    });
+    const response = await api.post(`/point_table/tournament/${tournamentId}/initialize`, {});
     return response.data;
   } catch (error) {
     console.error('Error initializing points table:', error);
@@ -28,12 +20,9 @@ export const initializePointTable = async (tournamentId) => {
   }
 };
 
-// Reset points table for a tournament
 export const resetPointTable = async (tournamentId) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/point_table/tournament/${tournamentId}/reset`, {
-      withCredentials: true,
-    });
+    const response = await api.delete(`/point_table/tournament/${tournamentId}/reset`);
     return response.data;
   } catch (error) {
     console.error('Error resetting points table:', error);
@@ -41,12 +30,9 @@ export const resetPointTable = async (tournamentId) => {
   }
 };
 
-// Update points table for a match
 export const updatePointTableForMatch = async (matchId) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/point_table/match/${matchId}/update`, {}, {
-      withCredentials: true,
-    });
+    const response = await api.post(`/point_table/match/${matchId}/update`, {});
     return response.data;
   } catch (error) {
     console.error('Error updating points table for match:', error);

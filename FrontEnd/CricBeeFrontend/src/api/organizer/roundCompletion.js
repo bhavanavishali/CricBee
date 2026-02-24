@@ -1,17 +1,12 @@
-import axios from 'axios';
+import api from '@/api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
-
-// Check if all matches in a round are completed
 export const checkRoundStatus = async (roundId, tournamentId) => {
   try {
     const url = tournamentId 
-      ? `${API_BASE_URL}/round_completion/round/${roundId}/status?tournament_id=${tournamentId}`
-      : `${API_BASE_URL}/round_completion/round/${roundId}/status`;
+      ? `/round_completion/round/${roundId}/status?tournament_id=${tournamentId}`
+      : `/round_completion/round/${roundId}/status`;
     
-    const response = await axios.get(url, {
-      withCredentials: true,
-    });
+    const response = await api.get(url);
     return response.data;
   } catch (error) {
     console.error('Error checking round status:', error);
@@ -19,13 +14,11 @@ export const checkRoundStatus = async (roundId, tournamentId) => {
   }
 };
 
-// Add club to Round 2
 export const addClubToRoundTwo = async (tournamentId, clubId) => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/round_completion/tournament/${tournamentId}/add-club/${clubId}`,
-      {},
-      { withCredentials: true }
+    const response = await api.post(
+      `/round_completion/tournament/${tournamentId}/add-club/${clubId}`,
+      {}
     );
     return response.data;
   } catch (error) {
@@ -34,12 +27,10 @@ export const addClubToRoundTwo = async (tournamentId, clubId) => {
   }
 };
 
-// Remove club from Round 2
 export const removeClubFromRoundTwo = async (tournamentId, clubId) => {
   try {
-    const response = await axios.delete(
-      `${API_BASE_URL}/round_completion/tournament/${tournamentId}/remove-club/${clubId}`,
-      { withCredentials: true }
+    const response = await api.delete(
+      `/round_completion/tournament/${tournamentId}/remove-club/${clubId}`
     );
     return response.data;
   } catch (error) {
@@ -48,12 +39,10 @@ export const removeClubFromRoundTwo = async (tournamentId, clubId) => {
   }
 };
 
-// Get clubs selected for Round 2
 export const getRoundTwoClubs = async (tournamentId) => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/round_completion/tournament/${tournamentId}/round-two-clubs`,
-      { withCredentials: true }
+    const response = await api.get(
+      `/round_completion/tournament/${tournamentId}/round-two-clubs`
     );
     return response.data;
   } catch (error) {

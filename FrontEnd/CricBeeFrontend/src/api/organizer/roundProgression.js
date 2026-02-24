@@ -1,18 +1,14 @@
-import axios from 'axios';
+import api from '@/api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
-
-// Save qualified teams for the next round
 export const saveQualifiedTeams = async (tournamentId, fromRound, toRound, clubIds) => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/round_progression/tournament/${tournamentId}/save-qualified-teams`,
+    const response = await api.post(
+      `/round_progression/tournament/${tournamentId}/save-qualified-teams`,
       {
         from_round: fromRound,
         to_round: toRound,
         club_ids: clubIds
-      },
-      { withCredentials: true }
+      }
     );
     return response.data;
   } catch (error) {
@@ -21,15 +17,11 @@ export const saveQualifiedTeams = async (tournamentId, fromRound, toRound, clubI
   }
 };
 
-// Get qualified teams for a specific round progression
 export const getQualifiedTeams = async (tournamentId, fromRound, toRound) => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/round_progression/tournament/${tournamentId}/qualified-teams`,
-      {
-        params: { from_round: fromRound, to_round: toRound },
-        withCredentials: true
-      }
+    const response = await api.get(
+      `/round_progression/tournament/${tournamentId}/qualified-teams`,
+      { params: { from_round: fromRound, to_round: toRound } }
     );
     return response.data;
   } catch (error) {
@@ -38,12 +30,10 @@ export const getQualifiedTeams = async (tournamentId, fromRound, toRound) => {
   }
 };
 
-// Get all qualified teams for a specific target round
 export const getAllQualifiedForRound = async (tournamentId, toRound) => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/round_progression/tournament/${tournamentId}/all-qualified-for-round/${toRound}`,
-      { withCredentials: true }
+    const response = await api.get(
+      `/round_progression/tournament/${tournamentId}/all-qualified-for-round/${toRound}`
     );
     return response.data;
   } catch (error) {
@@ -52,13 +42,11 @@ export const getAllQualifiedForRound = async (tournamentId, toRound) => {
   }
 };
 
-// Complete tournament with winner (for Round 3)
 export const completeTournamentWithWinner = async (tournamentId, winnerTeamId) => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/round_progression/tournament/${tournamentId}/complete-with-winner`,
-      { winner_team_id: winnerTeamId },
-      { withCredentials: true }
+    const response = await api.post(
+      `/round_progression/tournament/${tournamentId}/complete-with-winner`,
+      { winner_team_id: winnerTeamId }
     );
     return response.data;
   } catch (error) {
