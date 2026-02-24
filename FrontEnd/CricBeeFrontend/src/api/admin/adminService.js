@@ -1,5 +1,17 @@
 import api from '@/api';
 
+export const getDashboardStats = async () => {
+  try {
+    const response = await api.get('/admin/dashboard/stats');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to fetch dashboard stats',
+    };
+  }
+};
+
 export const getUsers = async (skip = 0, limit = 50, role = null, status = null, search = null) => {
   try {
     const params = new URLSearchParams();

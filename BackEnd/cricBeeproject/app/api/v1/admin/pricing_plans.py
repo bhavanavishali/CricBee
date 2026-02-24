@@ -110,5 +110,5 @@ def update_pricing_plan_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pricing plan not found"
         )
-        return plan
+    return plan
 

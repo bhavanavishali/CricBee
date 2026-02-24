@@ -3,11 +3,13 @@ from .users import router as users_router
 from .pricing_plans import router as pricing_plans_router
 from .transactions import router as transactions_router
 from .tournaments import router as tournaments_router
+from .dashboard import router as dashboard_router
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+router.include_router(dashboard_router)
 router.include_router(users_router)
 router.include_router(pricing_plans_router)
 router.include_router(transactions_router)

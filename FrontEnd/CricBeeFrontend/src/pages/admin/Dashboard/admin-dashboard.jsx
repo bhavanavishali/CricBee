@@ -1,5 +1,6 @@
 "use client"
 import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
 import {
   Users,
   Trophy,
@@ -13,9 +14,48 @@ import {
   Megaphone,
   Cog,
 } from "lucide-react"
+import { getDashboardStats } from "@/api/adminService"
+
+function formatRevenue(value) {
+  const num = Number(value) || 0
+  if (num >= 1e7) return `${(num / 1e7).toFixed(1)} Cr`
+  if (num >= 1e5) return `${(num / 1e5).toFixed(1)} L`
+  if (num >= 1e3) return `${(num / 1e3).toFixed(1)} K`
+  return num.toLocaleString("en-IN", { maximumFractionDigits: 0 })
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const [stats, setStats] = useState({
+    total_users: 0,
+    total_tournaments: 0,
+    active_tournaments: 0,
+    total_revenue: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchStats() {
+      const result = await getDashboardStats()
+      if (cancelled) return
+      setLoading(false)
+      if (result.success && result.data) {
+        setStats({
+          total_users: result.data.total_users ?? 0,
+          total_tournaments: result.data.total_tournaments ?? 0,
+          active_tournaments: result.data.active_tournaments ?? 0,
+          total_revenue: result.data.total_revenue ?? 0,
+        })
+      } else {
+        setError(result.message || "Failed to load stats")
+      }
+    }
+    fetchStats()
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#0f172a" }}>
       {/* Header */}
@@ -59,25 +99,42 @@ export default function AdminDashboard() {
           <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: "#e0e7ff" }}>
             <div>
               <div className="text-[10px] font-bold text-gray-600 mb-1">TOTAL USERS</div>
-              <div className="text-xl font-bold text-gray-900">49</div>
+              <div className="text-xl font-bold text-gray-900">
+                {loading ? "—" : error ? "—" : stats.total_users.toLocaleString()}
+              </div>
             </div>
             <Users size={24} className="text-blue-500" />
+          </div>
+
+          {/* Total Tournaments */}
+          <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: "#e0e7ff" }}>
+            <div>
+              <div className="text-[10px] font-bold text-gray-600 mb-1">TOTAL TOURNAMENTS</div>
+              <div className="text-xl font-bold text-gray-900">
+                {loading ? "—" : error ? "—" : stats.total_tournaments.toLocaleString()}
+              </div>
+            </div>
+            <Trophy size={24} className="text-amber-500" />
           </div>
 
           {/* Active Tournaments */}
           <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: "#e0e7ff" }}>
             <div>
               <div className="text-[10px] font-bold text-gray-600 mb-1">ACTIVE TOURNAMENTS</div>
-              <div className="text-xl font-bold text-gray-900">15</div>
+              <div className="text-xl font-bold text-gray-900">
+                {loading ? "—" : error ? "—" : stats.active_tournaments.toLocaleString()}
+              </div>
             </div>
             <Trophy size={24} className="text-pink-500" />
           </div>
 
-          {/* Monthly Revenue */}
+          {/* Total Revenue */}
           <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: "#e0e7ff" }}>
             <div>
-              <div className="text-[10px] font-bold text-gray-600 mb-1">Total REVENUE</div>
-              <div className="text-xl font-bold text-gray-900">3,30,000</div>
+              <div className="text-[10px] font-bold text-gray-600 mb-1">TOTAL REVENUE</div>
+              <div className="text-xl font-bold text-gray-900">
+                {loading ? "—" : error ? "—" : `₹${formatRevenue(stats.total_revenue)}`}
+              </div>
             </div>
             <DollarSign size={24} className="text-green-500" />
           </div>

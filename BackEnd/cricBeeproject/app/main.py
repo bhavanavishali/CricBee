@@ -46,21 +46,22 @@ load_dotenv()
 
 
 
+_default_cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "https://cricbee.shop",
+    "https://www.cricbee.shop",
+    "https://cricb.shop",
+    "https://www.cricb.shop",
+]
 cors_origins_env = os.getenv("CORS_ORIGINS", "")
 if cors_origins_env:
-    origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+    env_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+    origins = list(dict.fromkeys(_default_cors_origins + env_origins))  
 else:
-
-    origins = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "https://cricbee.shop",
-        "https://www.cricbee.shop",
-        "https://cricb.shop",
-        "https://www.cricb.shop",
-    ]
+    origins = _default_cors_origins
 
 app.add_middleware(
     CORSMiddleware,
