@@ -26,6 +26,7 @@ from app.schemas.club_manager import ClubRead
 from app.schemas.user import UserRead
 from app.services.organizer.tournament_service import (
     create_tournament_with_payment,
+    create_tournament_with_wallet,
     verify_and_complete_payment,
     get_organizer_tournaments,
     get_organizer_transactions,
@@ -127,6 +128,48 @@ def create_tournament(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_detail
+        )
+
+
+@router.post("/create/wallet", response_model=TournamentResponse, status_code=status.HTTP_201_CREATED)
+def create_tournament_with_wallet_endpoint(
+    tournament_data: TournamentCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a tournament using the organizer's wallet balance (no Razorpay).
+    """
+    current_user = get_current_user(request, db)
+    if current_user.role != UserRole.ORGANIZER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organizers can create tournaments"
+        )
+
+    try:
+        tournament = create_tournament_with_wallet(db, tournament_data, current_user.id)
+        return tournament
+    except ValueError as e:
+        # User-facing validation / business rule errors
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        import logging
+        import traceback
+
+        error_trace = traceback.format_exc()
+        error_type = type(e).__name__
+        error_message = str(e)
+
+        logging.error(f"Error creating tournament with wallet - Type: {error_type}, Message: {error_message}")
+        logging.error(f"Full traceback:\n{error_trace}")
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create tournament with wallet: {error_message}"
         )
 
 @router.post("/verify-payment", response_model=TournamentResponse)

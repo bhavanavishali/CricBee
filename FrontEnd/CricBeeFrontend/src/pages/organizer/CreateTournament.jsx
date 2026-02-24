@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createTournament, getPricingPlans, verifyPayment } from '@/api/organizer/tournament';
+import {
+  createTournament,
+  createTournamentWithWallet,
+  getPricingPlans,
+  verifyPayment,
+  getWalletBalance,
+} from '@/api/organizer/tournament';
 import Layout from '@/components/layouts/Layout';
 import { ArrowLeft } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -9,6 +15,7 @@ const CreateTournament = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState(null); // { submitData, walletBalance, planAmount }
   const [formData, setFormData] = useState({
     tournament_name: '',
     plan_id: '',
@@ -183,74 +190,65 @@ const CreateTournament = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const startRazorpayPayment = async (submitData) => {
     try {
-      // Ensure enrollment_fee is a number and at least 1.00 (required for Razorpay)
-      const enrollmentFee = formData.details.enrollment_fee === '' 
-        ? 0 
-        : parseFloat(formData.details.enrollment_fee) || 0;
-      
-      if (enrollmentFee < 1) {
-        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Enrollment fee must be at least ₹1.00' });
-        setLoading(false);
-        return;
-      }
-      
-      const submitData = {
-        ...formData,
-        details: {
-          ...formData.details,
-          enrollment_fee: enrollmentFee
-        }
-      };
-      
       const result = await createTournament(submitData);
-      
+
       // Ensure Razorpay SDK is loaded before proceeding
       try {
         await loadRazorpayScript();
       } catch (error) {
         const errorMessage = error.message || 'Unknown error';
         console.error('Razorpay load error:', error);
-        
-        // Provide more helpful error message
+
         if (errorMessage.includes('timeout') || errorMessage.includes('connection')) {
-          Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway is taking too long to load. This might be due to: 1. Slow internet connection, 2. Network firewall blocking Razorpay, 3. Ad blocker blocking the script. Please check your internet connection, disable ad blockers, and refresh the page.' });
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Payment gateway is taking too long to load. This might be due to: 1. Slow internet connection, 2. Network firewall blocking Razorpay, 3. Ad blocker blocking the script. Please check your internet connection, disable ad blockers, and refresh the page.',
+          });
         } else {
-          Swal.fire({ icon: 'error', title: 'Error!', text: `Failed to load payment gateway: ${errorMessage}. Please refresh the page and try again.` });
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: `Failed to load payment gateway: ${errorMessage}. Please refresh the page and try again.`,
+          });
         }
-        
+
         setLoading(false);
         return;
       }
-      
-      // Double check Razorpay is available and is a constructor
+
       if (!window.Razorpay) {
-        Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway not loaded. Please refresh the page and try again.' });
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: 'Payment gateway not loaded. Please refresh the page and try again.',
+        });
         console.error('Razorpay not found in window object');
         setLoading(false);
         return;
       }
-      
+
       if (typeof window.Razorpay !== 'function') {
-        Swal.fire({ icon: 'error', title: 'Error!', text: 'Payment gateway not properly initialized. Please refresh the page and try again.' });
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: 'Payment gateway not properly initialized. Please refresh the page and try again.',
+        });
         console.error('Razorpay is not a constructor:', typeof window.Razorpay, window.Razorpay);
         setLoading(false);
         return;
       }
-      
-      // Initialize Razorpay payment
+
       const amountInPaise = Math.round(parseFloat(result.razorpay_order.amount) * 100);
-      
+
       const options = {
         key: result.razorpay_order.key,
         amount: amountInPaise,
         currency: result.razorpay_order.currency || 'INR',
         name: 'CricBee',
-        description: `Payment for ${formData.tournament_name}`,
+        description: `Payment for ${submitData.tournament_name}`,
         order_id: result.razorpay_order.order_id,
         handler: async function (response) {
           try {
@@ -314,16 +312,77 @@ const CreateTournament = () => {
         errorMessage = error.message;
       }
       
-      // Show more detailed error in console for debugging
-      console.error('Tournament creation error:', {
+      console.error('Tournament creation error (Razorpay path):', {
         message: errorMessage,
         status: error.response?.status,
         data: error.response?.data,
         fullError: error
       });
       
-      // Display user-friendly error message
       Swal.fire({ icon: 'error', title: 'Error!', text: `Tournament Creation Error: ${errorMessage}. Please check: All required fields are filled, Razorpay credentials are configured, Network connection is stable.` });
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Ensure enrollment_fee is a number and at least 1.00 (required for Razorpay)
+      const enrollmentFee = formData.details.enrollment_fee === '' 
+        ? 0 
+        : parseFloat(formData.details.enrollment_fee) || 0;
+      
+      if (enrollmentFee < 1) {
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Enrollment fee must be at least ₹1.00' });
+        setLoading(false);
+        return;
+      }
+      
+      const submitData = {
+        ...formData,
+        details: {
+          ...formData.details,
+          enrollment_fee: enrollmentFee
+        }
+      };
+
+      // Determine selected plan amount
+      const selectedPlan = plans.find(plan => plan.id === submitData.plan_id);
+      if (!selectedPlan) {
+        Swal.fire({ icon: 'warning', title: 'Warning', text: 'Please select a valid pricing plan.' });
+        setLoading(false);
+        return;
+      }
+
+      const wallet = await getWalletBalance();
+      const walletBalance = Number(wallet.balance ?? 0);
+      const planAmount = Number(selectedPlan.amount ?? 0);
+
+      setPaymentOptions({
+        submitData,
+        walletBalance,
+        planAmount,
+      });
+      setLoading(false);
+    } catch (error) {
+      let errorMessage = 'Failed to prepare payment options. Please try again.';
+
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      console.error('Error preparing payment options:', {
+        message: errorMessage,
+        status: error.response?.status,
+        data: error.response?.data,
+        fullError: error
+      });
+
+      Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage });
       setLoading(false);
     }
   };
@@ -614,6 +673,104 @@ const CreateTournament = () => {
           </div>
         </div>
       </div>
+      {paymentOptions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Choose Payment Method</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Wallet balance:{' '}
+              <span className="font-semibold">
+                ₹{paymentOptions.walletBalance.toFixed(2)}
+              </span>
+              <br />
+              Tournament creation fee:{' '}
+              <span className="font-semibold">
+                ₹{paymentOptions.planAmount.toFixed(2)}
+              </span>
+            </p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={
+                  loading || paymentOptions.walletBalance < paymentOptions.planAmount
+                }
+                onClick={async () => {
+                  if (paymentOptions.walletBalance < paymentOptions.planAmount) {
+                    return;
+                  }
+                  setLoading(true);
+                  try {
+                    const result = await createTournamentWithWallet(
+                      paymentOptions.submitData
+                    );
+                    await Swal.fire({
+                      icon: 'success',
+                      title: 'Success!',
+                      text:
+                        result?.tournament_name
+                          ? `Tournament "${result.tournament_name}" created using wallet balance.`
+                          : 'Tournament created using wallet balance.',
+                    });
+                    navigate('/organizer/dashboard');
+                  } catch (error) {
+                    let errorMessage =
+                      'Failed to create tournament using wallet. Please try again.';
+                    if (error.response?.data?.detail) {
+                      errorMessage = error.response.data.detail;
+                    } else if (error.message) {
+                      errorMessage = error.message;
+                    }
+                    console.error('Wallet payment error:', {
+                      message: errorMessage,
+                      status: error.response?.status,
+                      data: error.response?.data,
+                      fullError: error,
+                    });
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Error!',
+                      text: errorMessage,
+                    });
+                  } finally {
+                    setLoading(false);
+                    setPaymentOptions(null);
+                  }
+                }}
+                className="w-full px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+              >
+                Pay using Wallet Balance
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  const currentOptions = paymentOptions;
+                  setPaymentOptions(null);
+                  setLoading(true);
+                  await startRazorpayPayment(currentOptions.submitData);
+                }}
+                className="w-full px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Pay using Online Payment (Razorpay)
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setPaymentOptions(null)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+              >
+                Cancel
+              </button>
+              {paymentOptions.walletBalance < paymentOptions.planAmount && (
+                <p className="text-xs text-red-500 mt-1">
+                  Wallet balance is insufficient for this tournament. Please use online
+                  payment.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

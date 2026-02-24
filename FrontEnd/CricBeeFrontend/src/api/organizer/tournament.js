@@ -5,6 +5,11 @@ export const createTournament = async (tournamentData) => {
   return response.data;
 };
 
+export const createTournamentWithWallet = async (tournamentData) => {
+  const response = await api.post('/tournaments/create/wallet', tournamentData);
+  return response.data;
+};
+
 export const verifyPayment = async (paymentData) => {
   const response = await api.post('/tournaments/verify-payment', paymentData);
   return response.data;
@@ -36,7 +41,9 @@ export const getWalletBalance = async () => {
 };
 
 export const getEnrolledClubs = async (tournamentId) => {
-  const response = await api.get(`/tournaments/${tournamentId}/enrolled-clubs`);
+  const response = await api.get(`/tournaments/${tournamentId}/enrolled-clubs`, {
+    params: { tournament_id: tournamentId },
+  });
   return response.data;
 };
 
@@ -55,7 +62,7 @@ export const getFinanceReport = async (filterType, startDate = null, endDate = n
   const response = await api.post('/tournaments/finance-report', {
     filter_type: filterType,
     start_date: startDate,
-    end_date: endDate
+    end_date: endDate,
   });
   return response.data;
 };

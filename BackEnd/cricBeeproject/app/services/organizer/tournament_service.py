@@ -251,6 +251,128 @@ def create_tournament_with_payment(
             error_msg = f"Failed to create tournament: {error_str[:200]}"
         
         raise ValueError(error_msg)
+
+
+def create_tournament_with_wallet(
+    db: Session,
+    tournament_data: TournamentCreate,
+    organizer_id: int
+) -> TournamentResponse:
+    
+    try:
+        organizer = db.query(User).filter(User.id == organizer_id).first()
+        if not organizer:
+            raise ValueError("Organizer not found. Please log in again.")
+
+        plan = db.query(TournamentPricingPlan).filter(
+            TournamentPricingPlan.id == tournament_data.plan_id,
+            TournamentPricingPlan.status == "active",
+        ).first()
+
+        if not plan:
+            raise ValueError("Invalid or inactive pricing plan. Please select a valid plan.")
+
+        if not tournament_data.tournament_name or not tournament_data.tournament_name.strip():
+            raise ValueError("Tournament name is required")
+
+        if not tournament_data.details:
+            raise ValueError("Tournament details are required")
+
+        
+        wallet_balance = get_organizer_wallet_balance(db, organizer_id)
+        if wallet_balance < plan.amount:
+            raise ValueError("Insufficient wallet balance to create tournament.")
+
+        
+        tournament = Tournament(
+            tournament_name=tournament_data.tournament_name,
+            organizer_id=organizer_id,
+            plan_id=tournament_data.plan_id,
+            status=TournamentStatus.REGISTRATION_OPEN.value,
+        )
+        db.add(tournament)
+        db.flush()
+
+        
+        details = TournamentDetails(
+            tournament_id=tournament.id,
+            overs=tournament_data.details.overs,
+            start_date=tournament_data.details.start_date,
+            end_date=tournament_data.details.end_date,
+            registration_start_date=tournament_data.details.registration_start_date,
+            registration_end_date=tournament_data.details.registration_end_date,
+            location=tournament_data.details.location,
+            venue_details=tournament_data.details.venue_details,
+            team_range=tournament_data.details.team_range,
+            is_public=tournament_data.details.is_public,
+            enrollment_fee=tournament_data.details.enrollment_fee,
+        )
+        db.add(details)
+
+       
+        organizer_transaction_id = generate_transaction_id()
+        organizer_transaction = create_organizer_transaction(
+            db=db,
+            organizer_id=organizer_id,
+            # Use WITHDRAWAL so it counts as a wallet debit in get_organizer_wallet_balance
+            transaction_type=TransactionType.WITHDRAWAL.value,
+            transaction_direction=TransactionDirection.DEBIT.value,
+            amount=plan.amount,
+            status=TransactionStatus.SUCCESS.value,
+            tournament_id=tournament.id,
+            description=f"Tournament payment for {tournament.tournament_name} (wallet)",
+            transaction_id=organizer_transaction_id,
+        )
+
+        
+        payment = TournamentPayment(
+            tournament_id=tournament.id,
+            amount=plan.amount,
+            payment_status=PaymentStatus.SUCCESS.value,
+            transaction_id=organizer_transaction.transaction_id,
+            payment_date=datetime.now(),
+        )
+        db.add(payment)
+
+        
+        admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if admin:
+            admin_transaction_id = generate_transaction_id()
+            add_to_admin_wallet(
+                db=db,
+                admin_id=admin.id,
+                amount=plan.amount,
+                tournament_id=tournament.id,
+                description=f"Tournament payment for {tournament.tournament_name} (wallet)",
+                transaction_id=admin_transaction_id,
+            )
+
+        _sync_tournament_status(db, tournament)
+        db.commit()
+        db.refresh(tournament)
+
+        return TournamentResponse.model_validate(tournament)
+    except ValueError:
+        
+        raise
+    except Exception as e:
+        db.rollback()
+        import logging
+        import traceback
+
+        error_str = str(e)
+        error_type = type(e).__name__
+        logging.error(f"Unexpected error creating tournament with wallet - Type: {error_type}, Message: {error_str}")
+        logging.error(traceback.format_exc())
+
+        if "psycopg2" in error_type.lower() or "IntegrityError" in error_type or "unique constraint" in error_str.lower():
+            error_msg = f"Database constraint error: {error_str[:200]}"
+        elif "validation" in error_str.lower() or "pydantic" in error_type.lower():
+            error_msg = f"Validation error: {error_str}"
+        else:
+            error_msg = f"Failed to create tournament with wallet: {error_str[:200]}"
+
+        raise ValueError(error_msg)
     
 def verify_and_complete_payment(
     db: Session,
