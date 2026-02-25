@@ -6,7 +6,7 @@ from app.services.admin.transaction_service import get_financial_statistics
 
 
 def get_admin_dashboard_stats(db: Session) -> dict:
-    """Return total_users, total_tournaments, active_tournaments, total_revenue for admin dashboard."""
+    
     total_users = db.query(User).filter(User.role != UserRole.ADMIN).count()
 
     total_tournaments = db.query(func.count(Tournament.id)).scalar() or 0

@@ -20,6 +20,7 @@ import {
   Radio
 } from "lucide-react"
 import { getPublicTournaments, getLiveMatches } from "@/api/shared/public"
+import PublicHeader from "@/components/public/PublicHeader"
 
 export default function Home() {
   const navigate = useNavigate()
@@ -80,7 +81,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-     
+      <PublicHeader />
+      
       <section 
         id="home" 
         className="relative bg-gradient-to-br from-slate-500 via-slate-100 to-slate-900 text-white py-20 overflow-hidden"

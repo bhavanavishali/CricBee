@@ -758,7 +758,7 @@ const LiveScoring = () => {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 mb-3">
+                    {/* <div className="grid grid-cols-4 gap-2 mb-3">
                       {[
                         { key: 'wide', label: 'Wide' },
                         { key: 'no_ball', label: 'No Ball' },
@@ -781,7 +781,7 @@ const LiveScoring = () => {
                           {extra.label}
                         </button>
                       ))}
-                    </div>
+                    </div> */}
 
                     <div className="mb-3">
                       <input

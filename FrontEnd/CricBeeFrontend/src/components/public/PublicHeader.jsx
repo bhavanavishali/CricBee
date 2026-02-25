@@ -2,12 +2,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Home, Trophy, Radio, LogIn, UserPlus } from 'lucide-react';
 
-const PublicHeader = () => {
+const PublicHeader = ({ alwaysVisible = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
-  if (isAuthenticated) return null;
+  if (!alwaysVisible && isAuthenticated) return null;
 
   const scrollToSection = (sectionId) => {
     if (location.pathname === '/') {

@@ -1,4 +1,4 @@
-"""Match service for fans - public match viewing and live scores"""
+
 from sqlalchemy.orm import Session, joinedload
 from app.models.organizer.fixture import Match
 from app.models.organizer.match_score import MatchScore

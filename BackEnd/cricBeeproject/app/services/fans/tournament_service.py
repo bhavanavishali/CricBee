@@ -1,4 +1,4 @@
-"""Tournament service for fans - public tournament viewing"""
+
 from sqlalchemy.orm import Session, joinedload
 from app.models.organizer.tournament import Tournament, TournamentDetails, TournamentStatus
 from app.models.user import User

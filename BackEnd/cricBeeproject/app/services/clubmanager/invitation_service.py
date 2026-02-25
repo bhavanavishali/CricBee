@@ -1,6 +1,4 @@
-"""
-Invitation service - handles club player invitations.
-"""
+
 
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
@@ -13,7 +11,7 @@ from app.services.player.player_management_service import add_player_to_club
 
 
 def invite_player_to_club(db: Session, club_id: int, player_id: int, manager_id: int) -> ClubPlayerInvitation:
-    """Create a pending invitation for a player to join a club."""
+    
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -56,7 +54,7 @@ def invite_player_to_club(db: Session, club_id: int, player_id: int, manager_id:
 
 
 def accept_club_invitation(db: Session, invitation_id: int, player_user_id: int) -> ClubPlayer:
-    """Accept a club invitation."""
+    
     invitation = db.query(ClubPlayerInvitation).options(
         joinedload(ClubPlayerInvitation.player).joinedload(PlayerProfile.user),
         joinedload(ClubPlayerInvitation.club)
@@ -84,7 +82,7 @@ def accept_club_invitation(db: Session, invitation_id: int, player_user_id: int)
 
 
 def reject_club_invitation(db: Session, invitation_id: int, player_user_id: int) -> ClubPlayerInvitation:
-    """Reject a club invitation."""
+    
     invitation = db.query(ClubPlayerInvitation).options(
         joinedload(ClubPlayerInvitation.player).joinedload(PlayerProfile.user)
     ).filter(ClubPlayerInvitation.id == invitation_id).first()
@@ -99,7 +97,7 @@ def reject_club_invitation(db: Session, invitation_id: int, player_user_id: int)
     if invitation.status != InvitationStatus.PENDING:
         raise ValueError("This invitation has already been processed")
     
-    # Update invitation status
+   
     invitation.status = InvitationStatus.REJECTED
     invitation.responded_at = datetime.utcnow()
     db.commit()
@@ -109,7 +107,7 @@ def reject_club_invitation(db: Session, invitation_id: int, player_user_id: int)
 
 
 def get_pending_invitations_for_club(db: Session, club_id: int, manager_id: int) -> list:
-    """Get all pending invitations for a club."""
+   
     club = db.query(Club).filter(
         Club.id == club_id,
         Club.manager_id == manager_id
@@ -128,7 +126,7 @@ def get_pending_invitations_for_club(db: Session, club_id: int, manager_id: int)
 
 
 def get_invitations_for_player(db: Session, player_user_id: int) -> list:
-    """Get all invitations for a player."""
+    
     player_profile = db.query(PlayerProfile).filter(
         PlayerProfile.user_id == player_user_id
     ).first()

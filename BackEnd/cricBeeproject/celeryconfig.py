@@ -5,14 +5,14 @@ from app.core.config import settings
 broker_url = f"redis://{settings.redis_host}:{settings.redis_port}/{settings.redis_db}"
 result_backend = f"redis://{settings.redis_host}:{settings.redis_port}/{settings.redis_db}"
 
-# Task settings
+
 task_serializer = "json"
 accept_content = ["json"]
 result_serializer = "json"
 timezone = "UTC"
 enable_utc = True
 
-# Worker settings (optimized for Windows)
+# for Windows
 worker_pool = "solo"
 worker_concurrency = 1
 worker_prefetch_multiplier = 1
@@ -32,9 +32,8 @@ result_backend_transport_options = {
     'master_name': 'mymaster',
 }
 
-# Beat schedule (if you need periodic tasks)
 beat_schedule = {
-    # Add periodic tasks here if needed
+   
 }
 
 # Logging

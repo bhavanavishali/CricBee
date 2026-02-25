@@ -30,7 +30,7 @@ function App() {
         {/* Public Routes with Header */}
         <Route path="/" element={
           <>
-            <PublicHeader />
+            <PublicHeader alwaysVisible />
             <Home />
           </>
         } />

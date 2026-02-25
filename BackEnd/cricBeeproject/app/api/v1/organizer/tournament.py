@@ -137,9 +137,7 @@ def create_tournament_with_wallet_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    Create a tournament using the organizer's wallet balance (no Razorpay).
-    """
+    
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.ORGANIZER:
         raise HTTPException(

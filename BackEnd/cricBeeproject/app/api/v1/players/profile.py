@@ -298,7 +298,7 @@ def get_player_dashboard_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get player dashboard data including club, tournaments, and matches"""
+   
     current_user = get_current_user(request, db)
     if current_user.role != UserRole.PLAYER:
         raise HTTPException(

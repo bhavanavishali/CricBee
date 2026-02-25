@@ -182,7 +182,7 @@ def get_match_winner_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Get match winner (public endpoint)"""
+   
     try:
         result = get_match_winner(db, match_id)
         return result
@@ -479,9 +479,7 @@ def complete_match_endpoint(
 
 @router.websocket("/{match_id}/ws")
 async def websocket_endpoint(websocket: WebSocket, match_id: int):
-    """
-    WebSocket endpoint for real-time score updates
-    """
+   
     await manager.connect(websocket, match_id)
     try:
         while True:
