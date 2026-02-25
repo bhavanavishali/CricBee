@@ -252,7 +252,7 @@ const EnrolledClubs = () => {
             <span className={`px-4 py-2 rounded-full text-sm font-semibold ${statusBadge.color}`}>
               {statusBadge.icon} {statusBadge.label}
             </span>
-            {canCancelTournament() && (
+            {/* {canCancelTournament() && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 flex items-center space-x-2"
@@ -260,7 +260,7 @@ const EnrolledClubs = () => {
                 <X size={18} />
                 <span>Cancel Tournament</span>
               </button>
-            )}
+            )} */}
           </div>
         </div>
 

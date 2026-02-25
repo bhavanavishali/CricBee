@@ -824,11 +824,7 @@ const LiveScoring = () => {
                           <option value="">Select wicket type</option>
                           <option value="bowled">Bowled</option>
                           <option value="caught">Caught</option>
-                          <option value="lbw">LBW</option>
-                          <option value="run_out">Run Out</option>
-                          <option value="stumped">Stumped</option>
-                          <option value="hit_wicket">Hit Wicket</option>
-                          <option value="retired_hurt">Retired Hurt</option>
+                          
                         </select>
                         <select
                           value={wicketData.dismissed_batsman_id || ''}

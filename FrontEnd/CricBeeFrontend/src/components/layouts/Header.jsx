@@ -69,7 +69,18 @@ export default function Header({ title, profilePath }) {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="bg-gray-300 px-3 py-2 rounded font-bold text-gray-700">CricB</div>
+          <button
+  type="button"
+  onClick={() => navigate('/')}
+  className="focus:outline-none"
+  aria-label="Go to home"
+>
+  <img
+    src="/Image (1).png"
+    alt="CricB Logo"
+    className="h-12 w-auto object-contain hover:opacity-100 transition-opacity"
+  />
+</button>
           {title && (
             <>
               <div className="h-6 w-px bg-gray-300" />

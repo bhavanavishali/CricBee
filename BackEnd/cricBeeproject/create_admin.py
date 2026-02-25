@@ -62,8 +62,7 @@ def create_admin_user():
         db.commit()
         db.refresh(user)
         print(f"Admin user created successfully! ID: {user.id}, Email: {email}")
-        print(f"Password (change immediately): {password}")
-        print("You can now sign in via /auth/signin.")
+      
 
     except Exception as e:
         print(f"Error creating admin: {e}")

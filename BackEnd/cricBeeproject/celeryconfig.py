@@ -1,4 +1,4 @@
-# Celery Configuration File
+
 from app.core.config import settings
 
 # Broker settings

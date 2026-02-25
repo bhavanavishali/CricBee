@@ -1,9 +1,13 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Home, Trophy, Radio, LogIn, UserPlus } from 'lucide-react';
 
 const PublicHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  if (isAuthenticated) return null;
 
   const scrollToSection = (sectionId) => {
     if (location.pathname === '/') {
@@ -57,7 +61,11 @@ const PublicHeader = () => {
           <div className="flex items-center gap-8">
             <Link to="/" className="flex items-center gap-2">
               <Trophy className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">CricBee</span>
+              <img
+    src="/Image (1).png"
+    alt="CricB Logo"
+    className="h-12 w-auto object-contain hover:opacity-100 transition-opacity"
+  />
             </Link>
             
             <nav className="flex items-center gap-4 sm:gap-6 lg:gap-8">

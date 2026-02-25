@@ -80,44 +80,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      {/* <header className="sticky top-0 z-50 w-full bg-slate-900 text-white shadow-lg">
-        <nav className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-white text-slate-900 px-3 py-2 rounded font-bold text-sm">CB</div>
-            <span className="font-semibold text-lg">CricB</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#home" className="hover:text-teal-400 transition-colors">Home</a>
-            <a href="#tournaments" className="hover:text-teal-400 transition-colors">Tournaments</a>
-            <a href="#scores" className="hover:text-teal-400 transition-colors">Live Scores</a>
-            <a href="#clubs" className="hover:text-teal-400 transition-colors">Clubs</a>
-            <a href="#players" className="hover:text-teal-400 transition-colors">Players</a>
-            <a href="#about" className="hover:text-teal-400 transition-colors">About</a>
-            <a href="#contact" className="hover:text-teal-400 transition-colors">Contact</a>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <a href="#how-it-works" className="text-sm hover:text-teal-400 transition-colors">
-              How it works
-            </a>
-            <button
-              onClick={() => navigate("/signin")}
-              className="px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate("/signup")}
-              className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              Sign Up
-            </button>
-          </div>
-        </nav>
-      </header> */}
-      {/* Hero Section */}
+     
       <section 
         id="home" 
         className="relative bg-gradient-to-br from-slate-500 via-slate-100 to-slate-900 text-white py-20 overflow-hidden"

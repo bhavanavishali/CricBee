@@ -183,12 +183,8 @@ def refund_tournament_transactions(
     
     if not admin_transaction:
         raise ValueError("Admin transaction not found for refund")
-    
 
-    organizer_transaction.status = TransactionStatus.REFUNDED.value
-    organizer_transaction.transaction_direction = TransactionDirection.CREDIT.value
-    organizer_transaction.updated_at = datetime.now()
-    organizer_transaction.description = f"Refund for tournament cancellation - {organizer_transaction.description or ''}"
+    # Do not modify the original tournament-create transaction; only create a new refund transaction.
 
     admin_transaction.status = TransactionStatus.REFUNDED.value
     admin_transaction.transaction_direction = TransactionDirection.DEBIT.value
@@ -200,7 +196,20 @@ def refund_tournament_transactions(
     if wallet:
         wallet.balance -= organizer_transaction.amount
         wallet.updated_at = datetime.now()
-    
+
+    # New transaction only: type REFUND, status refunded, direction credit; adds to organizer wallet balance
+    create_organizer_transaction(
+        db=db,
+        organizer_id=organizer_id,
+        transaction_type=TransactionType.REFUND.value,
+        transaction_direction=TransactionDirection.CREDIT.value,
+        amount=organizer_transaction.amount,
+        status=TransactionStatus.REFUNDED.value,
+        tournament_id=tournament_id,
+        description=f"Refund for tournament cancellation (tournament_id={tournament_id})",
+        transaction_id=generate_transaction_id(),
+    )
+
     db.flush()
     return organizer_transaction, admin_transaction
 

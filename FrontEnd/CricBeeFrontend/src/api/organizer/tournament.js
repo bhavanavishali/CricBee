@@ -31,7 +31,16 @@ export const getMyTransactions = async () => {
 };
 
 export const cancelTournament = async (tournamentId, notificationData) => {
-  const response = await api.post(`/tournaments/${tournamentId}/cancel`, notificationData);
+  const body = notificationData && typeof notificationData === 'object'
+    ? {
+        notification_title: notificationData.notification_title ?? 'Tournament Cancelled',
+        notification_description: notificationData.notification_description ?? 'This tournament has been cancelled by the organizer.',
+      }
+    : {
+        notification_title: 'Tournament Cancelled',
+        notification_description: 'This tournament has been cancelled by the organizer.',
+      };
+  const response = await api.post(`/tournaments/${tournamentId}/cancel`, body);
   return response.data;
 };
 

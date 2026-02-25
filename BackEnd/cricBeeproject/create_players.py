@@ -6,7 +6,7 @@ from app.models.user import User, UserRole
 from app.models.player import PlayerProfile
 from app.utils.hashing import hash_password
 
-# Import all models so tables are registered
+
 import app.models.user
 import app.models.player
 import app.models.organizer.organization
@@ -37,7 +37,7 @@ from app.models.chat import ChatMessage
 
 
 def create_test_players():
-    """Create 12 test players dynamically"""
+    
     
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
@@ -61,7 +61,7 @@ def create_test_players():
 
         for player_data in players_data:
 
-            # Check if user already exists
+            
             existing_user = db.query(User).filter(
                 (User.email == player_data["email"]) |
                 (User.phone == player_data["phone"])
@@ -71,7 +71,7 @@ def create_test_players():
                 print(f"User {player_data['email']} already exists, skipping...")
                 continue
 
-            # Create User
+            
             hashed_pw = hash_password(player_data["password"])
 
             user = User(
@@ -88,7 +88,7 @@ def create_test_players():
             db.commit()
             db.refresh(user)
 
-            # Create Player Profile
+          
             player_profile = PlayerProfile(
                 user_id=user.id,
                 age=player_data["age"],
@@ -107,21 +107,16 @@ def create_test_players():
                 "cricb_id": player_data["cricb_id"]
             })
 
-        print(f"\n✅ Successfully created {len(created_players)} players!")
-        print("\nPlayer Login Credentials:")
-        print("-" * 50)
+        
 
         for player in created_players:
             print(f"Name     : {player['name']}")
-            print(f"Email    : {player['email']}")
-            print(f"Password : {player['password']}")
-            print(f"CricB ID : {player['cricb_id']}")
-            print("-" * 50)
+            
 
         print("\nYou can now sign in using email/phone and password 'player123'")
 
     except Exception as e:
-        print(f"❌ Error creating players: {e}")
+        print(f"Error creating players: {e}")
         db.rollback()
         raise
     finally:

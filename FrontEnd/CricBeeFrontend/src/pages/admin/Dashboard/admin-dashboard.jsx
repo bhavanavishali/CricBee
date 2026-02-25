@@ -15,6 +15,7 @@ import {
   Cog,
 } from "lucide-react"
 import { getDashboardStats } from "@/api/adminService"
+import Layout from "@/components/layouts/Layout";
 
 function formatRevenue(value) {
   const num = Number(value) || 0
@@ -57,31 +58,12 @@ export default function AdminDashboard() {
   }, [])
 
   return (
+    <Layout title="Admin Dashboard" profilePath="/admin/dashboard" >
     <div className="min-h-screen" style={{ backgroundColor: "#0f172a" }}>
       {/* Header */}
-      <header className="border-b" style={{ borderColor: "#1e293b", backgroundColor: "#0f172a" }}>
-        <div className="flex items-center justify-between p-6 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-teal-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">🏏</span>
-            </div>
-            <h1 className="text-lg font-semibold text-white">Cricket</h1>
-          </div>
-          <h2 className="text-gray-300">Admin Control Center</h2>
-          <div className="flex items-center gap-4">
-            <button className="text-gray-400 hover:text-white">
-              <Bell size={20} />
-            </button>
-            <button className="text-gray-400 hover:text-white">
-              <Settings size={20} />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
-              C
-            </div>
-          </div>
-        </div>
-      </header>
-
+      
+      
+    
       {/* Breadcrumb */}
       <div className="border-b" style={{ borderColor: "#1e293b", backgroundColor: "#0f172a" }}>
         <div className="p-4 max-w-7xl mx-auto">
@@ -310,5 +292,6 @@ export default function AdminDashboard() {
         
       </main>
     </div>
+    </Layout>
   )
 }
