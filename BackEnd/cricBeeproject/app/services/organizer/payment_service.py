@@ -8,7 +8,7 @@ from app.core.config import settings
 def get_razorpay_client():
     
     if not settings.razorpay_key_id or not settings.razorpay_key_secret:
-        raise ValueError("Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.")
+        raise ValueError("Razorpay credentials not configured.")
     return razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret))
 
 def create_razorpay_order(amount: Decimal, receipt: str = None, currency: str = "INR") -> dict:

@@ -40,7 +40,7 @@ def update_organization(db: Session, org_id: int, payload: OrganizationUpdate, u
     
     update_data = payload.dict(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(org, field, value) # Update only provided fields(org.name = "New Name"  normally we used   
+        setattr(org, field, value)
     db.commit()
     db.refresh(org)
     return org

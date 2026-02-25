@@ -4,26 +4,7 @@ CricBee is a web-based application that allows cricket clubs to manage their pla
 
 ---
 
-## Features
 
-### Admin
-- Manage club managers, organizers, and players
-- Enable/disable (block/unblock) users
-
-
-### Club Manager
-- Create and manage cricket clubs
-- Add players to the club
-- Generate unique CricBee IDs for players
-- Player search by CricBee ID
-
-### Player
-- Create and update profile
-- Upload and edit profile photo
-- Change password functionality
-
-
----
 
 ## 🛠️ Tech Stack
 
@@ -37,15 +18,42 @@ CricBee is a web-based application that allows cricket clubs to manage their pla
 
 ---
 
-## 🔧 Installation & Setup
+# CricBee
 
-### Backend Setup
+CricBee is a cricket platform with live scoring, streaming, tournament management, and fan engagement.  
+This repository contains a **FastAPI**-based backend and a **React + Vite** frontend.
 
-```bash
+---
 
+## Tech Stack
+
+- **Backend**: Python, FastAPI, SQLAlchemy, Celery
+- **Frontend**: React, Vite, Tailwind CSS, React Router, Redux Toolkit
+- **Database / Services**: PostgreSQL, Redis (via `docker-compose.yml`)
+
+---
+
+## Prerequisites
+
+- **Node.js** (LTS)
+- **Python 3.11+**
+- **Git**
+- Optional: **Docker** and **Docker Compose**
+
+---
+
+## Backend Setup (FastAPI)
+
+# From repo root
 cd BackEnd/cricBeeproject
-python -m venv myenv
-myenv\Scripts\activate   # Windows
+
+# (Optional) create and activate virtualenv
+python -m venv venv
+venv\Scripts\activate  # on Windows
+# source venv/bin/activate  # on macOS/Linux
+
+# Install dependencies
 pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload
+
+
+

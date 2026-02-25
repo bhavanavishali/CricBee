@@ -81,10 +81,10 @@ async def send_password_reset_email(email: str, reset_token: str, full_name: str
         message["From"] = SMTP_FROM
         message["To"] = email
 
-        # Frontend URL with reset token
+        
         reset_url = f"{frontend_url}/reset-password?token={reset_token}"
         
-        # Create HTML content
+        
         html = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
