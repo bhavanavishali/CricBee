@@ -1099,6 +1099,8 @@ def get_live_scoreboard(
         batting_team_name=match.batting_team.club_name if match.batting_team else None,
         bowling_team_id=match.bowling_team_id,
         bowling_team_name=match.bowling_team.club_name if match.bowling_team else None,
+        batting_team_image=match.batting_team.club_image if match.batting_team else None,
+        bowling_team_image=match.bowling_team.club_image if match.bowling_team else None,
         batting_score=batting_score_response,
         bowling_score=bowling_score_response,
         current_batsman_id=current_batsman_id,

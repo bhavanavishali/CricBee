@@ -9,6 +9,7 @@ const MatchScoreboard = () => {
   const navigate = useNavigate();
   const [scoreboard, setScoreboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showWickets, setShowWickets] = useState(false);
   const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
@@ -101,6 +102,27 @@ const MatchScoreboard = () => {
   // Get fall of wickets
   const wickets = scoreboard.all_balls?.filter(ball => ball.is_wicket) || [];
 
+  // Convert YouTube URL to embed format
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return '';
+    
+    // Handle different YouTube URL formats
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    
+    // If it's already an embed URL, return as is
+    if (url.includes('youtube.com/embed/')) {
+      return url;
+    }
+    
+    // Fallback for other formats
+    return url;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -114,7 +136,7 @@ const MatchScoreboard = () => {
         </button>
 
         {/* Match Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        {/* <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-2">
@@ -130,7 +152,62 @@ const MatchScoreboard = () => {
               )}
             </div>
           </div>
+        </div> */}
+
+
+        {/* Match Header */}
+<div className="bg-white rounded-lg shadow-md p-6 mb-6">
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex-1">
+      <div className="flex items-center justify-center gap-8 mb-2">
+        {/* Team A */}
+        <div className="flex items-center gap-3">
+          {scoreboard.batting_team_image ? (
+            <img 
+              src={scoreboard.batting_team_image} 
+              alt={scoreboard.batting_team_name || 'Team A'}
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-300 flex items-center justify-center">
+              <span className="text-gray-500 text-xs font-bold">
+                {(scoreboard.batting_team_name || 'Team A').substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
+          <h2 className="text-2xl font-bold">{scoreboard.batting_team_name || 'Team A'}</h2>
         </div>
+        
+        {/* VS */}
+        <span className="text-gray-500 text-xl font-semibold">VS</span>
+        
+        {/* Team B */}
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold">{scoreboard.bowling_team_name || 'Team B'}</h2>
+          {scoreboard.bowling_team_image ? (
+            <img 
+              src={scoreboard.bowling_team_image} 
+              alt={scoreboard.bowling_team_name || 'Team B'}
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-300 flex items-center justify-center">
+              <span className="text-gray-500 text-xs font-bold">
+                {(scoreboard.bowling_team_name || 'Team B').substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+      {isLive && (
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+          <span className="text-red-600 font-semibold">LIVE</span>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* Toss Summary */}
         {scoreboard.toss_info && (
@@ -162,7 +239,30 @@ const MatchScoreboard = () => {
               <div>
                 <div className="text-sm opacity-90 mb-1">Score</div>
                 <div className="text-4xl font-bold">
-                  {battingScore.runs}/{battingScore.wickets}
+                  {battingScore.runs}/
+                  <button
+                    onClick={() => {
+                      setShowWickets(!showWickets);
+                      if (!showWickets && battingScore.wickets > 0) {
+                        // Scroll to wicket section after a short delay
+                        setTimeout(() => {
+                          const wicketSection = document.getElementById('wicket-section');
+                          if (wicketSection) {
+                            wicketSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }
+                        }, 100);
+                      }
+                    }}
+                    className={`cursor-pointer hover:text-blue-600 transition-colors ${
+                      battingScore.wickets > 0 ? 'text-red-600 animate-pulse' : ''
+                    }`}
+                    title={battingScore.wickets > 0 ? "Click to see wicket details" : "No wickets yet"}
+                  >
+                    {battingScore.wickets}
+                    {showWickets && battingScore.wickets > 0 && (
+                      <span className="text-xs ml-1">▼</span>
+                    )}
+                  </button>
                 </div>
               </div>
               <div className="text-right">
@@ -225,6 +325,21 @@ const MatchScoreboard = () => {
               </div>
             </div>
 
+            {/* Live Stream */}
+            {scoreboard.streaming_url && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-xl font-semibold mb-4">Live Stream</h3>
+                <iframe
+                  className="w-full h-full"
+                  src={getYouTubeEmbedUrl(scoreboard.streaming_url)}
+                  title="Live Cricket Stream"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  frameBorder="0"
+                ></iframe>
+              </div>
+            )}
+
             {/* Current Bowler */}
             {bowlerStats && (
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -257,8 +372,22 @@ const MatchScoreboard = () => {
 
         {/* Fall of Wickets */}
         {wickets.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-4">Fall of Wickets</h3>
+          <div 
+            id="wicket-section" 
+            className={`bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300 ${
+              showWickets ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-4 hidden'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Fall of Wickets</h3>
+              <button
+                onClick={() => setShowWickets(false)}
+                className="text-gray-500 hover:text-gray-700"
+                title="Close wicket details"
+              >
+                ✕
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>

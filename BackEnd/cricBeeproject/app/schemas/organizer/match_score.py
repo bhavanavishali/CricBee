@@ -119,6 +119,8 @@ class LiveScoreboardResponse(BaseModel):
     batting_team_name: Optional[str] = None
     bowling_team_id: Optional[int] = None
     bowling_team_name: Optional[str] = None
+    batting_team_image: Optional[str] = None
+    bowling_team_image: Optional[str] = None
     batting_score: Optional[MatchScoreResponse] = None
     bowling_score: Optional[MatchScoreResponse] = None
     current_batsman_id: Optional[int] = None
@@ -128,17 +130,17 @@ class LiveScoreboardResponse(BaseModel):
     current_bowler_id: Optional[int] = None
     current_bowler_name: Optional[str] = None
     last_6_balls: List[BallByBallResponse] = []
-    all_balls: List[BallByBallResponse] = []  # Full ball-by-ball timeline
+    all_balls: List[BallByBallResponse] = []  
     player_stats: List[PlayerMatchStatsResponse] = []
     toss_info: Optional[TossResponse] = None
     current_over: Optional[int] = None
     current_ball: Optional[int] = None
     max_overs: Optional[int] = None
-    needs_bowler_selection: Optional[bool] = False  # True if over just completed
-    innings_number: Optional[int] = 1  # 1 for first innings, 2 for second innings
-    target: Optional[int] = None  # Target score for second innings
-    total_overs: Optional[Decimal] = None  # Total overs in match format
-    streaming_url: Optional[str] = None  # YouTube or streaming platform URL
+    needs_bowler_selection: Optional[bool] = False  
+    innings_number: Optional[int] = 1 
+    target: Optional[int] = None  
+    total_overs: Optional[Decimal] = None  
+    streaming_url: Optional[str] = None  
 
 # Update Score Request
 class UpdateScoreRequest(BaseModel):

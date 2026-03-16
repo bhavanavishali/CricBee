@@ -84,9 +84,9 @@ export default function Home() {
       {/* Hero Section */}
       <section 
         id="home" 
-        className="relative bg-gradient-to-br from-slate-500 via-slate-100 to-slate-900 text-white py-20 overflow-hidden"
+        className="relative  via-slate-100 to-slate-900 text-white py-20 overflow-hidden"
         style={{
-          backgroundImage: 'url("/OIP.jpeg")',
+          backgroundImage: 'url("/hero-bg.gif")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -356,7 +356,7 @@ export default function Home() {
       </section>
 
       {/* Organizers Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-green-50 to-slate-900">
+      {/* <section className="py-20 px-6 bg-gradient-to-r from-green-50 to-slate-900">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="text-white md:text-gray-900">
             <h2 className="text-4xl font-bold mb-4">Organizers, Host Your Cricket Tournament on CricB!</h2>
@@ -380,35 +380,52 @@ export default function Home() {
           </div>
           
         </div>
-      </section>
+      </section> */}
 
-      {/* Easily Manage Clubs & Teams */}
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div className="bg-slate-900 rounded-xl h-96 flex items-center justify-center">
-            <Users className="w-32 h-32 text-gray-400" />
-          </div>
-          <div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">Easily Manage Clubs & Teams</h2>
-            <p className="text-lg text-gray-600 mb-6">
-              Streamline your club operations with powerful tools for team management, tournament enrollment, and fan engagement.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {["Enroll in Tournaments", "Manage Teams & Rosters", "Schedule Practice Sessions", "Wallet Management"].map((feature, index) => (
-                <li key={index} className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <button className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-              Read More
-            </button>
-          </div>
-        </div>
-      </section>
 
-      
+
+
+
+
+       <section className="py-20 px-6 bg-white">
+  <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+
+    <div
+      className="bg-slate-900 rounded-xl h-96 bg-cover bg-center"
+      style={{ backgroundImage: "url('/batsman-action.jpg')" }}
+    ></div>
+
+    <div>
+      <h2 className="text-4xl font-bold mb-4 text-gray-900">
+        Easily Manage Clubs & Teams
+      </h2>
+
+      <p className="text-lg text-gray-600 mb-6">
+        Streamline your club operations with powerful tools for team management,
+        tournament enrollment, and fan engagement.
+      </p>
+
+      <ul className="space-y-3 mb-8">
+        {[
+          "Enroll in Tournaments",
+          "Manage Teams & Rosters",
+          "Schedule Practice Sessions",
+          "Wallet Management",
+        ].map((feature, index) => (
+          <li key={index} className="flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span className="text-gray-700 font-medium">{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+        Read More
+      </button>
+    </div>
+
+  </div>
+</section>
 
       {/* Fan Experience Section */}
       <section className="py-20 px-6 bg-white">

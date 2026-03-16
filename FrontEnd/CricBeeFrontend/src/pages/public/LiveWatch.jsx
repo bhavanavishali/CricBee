@@ -314,6 +314,30 @@ const LiveWatch = () => {
     return totalOvers > 0 ? Math.round((currentOvers / totalOvers) * 100) : 0;
   };
 
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return '';
+    
+    // Convert YouTube watch URL to embed URL
+    const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (youtubeMatch && youtubeMatch[1]) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}?autoplay=1&mute=1`;
+    }
+    
+    // Convert youtu.be URL to embed URL
+    const youtuBeMatch = url.match(/(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (youtuBeMatch && youtuBeMatch[1]) {
+      return `https://www.youtube.com/embed/${youtuBeMatch[1]}?autoplay=1&mute=1`;
+    }
+    
+    // Convert YouTube live URL to embed URL
+    const liveMatch = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/live\/([a-zA-Z0-9_-]+)/);
+    if (liveMatch && liveMatch[1]) {
+      return `https://www.youtube.com/embed/${liveMatch[1]}?autoplay=1&mute=1`;
+    }
+    
+    // Return as-is if already embed URL or other platform
+    return url;
+  };
 
   if (loading) {
     return (
@@ -417,7 +441,7 @@ const LiveWatch = () => {
                 {scoreboard?.streaming_url ? (
                   <iframe
                     className="w-full h-full"
-                    src={scoreboard.streaming_url}
+                    src={getYouTubeEmbedUrl(scoreboard.streaming_url)}
                     title="Live Cricket Stream"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen

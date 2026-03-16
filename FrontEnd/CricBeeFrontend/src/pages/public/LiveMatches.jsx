@@ -10,7 +10,7 @@ const LiveMatches = () => {
 
   useEffect(() => {
     loadLiveMatches();
-    // Refresh every 5 seconds for live matches
+  
     const interval = setInterval(loadLiveMatches, 5000);
     return () => clearInterval(interval);
   }, []);
