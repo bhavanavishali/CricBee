@@ -307,13 +307,13 @@ export default function Home() {
                     <Trophy className="w-16 h-16 text-gray-400" />
                   </div>
                   <div className="p-5">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 ${
+                    {/* <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 ${
                       tournament.status_badge === 'ongoing' ? 'bg-red-500' : 
                       tournament.status_badge === 'upcoming' ? 'bg-blue-500' : 
                       'bg-gray-500'
                     }`}>
                       {tournament.status_badge.toUpperCase()}
-                    </span>
+                    </span> */}
                     <h3 className="font-bold text-lg mb-2">{tournament.tournament_name}</h3>
                     <div className="space-y-1 text-sm text-gray-300 mb-4">
                       {tournament.location && (
@@ -355,34 +355,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Organizers Section */}
-      {/* <section className="py-20 px-6 bg-gradient-to-r from-green-50 to-slate-900">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div className="text-white md:text-gray-900">
-            <h2 className="text-4xl font-bold mb-4">Organizers, Host Your Cricket Tournament on CricB!</h2>
-            <p className="text-lg mb-6 opacity-90">
-              Everything you need to create, manage, and monetize successful cricket tournaments with our comprehensive platform.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {["Live Scoring & Streaming", "Player Registration & Teams", "Automated Fixture Management", "Fan Engagement Tools"].map((feature, index) => (
-                <li key={index} className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => navigate("/signup")}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-lg"
-            >
-              Create Your Tournament
-            </button>
-          </div>
-          
-        </div>
-      </section> */}
-
-
+      
 
 
 
