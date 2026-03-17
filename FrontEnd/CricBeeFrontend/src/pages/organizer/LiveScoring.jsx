@@ -759,7 +759,7 @@ const LiveScoring = () => {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 mb-3">
+                    {/* <div className="grid grid-cols-4 gap-2 mb-3">
                       {[
                         { key: 'wide', label: 'Wide' },
                         { key: 'no_ball', label: 'No Ball' },
@@ -793,7 +793,7 @@ const LiveScoring = () => {
                         maxLength={500}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                    </div>
+                    </div> */}
 
                     <div className="grid grid-cols-2 gap-2">
                       <button
