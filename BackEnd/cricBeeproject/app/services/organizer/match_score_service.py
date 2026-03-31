@@ -20,6 +20,19 @@ from app.models.organizer.fixture import PlayingXI
 from app.services.organizer import point_table_service
 import math
 import asyncio
+import logging
+import traceback
+ 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ 
+
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def update_toss(
     db: Session,
@@ -74,6 +87,573 @@ def update_toss(
     
     db.commit()
     db.refresh(match)
+
+def update_score(
+    db: Session,
+    match_id: int,
+    organizer_id: int,
+    score_data: UpdateScoreRequest
+) -> BallByBall:
+   
+    logger.info(f"Starting score update for match_id: {match_id}, organizer_id: {organizer_id}")
+    logger.debug(f"Score data: {score_data}")
+    
+    try:
+        # Validate input parameters
+        if not score_data:
+            raise ValueError("Score data is required")
+        
+        if score_data.runs is None or score_data.runs < 0:
+            raise ValueError("Runs must be a non-negative number")
+        
+        if score_data.batsman_id is None:
+            raise ValueError("Batsman ID is required")
+        
+        if score_data.bowler_id is None:
+            raise ValueError("Bowler ID is required")
+        
+        logger.info(f"Validated input parameters - batsman: {score_data.batsman_id}, bowler: {score_data.bowler_id}, runs: {score_data.runs}")
+        
+        # Fetch and validate match
+        try:
+            match = db.query(Match).options(
+                joinedload(Match.batting_team),
+                joinedload(Match.bowling_team)
+            ).filter(Match.id == match_id).first()
+            
+            if not match:
+                raise ValueError(f"Match with ID {match_id} not found")
+            
+            logger.info(f"Found match: {match.id}, status: {match.match_status}")
+            
+        except Exception as e:
+            logger.error(f"Database error fetching match {match_id}: {str(e)}")
+            raise ValueError(f"Failed to fetch match: {str(e)}")
+        
+        # Validate tournament and organizer access
+        try:
+            tournament = db.query(Tournament).filter(
+                Tournament.id == match.tournament_id,
+                Tournament.organizer_id == organizer_id
+            ).first()
+            
+            if not tournament:
+                raise ValueError(f"Tournament not found or access denied for organizer {organizer_id}")
+            
+            logger.info(f"Validated tournament access: {tournament.id}")
+            
+        except Exception as e:
+            logger.error(f"Database error validating tournament access: {str(e)}")
+            raise ValueError(f"Failed to validate tournament access: {str(e)}")
+        
+        # Validate match status
+        if match.match_status != 'live':
+            logger.warning(f"Attempt to update score for non-live match. Status: {match.match_status}")
+            raise ValueError(f"Match is not live. Current status: {match.match_status}")
+        
+        # Fetch batting score with error handling
+        try:
+            batting_score = db.query(MatchScore).filter(
+                MatchScore.match_id == match_id,
+                MatchScore.team_id == match.batting_team_id
+            ).first()
+            
+            if not batting_score:
+                logger.error(f"Batting score not initialized for match {match_id}, team {match.batting_team_id}")
+                raise ValueError("Match score not initialized. Please start the match first.")
+            
+            logger.info(f"Found batting score: runs={batting_score.runs}, wickets={batting_score.wickets}, balls={batting_score.balls}")
+            
+        except Exception as e:
+            logger.error(f"Database error fetching batting score: {str(e)}")
+            raise ValueError(f"Failed to fetch batting score: {str(e)}")
+        
+        # Get tournament details and validate innings completion
+        try:
+            tournament_details = tournament.details
+            max_overs = tournament_details.overs if tournament_details else 20
+            max_balls = max_overs * 6
+            
+            logger.info(f"Tournament overs: {max_overs}, max balls: {max_balls}")
+            
+            # Check if innings is complete
+            if batting_score.wickets >= 10:
+                logger.warning(f"Innings complete - all wickets fallen ({batting_score.wickets})")
+                raise ValueError("Innings is complete - all wickets have fallen")
+            
+            if batting_score.balls >= max_balls:
+                logger.warning(f"Innings complete - overs completed ({batting_score.balls}/{max_balls})")
+                raise ValueError(f"Innings is complete - {max_overs} overs completed")
+                
+        except Exception as e:
+            if "Innings is complete" in str(e):
+                raise
+            logger.error(f"Error validating tournament details: {str(e)}")
+            raise ValueError(f"Failed to validate tournament details: {str(e)}")
+        
+        # Validate score data constraints
+        try:
+            if score_data.is_wide or score_data.is_no_ball:
+                if score_data.runs < 0:
+                    raise ValueError("Runs cannot be negative for wide/no-ball")
+            else:
+                if score_data.runs < 0 or score_data.runs > 6:
+                    raise ValueError("Runs must be between 0 and 6 for normal deliveries")
+            
+            # Validate wicket data
+            if score_data.is_wicket:
+                if not score_data.dismissed_batsman_id:
+                    raise ValueError("Dismissed batsman ID is required when wicket falls")
+                if not score_data.wicket_type:
+                    raise ValueError("Wicket type is required when wicket falls")
+            
+            logger.info(f"Score data validation passed")
+            
+        except ValueError as e:
+            logger.warning(f"Score data validation failed: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during score validation: {str(e)}")
+            raise ValueError(f"Score validation failed: {str(e)}")
+        
+        # Determine over and ball numbers with error handling
+        try:
+            other_team_id = match.team_a_id if match.batting_team_id == match.team_b_id else match.team_b_id
+            other_team_score = db.query(MatchScore).filter(
+                MatchScore.match_id == match_id,
+                MatchScore.team_id == other_team_id
+            ).first()
+            
+            is_second_innings = other_team_score and other_team_score.balls > 0
+            logger.info(f"Innings type: {'second' if is_second_innings else 'first'}")
+            
+            # Calculate current over and ball
+            if is_second_innings:
+                last_ball = db.query(BallByBall).filter(
+                    BallByBall.match_id == match_id,
+                    BallByBall.over_number > max_overs
+                ).order_by(
+                    BallByBall.over_number.desc(),
+                    BallByBall.ball_number.desc()
+                ).first()
+                
+                if not last_ball:
+                    current_over = 1
+                    current_ball = 1
+                    actual_over_number = max_overs + 1
+                else:
+                    display_over = last_ball.over_number - max_overs
+                    balls_in_last_over = db.query(BallByBall).filter(
+                        BallByBall.match_id == match_id,
+                        BallByBall.over_number == last_ball.over_number,
+                        BallByBall.is_wide == False,
+                        BallByBall.is_no_ball == False
+                    ).count()
+                    
+                    if balls_in_last_over >= 6:
+                        display_over = display_over + 1
+                        current_ball = 1
+                    else:
+                        current_ball = balls_in_last_over + 1
+                    
+                    current_over = display_over
+                    actual_over_number = max_overs + display_over
+            else:
+                last_ball = db.query(BallByBall).filter(
+                    BallByBall.match_id == match_id,
+                    BallByBall.over_number <= max_overs
+                ).order_by(
+                    BallByBall.over_number.desc(),
+                    BallByBall.ball_number.desc()
+                ).first()
+                
+                if last_ball:
+                    actual_over_number = last_ball.over_number
+                    current_over = last_ball.over_number
+                    balls_in_last_over = db.query(BallByBall).filter(
+                        BallByBall.match_id == match_id,
+                        BallByBall.over_number == current_over,
+                        BallByBall.is_wide == False,
+                        BallByBall.is_no_ball == False
+                    ).count()
+                    
+                    if balls_in_last_over >= 6:
+                        actual_over_number = current_over + 1
+                        current_over = current_over + 1
+                        current_ball = 1
+                    else:
+                        current_ball = balls_in_last_over + 1
+                else:
+                    actual_over_number = 1
+                    current_over = 1
+                    current_ball = 1
+            
+            logger.info(f"Calculated over/ball: over={actual_over_number}, ball={current_ball}, display_over={current_over}")
+            
+        except Exception as e:
+            logger.error(f"Error calculating over/ball numbers: {str(e)}")
+            raise ValueError(f"Failed to calculate over/ball numbers: {str(e)}")
+        
+        # Get or create batsman stats with error handling
+        try:
+            batsman_stat = db.query(PlayerMatchStats).filter(
+                PlayerMatchStats.match_id == match_id,
+                PlayerMatchStats.player_id == score_data.batsman_id
+            ).first()
+            
+            if not batsman_stat:
+                logger.info(f"Creating new batsman stats for player {score_data.batsman_id}")
+                
+                batsman_playing_xi = db.query(PlayingXI).filter(
+                    PlayingXI.match_id == match_id,
+                    PlayingXI.player_id == score_data.batsman_id,
+                    PlayingXI.club_id == match.batting_team_id
+                ).first()
+                
+                if not batsman_playing_xi:
+                    logger.error(f"Batsman {score_data.batsman_id} not in batting team's Playing XI")
+                    raise ValueError(f"Batsman (ID: {score_data.batsman_id}) is not in the batting team's Playing XI")
+                
+                batsman_stat = PlayerMatchStats(
+                    match_id=match_id,
+                    player_id=score_data.batsman_id,
+                    team_id=match.batting_team_id,
+                    runs=0,
+                    balls_faced=0,
+                    fours=0,
+                    sixes=0,
+                    is_out=False,
+                    overs_bowled=Decimal('0.0'),
+                    maidens=0,
+                    runs_conceded=0,
+                    wickets_taken=0,
+                    is_batting=False,
+                    is_bowling=False,
+                    is_striker=False
+                )
+                db.add(batsman_stat)
+                logger.info(f"Created batsman stats for player {score_data.batsman_id}")
+            
+        except ValueError as e:
+            raise
+        except Exception as e:
+            logger.error(f"Error handling batsman stats: {str(e)}")
+            raise ValueError(f"Failed to handle batsman stats: {str(e)}")
+        
+        # Get or create bowler stats with error handling
+        try:
+            bowler_stat = db.query(PlayerMatchStats).filter(
+                PlayerMatchStats.match_id == match_id,
+                PlayerMatchStats.player_id == score_data.bowler_id
+            ).first()
+            
+            if not bowler_stat:
+                logger.info(f"Creating new bowler stats for player {score_data.bowler_id}")
+                
+                bowler_playing_xi = db.query(PlayingXI).filter(
+                    PlayingXI.match_id == match_id,
+                    PlayingXI.player_id == score_data.bowler_id,
+                    PlayingXI.club_id == match.bowling_team_id
+                ).first()
+                
+                if not bowler_playing_xi:
+                    logger.error(f"Bowler {score_data.bowler_id} not in bowling team's Playing XI")
+                    raise ValueError(f"Bowler (ID: {score_data.bowler_id}) is not in the bowling team's Playing XI")
+                
+                bowler_stat = PlayerMatchStats(
+                    match_id=match_id,
+                    player_id=score_data.bowler_id,
+                    team_id=match.bowling_team_id,
+                    runs=0,
+                    balls_faced=0,
+                    fours=0,
+                    sixes=0,
+                    is_out=False,
+                    overs_bowled=Decimal('0.0'),
+                    maidens=0,
+                    runs_conceded=0,
+                    wickets_taken=0,
+                    is_batting=False,
+                    is_bowling=False,
+                    is_striker=False
+                )
+                db.add(bowler_stat)
+                logger.info(f"Created bowler stats for player {score_data.bowler_id}")
+                
+        except ValueError as e:
+            raise
+        except Exception as e:
+            logger.error(f"Error handling bowler stats: {str(e)}")
+            raise ValueError(f"Failed to handle bowler stats: {str(e)}")
+        
+        # Update scores and stats with comprehensive error handling
+        try:
+            actual_runs = score_data.runs
+            
+            # Update batting and bowling scores
+            if score_data.is_wide or score_data.is_no_ball:
+                batting_score.extras += actual_runs
+                batting_score.runs += actual_runs
+                logger.debug(f"Updated extras for wide/no-ball: +{actual_runs}")
+            elif score_data.is_bye or score_data.is_leg_bye:
+                batting_score.runs += actual_runs
+                batting_score.extras += actual_runs
+                logger.debug(f"Updated runs for bye/leg-bye: +{actual_runs}")
+            else:
+                batting_score.runs += actual_runs
+                batsman_stat.runs += actual_runs
+                batsman_stat.balls_faced += 1
+                bowler_stat.runs_conceded += actual_runs
+                logger.debug(f"Updated normal scoring: batsman +{actual_runs}, bowler +{actual_runs}")
+            
+            # Update boundaries
+            if score_data.is_four or actual_runs == 4:
+                batting_score.fours += 1
+                if not score_data.is_bye and not score_data.is_leg_bye:
+                    batsman_stat.fours += 1
+                logger.debug("Updated four count")
+            
+            if score_data.is_six or actual_runs == 6:
+                batting_score.sixes += 1
+                if not score_data.is_bye and not score_data.is_leg_bye:
+                    batsman_stat.sixes += 1
+                logger.debug("Updated six count")
+            
+            # Handle legal balls
+            legal_ball_bowled = False
+            if not score_data.is_wide and not score_data.is_no_ball:
+                batting_score.balls += 1
+                legal_ball_bowled = True
+                
+                existing_legal_balls = db.query(BallByBall).filter(
+                    BallByBall.match_id == match_id,
+                    BallByBall.bowler_id == score_data.bowler_id,
+                    BallByBall.is_wide == False,
+                    BallByBall.is_no_ball == False
+                ).count()
+                
+                total_legal_balls = existing_legal_balls + 1
+                bowler_stat.overs_bowled = Decimal(str(total_legal_balls // 6)) + Decimal(str(total_legal_balls % 6)) / Decimal('10')
+                logger.debug(f"Updated bowler overs: {bowler_stat.overs_bowled}")
+            
+            # Handle wickets
+            if score_data.is_wicket:
+                batting_score.wickets += 1
+                logger.info(f"Wicket fallen: {score_data.wicket_type}, batsman: {score_data.dismissed_batsman_id}")
+                
+                dismissed_stat = db.query(PlayerMatchStats).filter(
+                    PlayerMatchStats.match_id == match_id,
+                    PlayerMatchStats.player_id == score_data.dismissed_batsman_id
+                ).first()
+                
+                if dismissed_stat:
+                    dismissed_stat.is_out = True
+                    dismissed_stat.dismissal_type = score_data.wicket_type
+                    if score_data.bowler_id:
+                        dismissed_stat.dismissed_by_player_id = score_data.bowler_id
+                else:
+                    logger.error(f"Dismissed batsman stats not found: {score_data.dismissed_batsman_id}")
+                    raise ValueError(f"Dismissed batsman (ID: {score_data.dismissed_batsman_id}) stats not found")
+                
+                if score_data.dismissed_batsman_id == score_data.batsman_id:
+                    batsman_stat.is_out = True
+                    batsman_stat.dismissal_type = score_data.wicket_type
+                
+                bowler_stat.wickets_taken += 1
+                logger.debug(f"Updated wicket stats")
+            
+            # Calculate rates and economy
+            batting_score.overs = Decimal(str(batting_score.balls // 6)) + Decimal(str(batting_score.balls % 6)) / Decimal('10')
+            
+            if batting_score.balls > 0:
+                batting_score.run_rate = Decimal(str(batting_score.runs)) / (Decimal(str(batting_score.balls)) / Decimal('6'))
+            
+            if batsman_stat.balls_faced > 0:
+                batsman_stat.strike_rate = (Decimal(str(batsman_stat.runs)) / Decimal(str(batsman_stat.balls_faced))) * Decimal('100')
+            
+            if bowler_stat.overs_bowled > 0:
+                bowler_balls = int(bowler_stat.overs_bowled) * 6 + int((bowler_stat.overs_bowled % 1) * 10)
+                if bowler_balls > 0:
+                    bowler_stat.economy = Decimal(str(bowler_stat.runs_conceded)) / (Decimal(str(bowler_balls)) / Decimal('6'))
+            
+            # Update batting/bowling status
+            batsman_stat.is_batting = True
+            bowler_stat.is_bowling = True
+            
+            logger.info("Successfully updated all scores and stats")
+            
+        except Exception as e:
+            logger.error(f"Error updating scores and stats: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise ValueError(f"Failed to update scores and stats: {str(e)}")
+        
+        # Create ball record with error handling
+        try:
+            ball_record = BallByBall(
+                match_id=match_id,
+                over_number=actual_over_number,
+                ball_number=current_ball,
+                batsman_id=score_data.batsman_id,
+                bowler_id=score_data.bowler_id,
+                runs=actual_runs,
+                is_wicket=score_data.is_wicket,
+                wicket_type=score_data.wicket_type,
+                dismissed_batsman_id=score_data.dismissed_batsman_id,
+                is_wide=score_data.is_wide,
+                is_no_ball=score_data.is_no_ball,
+                is_bye=score_data.is_bye,
+                is_leg_bye=score_data.is_leg_bye,
+                is_four=score_data.is_four or actual_runs == 4,
+                is_six=score_data.is_six or actual_runs == 6,
+                commentary=score_data.commentary
+            )
+            
+            db.add(ball_record)
+            db.commit()
+            db.refresh(ball_record)
+            db.refresh(batting_score)
+            db.refresh(batsman_stat)
+            db.refresh(bowler_stat)
+            
+            logger.info(f"Created ball record: over={actual_over_number}, ball={current_ball}, runs={actual_runs}")
+            
+        except Exception as e:
+            logger.error(f"Error creating ball record: {str(e)}")
+            logger.error(traceback.format_exc())
+            db.rollback()
+            raise ValueError(f"Failed to create ball record: {str(e)}")
+        
+        # Handle striker rotation with error handling
+        try:
+            balls_in_over = db.query(BallByBall).filter(
+                BallByBall.match_id == match_id,
+                BallByBall.over_number == current_over,
+                BallByBall.is_wide == False,
+                BallByBall.is_no_ball == False
+            ).count()
+            
+            over_complete = balls_in_over >= 6
+            
+            current_batsmen = db.query(PlayerMatchStats).filter(
+                PlayerMatchStats.match_id == match_id,
+                PlayerMatchStats.team_id == match.batting_team_id,
+                PlayerMatchStats.is_batting == True,
+                PlayerMatchStats.is_out == False
+            ).all()
+            
+            striker_stat = None
+            non_striker_stat = None
+            
+            for stat in current_batsmen:
+                if stat.is_striker:
+                    striker_stat = stat
+                else:
+                    non_striker_stat = stat
+            
+            if not striker_stat:
+                striker_stat = batsman_stat
+                if batsman_stat not in current_batsmen:
+                    batsman_stat.is_batting = True
+                    batsman_stat.is_striker = True
+            
+            if not striker_stat:
+                striker_stat = batsman_stat
+                striker_stat.is_striker = True
+                striker_stat.is_batting = True
+            
+            if not non_striker_stat:
+                for stat in current_batsmen:
+                    if stat.player_id != striker_stat.player_id:
+                        non_striker_stat = stat
+                        break
+            
+            # Perform striker rotation if both players are available
+            if striker_stat and non_striker_stat:
+                should_swap = False
+                
+                if score_data.is_wicket:
+                    dismissed_stat = db.query(PlayerMatchStats).filter(
+                        PlayerMatchStats.match_id == match_id,
+                        PlayerMatchStats.player_id == score_data.dismissed_batsman_id
+                    ).first()
+                    
+                    if dismissed_stat:
+                        was_striker = dismissed_stat.is_striker
+                        dismissed_stat.is_striker = False
+                        dismissed_stat.is_batting = False
+                        should_swap = was_striker
+                elif over_complete:
+                    should_swap = True
+                elif score_data.is_wide:
+                    should_swap = False
+                elif score_data.is_no_ball:
+                    runs_from_bat = actual_runs - 1 if actual_runs > 1 else 0
+                    if runs_from_bat > 0 and not score_data.is_bye and not score_data.is_leg_bye:
+                        should_swap = (runs_from_bat % 2 == 1)
+                    else:
+                        should_swap = False
+                else:
+                    should_swap = (actual_runs % 2 == 1)
+                
+                if should_swap:
+                    striker_stat.is_striker = False
+                    non_striker_stat.is_striker = True
+                    db.commit()
+                    db.refresh(striker_stat)
+                    db.refresh(non_striker_stat)
+                    logger.debug("Performed striker rotation")
+            
+        except Exception as e:
+            logger.error(f"Error handling striker rotation: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Don't raise error for striker rotation issues as they're not critical
+        
+        # WebSocket broadcast with enhanced error handling
+        try:
+            from app.core.websocket_manager import manager
+            
+            updated_scoreboard = get_live_scoreboard(db, match_id)
+            
+            asyncio.create_task(
+                manager.broadcast_to_match({
+                    "type": "score_update",
+                    "match_id": match_id,
+                    "scoreboard": updated_scoreboard.dict(),
+                    "last_ball": {
+                        "over_number": ball_record.over_number,
+                        "ball_number": ball_record.ball_number,
+                        "runs": ball_record.runs,
+                        "is_wicket": ball_record.is_wicket,
+                        "is_wide": ball_record.is_wide,
+                        "is_no_ball": ball_record.is_no_ball,
+                        "is_bye": ball_record.is_bye,
+                        "is_leg_bye": ball_record.is_leg_bye,
+                        "batsman_name": ball_record.batsman.user.full_name if ball_record.batsman and ball_record.batsman.user else "Unknown",
+                        "bowler_name": ball_record.bowler.user.full_name if ball_record.bowler and ball_record.bowler.user else "Unknown"
+                    }
+                }, match_id)
+            )
+            logger.info("WebSocket broadcast initiated successfully")
+            
+        except ImportError as e:
+            logger.warning(f"WebSocket manager not available: {str(e)}")
+        except Exception as e:
+            logger.error(f"WebSocket broadcast error: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Don't raise error for WebSocket issues as they're not critical to score update
+        
+        logger.info(f"Score update completed successfully for match {match_id}")
+        return ball_record
+        
+    except ValueError as e:
+        logger.error(f"Validation error in update_score: {str(e)}")
+        db.rollback()
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in update_score: {str(e)}")
+        logger.error(traceback.format_exc())
+        db.rollback()
+        raise ValueError(f"Unexpected error updating score: {str(e)}")
     
     return match
 
@@ -188,479 +768,6 @@ def start_match(
     
     return match
 
-def update_score(
-    db: Session,
-    match_id: int,
-    organizer_id: int,
-    score_data: UpdateScoreRequest
-) -> BallByBall:
-  
-    
-   
-    match = db.query(Match).options(
-        joinedload(Match.batting_team),
-        joinedload(Match.bowling_team)
-    ).filter(Match.id == match_id).first()
-    
-    if not match:
-        raise ValueError("Match not found")
-    
-    
-    tournament = db.query(Tournament).filter(
-        Tournament.id == match.tournament_id,
-        Tournament.organizer_id == organizer_id
-    ).first()
-    
-    if not tournament:
-        raise ValueError("Tournament not found or access denied")
-    
-   
-    if match.match_status != 'live':
-        raise ValueError("Match is not live")
-    
-    batting_score = db.query(MatchScore).filter(
-        MatchScore.match_id == match_id,
-        MatchScore.team_id == match.batting_team_id
-    ).first()
-    
-    if not batting_score:
-        raise ValueError("Match score not initialized. Please start the match first.")
-    
-   
-    tournament_details = tournament.details
-    max_overs = tournament_details.overs if tournament_details else 20
-    max_balls = max_overs * 6
-    
-    
-    if batting_score.wickets >= 10 or batting_score.balls >= max_balls:
-        raise ValueError("Innings is complete")
-    
-    
-   
-    other_team_id = match.team_a_id if match.batting_team_id == match.team_b_id else match.team_b_id
-    other_team_score = db.query(MatchScore).filter(
-        MatchScore.match_id == match_id,
-        MatchScore.team_id == other_team_id
-    ).first()
-    
-    is_second_innings = other_team_score and other_team_score.balls > 0
-    
-    
-    max_overs = tournament_details.overs if tournament_details else 20
-    
-    if is_second_innings:
-
-        last_ball = db.query(BallByBall).filter(
-            BallByBall.match_id == match_id,
-            BallByBall.over_number > max_overs
-        ).order_by(
-            BallByBall.over_number.desc(),
-            BallByBall.ball_number.desc()
-        ).first()
-        
-        if not last_ball:
-            
-            current_over = 1
-            current_ball = 1
-            actual_over_number = max_overs + 1
-        else:
-            display_over = last_ball.over_number - max_overs  
-            
-            
-            balls_in_last_over = db.query(BallByBall).filter(
-                BallByBall.match_id == match_id,
-                BallByBall.over_number == last_ball.over_number,
-                BallByBall.is_wide == False,
-                BallByBall.is_no_ball == False
-            ).count()
-            
-            if balls_in_last_over >= 6:
-                # Move to next over in second innings
-                display_over = display_over + 1
-                current_ball = 1
-            else:
-                # Set ball number based on legal balls count
-                current_ball = balls_in_last_over + 1
-            
-            current_over = display_over
-            
-            actual_over_number = max_overs + display_over
-    else:
-        
-        last_ball = db.query(BallByBall).filter(
-            BallByBall.match_id == match_id,
-            BallByBall.over_number <= max_overs
-        ).order_by(
-            BallByBall.over_number.desc(),
-            BallByBall.ball_number.desc()
-        ).first()
-        
-        if last_ball:
-            actual_over_number = last_ball.over_number
-            current_over = last_ball.over_number
-            
-            
-            balls_in_last_over = db.query(BallByBall).filter(
-                BallByBall.match_id == match_id,
-                BallByBall.over_number == current_over,
-                BallByBall.is_wide == False,
-                BallByBall.is_no_ball == False
-            ).count()
-            
-            if balls_in_last_over >= 6:
-                # Move to next over
-                actual_over_number = current_over + 1
-                current_over = current_over + 1
-                current_ball = 1
-            else:
-                
-                current_ball = balls_in_last_over + 1
-        else:
-            
-            actual_over_number = 1
-            current_over = 1
-            current_ball = 1
-    
-   
-    if score_data.is_wide or score_data.is_no_ball:
-        
-        if score_data.runs < 0:
-            raise ValueError("Runs cannot be negative")
-    else:
-        if score_data.runs < 0 or score_data.runs > 6:
-            raise ValueError("Runs must be between 0 and 6")
-    
-    
-    if score_data.is_wicket:
-        if not score_data.dismissed_batsman_id:
-            raise ValueError("Dismissed batsman ID is required when wicket falls")
-        if not score_data.wicket_type:
-            raise ValueError("Wicket type is required when wicket falls")
-    
-
-    batsman_stat = db.query(PlayerMatchStats).filter(
-        PlayerMatchStats.match_id == match_id,
-        PlayerMatchStats.player_id == score_data.batsman_id
-    ).first()
-    
-    if not batsman_stat:
- 
-        batsman_playing_xi = db.query(PlayingXI).filter(
-            PlayingXI.match_id == match_id,
-            PlayingXI.player_id == score_data.batsman_id,
-            PlayingXI.club_id == match.batting_team_id
-        ).first()
-        
-        if not batsman_playing_xi:
-            raise ValueError(f"Batsman (ID: {score_data.batsman_id}) is not in the batting team's Playing XI")
-        
-        batsman_stat = PlayerMatchStats(
-            match_id=match_id,
-            player_id=score_data.batsman_id,
-            team_id=match.batting_team_id,
-            runs=0,
-            balls_faced=0,
-            fours=0,
-            sixes=0,
-            is_out=False,
-            overs_bowled=Decimal('0.0'),
-            maidens=0,
-            runs_conceded=0,
-            wickets_taken=0,
-            is_batting=False,
-            is_bowling=False,
-            is_striker=False
-        )
-        db.add(batsman_stat)
-    
-    bowler_stat = db.query(PlayerMatchStats).filter(
-        PlayerMatchStats.match_id == match_id,
-        PlayerMatchStats.player_id == score_data.bowler_id
-    ).first()
-    
-    if not bowler_stat:
- 
-        bowler_playing_xi = db.query(PlayingXI).filter(
-            PlayingXI.match_id == match_id,
-            PlayingXI.player_id == score_data.bowler_id,
-            PlayingXI.club_id == match.bowling_team_id
-        ).first()
-        
-        if not bowler_playing_xi:
-            raise ValueError(f"Bowler (ID: {score_data.bowler_id}) is not in the bowling team's Playing XI")
-        
-       
-        bowler_stat = PlayerMatchStats(
-            match_id=match_id,
-            player_id=score_data.bowler_id,
-            team_id=match.bowling_team_id,
-            runs=0,
-            balls_faced=0,
-            fours=0,
-            sixes=0,
-            is_out=False,
-            overs_bowled=Decimal('0.0'),
-            maidens=0,
-            runs_conceded=0,
-            wickets_taken=0,
-            is_batting=False,
-            is_bowling=False,
-            is_striker=False
-        )
-        db.add(bowler_stat)
-    
-    
-    actual_runs = score_data.runs
-    if score_data.is_wide or score_data.is_no_ball:
-       
-        batting_score.extras += actual_runs
-        batting_score.runs += actual_runs
-    elif score_data.is_bye or score_data.is_leg_bye:
-    
-        batting_score.runs += actual_runs
-        batting_score.extras += actual_runs
-    else:
-       
-        batting_score.runs += actual_runs
-        batsman_stat.runs += actual_runs
-        batsman_stat.balls_faced += 1
-        bowler_stat.runs_conceded += actual_runs
-    
-   
-    if score_data.is_four or actual_runs == 4:
-        batting_score.fours += 1
-        if not score_data.is_bye and not score_data.is_leg_bye:
-            batsman_stat.fours += 1
-    
-    if score_data.is_six or actual_runs == 6:
-        batting_score.sixes += 1
-        if not score_data.is_bye and not score_data.is_leg_bye:
-            batsman_stat.sixes += 1
-    
-
-    legal_ball_bowled = False
-    if not score_data.is_wide and not score_data.is_no_ball:
-        batting_score.balls += 1
-        legal_ball_bowled = True
-        
-        existing_legal_balls = db.query(BallByBall).filter(
-            BallByBall.match_id == match_id,
-            BallByBall.bowler_id == score_data.bowler_id,
-            BallByBall.is_wide == False,
-            BallByBall.is_no_ball == False
-        ).count()
-        
-       
-        total_legal_balls = existing_legal_balls + 1
-        
-    
-        bowler_stat.overs_bowled = Decimal(str(total_legal_balls // 6)) + Decimal(str(total_legal_balls % 6)) / Decimal('10')
-    
-    if score_data.is_wicket:
-        batting_score.wickets += 1
-        
-        
-        dismissed_stat = db.query(PlayerMatchStats).filter(
-            PlayerMatchStats.match_id == match_id,
-            PlayerMatchStats.player_id == score_data.dismissed_batsman_id
-        ).first()
-        
-        if dismissed_stat:
-            dismissed_stat.is_out = True
-            dismissed_stat.dismissal_type = score_data.wicket_type
-            if score_data.bowler_id:
-                dismissed_stat.dismissed_by_player_id = score_data.bowler_id
-        else:
-            raise ValueError(f"Dismissed batsman (ID: {score_data.dismissed_batsman_id}) stats not found")
-        
-        
-        if score_data.dismissed_batsman_id == score_data.batsman_id:
-            batsman_stat.is_out = True
-            batsman_stat.dismissal_type = score_data.wicket_type
-        
-        bowler_stat.wickets_taken += 1
-    
-  
-    batting_score.overs = Decimal(str(batting_score.balls // 6)) + Decimal(str(batting_score.balls % 6)) / Decimal('10')
- 
-    if batting_score.balls > 0:
-        batting_score.run_rate = Decimal(str(batting_score.runs)) / (Decimal(str(batting_score.balls)) / Decimal('6'))
-    
-   
-    if batsman_stat.balls_faced > 0:
-        batsman_stat.strike_rate = (Decimal(str(batsman_stat.runs)) / Decimal(str(batsman_stat.balls_faced))) * Decimal('100')
-    
-
-    if bowler_stat.overs_bowled > 0:
-        
-        bowler_balls = int(bowler_stat.overs_bowled) * 6 + int((bowler_stat.overs_bowled % 1) * 10)
-        if bowler_balls > 0:
-            bowler_stat.economy = Decimal(str(bowler_stat.runs_conceded)) / (Decimal(str(bowler_balls)) / Decimal('6'))
-    
-  
-    batsman_stat.is_batting = True
-    bowler_stat.is_bowling = True
-    
-
-    ball_record = BallByBall(
-        match_id=match_id,
-        over_number=actual_over_number,
-        ball_number=current_ball,
-        batsman_id=score_data.batsman_id,
-        bowler_id=score_data.bowler_id,
-        runs=actual_runs,
-        is_wicket=score_data.is_wicket,
-        wicket_type=score_data.wicket_type,
-        dismissed_batsman_id=score_data.dismissed_batsman_id,
-        is_wide=score_data.is_wide,
-        is_no_ball=score_data.is_no_ball,
-        is_bye=score_data.is_bye,
-        is_leg_bye=score_data.is_leg_bye,
-        is_four=score_data.is_four or actual_runs == 4,
-        is_six=score_data.is_six or actual_runs == 6,
-        commentary=score_data.commentary
-    )
-    
-    db.add(ball_record)
-    db.commit()
-    db.refresh(ball_record)
-    db.refresh(batting_score)
-    db.refresh(batsman_stat)
-    db.refresh(bowler_stat)
-    
-  
-    balls_in_over = db.query(BallByBall).filter(
-        BallByBall.match_id == match_id,
-        BallByBall.over_number == current_over,
-        BallByBall.is_wide == False,
-        BallByBall.is_no_ball == False
-    ).count()
-    
-    over_complete = balls_in_over >= 6
-    
-   
-    current_batsmen = db.query(PlayerMatchStats).filter(
-        PlayerMatchStats.match_id == match_id,
-        PlayerMatchStats.team_id == match.batting_team_id,
-        PlayerMatchStats.is_batting == True,
-        PlayerMatchStats.is_out == False
-    ).all()
-    
-    striker_stat = None
-    non_striker_stat = None
-    
-    for stat in current_batsmen:
-        if stat.is_striker:
-            striker_stat = stat
-        else:
-            non_striker_stat = stat
-    
-    
-    if not striker_stat:
-        striker_stat = batsman_stat
-        if batsman_stat not in current_batsmen:
-            batsman_stat.is_batting = True
-            batsman_stat.is_striker = True
-    
-    if not striker_stat:
-        striker_stat = batsman_stat
-        striker_stat.is_striker = True
-        striker_stat.is_batting = True
-    
-    
-    if not non_striker_stat:
-        for stat in current_batsmen:
-            if stat.player_id != striker_stat.player_id:
-                non_striker_stat = stat
-                break
-    
-    # Only proceed with striker rotation if we have both players
-    if striker_stat and non_striker_stat:
-        should_swap = False
-        
-        # Rule 1: Wicket handling
-        if score_data.is_wicket:
-            dismissed_stat = db.query(PlayerMatchStats).filter(
-                PlayerMatchStats.match_id == match_id,
-                PlayerMatchStats.player_id == score_data.dismissed_batsman_id
-            ).first()
-            
-            if dismissed_stat:
-              
-                was_striker = dismissed_stat.is_striker
-                
-                # Clear striker and batting flags for dismissed batsman
-                dismissed_stat.is_striker = False
-                dismissed_stat.is_batting = False
-                
-                if was_striker:
-               
-                    should_swap = False
-                else:
-                    # Non-striker is out - striker stays the same
-                    should_swap = False
-        # Rule 2: End of over - always swap
-        elif over_complete:
-            should_swap = True
-        # Rule 3: Wide ball - no striker change
-        elif score_data.is_wide:
-            should_swap = False
-        # Rule 4: No ball handling
-        elif score_data.is_no_ball:
-            
-            runs_from_bat = actual_runs - 1 if actual_runs > 1 else 0
-            if runs_from_bat > 0 and not score_data.is_bye and not score_data.is_leg_bye:
-                # Runs from bat - apply normal logic
-                should_swap = (runs_from_bat % 2 == 1)
-            else:
-                # Just no-ball penalty, no bat contact
-                should_swap = False
-       
-        else:
-            # Odd runs = swap, Even runs = no swap
-            should_swap = (actual_runs % 2 == 1)
-        
-        # Perform the swap if needed
-        if should_swap:
-            striker_stat.is_striker = False
-            non_striker_stat.is_striker = True
-            db.commit()
-            db.refresh(striker_stat)
-            db.refresh(non_striker_stat)
-    
-   
-    try:
-        # Import here to avoid circular imports
-        from app.core.websocket_manager import manager
-        
-        # Get updated scoreboard
-        updated_scoreboard = get_live_scoreboard(db, match_id)
-        
-        # Create async task to broadcast update
-        asyncio.create_task(
-            manager.broadcast_to_match({
-                "type": "score_update",
-                "match_id": match_id,
-                "scoreboard": updated_scoreboard.dict(),
-                "last_ball": {
-                    "over_number": ball_record.over_number,
-                    "ball_number": ball_record.ball_number,
-                    "runs": ball_record.runs,
-                    "is_wicket": ball_record.is_wicket,
-                    "is_wide": ball_record.is_wide,
-                    "is_no_ball": ball_record.is_no_ball,
-                    "is_bye": ball_record.is_bye,
-                    "is_leg_bye": ball_record.is_leg_bye,
-                    "batsman_name": ball_record.batsman.user.full_name if ball_record.batsman and ball_record.batsman.user else "Unknown",
-                    "bowler_name": ball_record.bowler.user.full_name if ball_record.bowler and ball_record.bowler.user else "Unknown"
-                }
-            }, match_id)
-        )
-    except Exception as e:
-        
-        print(f"WebSocket broadcast error: {e}")
-    
-    return ball_record
 
 def get_current_over(
     db: Session,
