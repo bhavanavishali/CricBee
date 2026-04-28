@@ -1,8 +1,5 @@
 
 
-
-
-
 import api from '@/api';
 
 
@@ -30,23 +27,52 @@ export const signIn = async (credentials) => {
 export const signUp = async (userData) => {
   try {
     const response = await api.post(`/auth/signup`, userData);
+
     const data = response.data;
 
     
     return {
       success: true,
-      message: "Sign up successful. Please check your email for OTP.",
+      message: data.message || "Sign up successful. Please check your email for OTP.",
       user: data,  
     };
   } catch (error) {
     console.error("Sign up error:", error);
+
+    const errorData = error.response?.data;
+    let errorMessage = "Signup failed. Please try again.";
+
+    if (Array.isArray(errorData) && errorData.length > 0) {
+      const firstError = errorData[0];
+      errorMessage = String(firstError?.msg || firstError?.message || errorMessage);
+    } else if (errorData?.detail) {
+      if (typeof errorData.detail === 'string') {
+        errorMessage = errorData.detail;
+      } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+        const firstError = errorData.detail[0];
+        errorMessage = String(firstError?.msg || firstError?.message || errorMessage);
+      } else if (typeof errorData.detail === 'object' && errorData.detail !== null) {
+        errorMessage = String(
+          errorData.detail.msg ||
+          errorData.detail.message ||
+          Object.values(errorData.detail)[0] ||
+          errorMessage
+        );
+      }
+    } else if (errorData?.message) {
+      errorMessage = String(errorData.message);
+    } else if (error.request) {
+      errorMessage = "Network error. Please check your internet connection.";
+    } else {
+      errorMessage = error.message || "An unexpected error occurred.";
+    }
+
     return {
       success: false,
-      message: error.response?.data?.detail || error.message || "Network error.",
+      message: String(errorMessage),
     };
   }
 };
-
 
 export const verifyOTP = async (email, otp) => {
   try {

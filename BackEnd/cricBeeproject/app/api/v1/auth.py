@@ -29,6 +29,8 @@ from app.core.config import settings
 
 @router.post("/signup", status_code=status.HTTP_200_OK)
 async def signup(payload: UserSignUp, db: Session = Depends(get_db)):
+    print(f"DEBUG: Received signup payload: {payload.dict()}")
+    print(f"DEBUG: Payload type: {type(payload)}")
 
     success, message, otp = register_pending_user(db, payload)
     

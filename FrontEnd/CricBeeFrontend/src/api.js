@@ -57,15 +57,15 @@ api.interceptors.response.use(
       }
     }
 
-    
+    // Handle Token Expired (401)
     if (error.response?.status === 401 && 
-        !originalRequest._retry && 
-        !originalRequest.url?.includes("/auth/refresh") &&
+        !originalRequest._retry &&     //This prevents infinite refresh loops.
+        !originalRequest.url?.includes("/auth/refresh") &&      //We don't refresh token for these routes.
         !originalRequest.url?.includes("/auth/signin") &&
         !originalRequest.url?.includes("/auth/signup") &&
         !originalRequest.url?.includes("/public/")) {  
       
-      originalRequest._retry = true;
+      originalRequest._retry = true;    //not retry again.
       
       try {
         
@@ -75,8 +75,8 @@ api.interceptors.response.use(
         
         
         if (refreshResponse.status === 200) {
-          delete originalRequest.headers.Authorization;
-          return api(originalRequest);
+          delete originalRequest.headers.Authorization;     //Remove old Authorization header
+          return api(originalRequest);                         //Retry original request
         }
       } catch (refreshError) {
        
@@ -84,7 +84,7 @@ api.interceptors.response.use(
             refreshError.response?.status === 403) {
           const refreshErrorMessage = refreshError.response?.data?.detail || "";
           
-          if (refreshErrorMessage.includes("inactive") || 
+          if (refreshErrorMessage.includes("inactive") ||             //Check inactive account
               refreshErrorMessage.includes("User account is inactive")) {
             
             handleUserBlocked();
@@ -108,10 +108,6 @@ api.interceptors.response.use(
   }
 );
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-}
+
 
 export default api;

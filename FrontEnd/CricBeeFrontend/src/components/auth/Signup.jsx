@@ -63,6 +63,41 @@ export default function SignUpPage() {
     setLoading(true)
 
     // Validation checks
+    if (!formData.password) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Weak Password',
+        text: 'Please enter a password.'
+      })
+      setLoading(false)
+      return
+    }
+
+    if (formData.password.length < 8) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Weak Password',
+        text: 'Password must be at least 8 characters long.'
+      })
+      setLoading(false)
+      return
+    }
+
+    const hasUppercase = /[A-Z]/.test(formData.password)
+    const hasLowercase = /[a-z]/.test(formData.password)
+    const hasNumber = /\d/.test(formData.password)
+    const hasSpecial = /[^A-Za-z0-9]/.test(formData.password)
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Weak Password',
+        text: 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.'
+      })
+      setLoading(false)
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       Swal.fire({ icon: 'warning', title: 'Warning', text: 'Passwords do not match.' })
       setLoading(false)
